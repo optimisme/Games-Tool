@@ -610,7 +610,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                         vertical: 6,
                         horizontal: 8,
                       ),
-                      color: CupertinoColors.systemBlue.withValues(alpha: 0.08),
+                      color: CupertinoColors.systemBlue.withValues(alpha: 0.2),
                       child: Row(
                         children: [
                           CupertinoButton(
@@ -685,7 +685,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                               ),
                               color: isSelected
                                   ? CupertinoColors.systemBlue
-                                      .withValues(alpha: 0.2)
+                                      .withValues(alpha: 0.08)
                                   : cdkColors.backgroundSecondary0,
                               child: Row(
                                 children: [
