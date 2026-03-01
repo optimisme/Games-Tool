@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'utils_gamestool.dart';
+import 'utils_gamestool/utils_gamestool.dart';
 
 class AppData extends ChangeNotifier {
   bool isConnected = true;

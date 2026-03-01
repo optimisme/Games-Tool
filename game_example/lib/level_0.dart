@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -7,8 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'app_data.dart';
 import 'camera.dart';
-import 'rendering.dart';
-import 'utils_gamestool.dart';
+import 'utils_gamestool/utils_gamestool.dart';
 
 class Level0 extends StatefulWidget {
   const Level0({super.key, required this.levelIndex});
@@ -271,33 +268,41 @@ class Level0Painter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint background = Paint()..color = const Color(0xFF0B1014);
-    canvas.drawRect(Offset.zero & size, background);
-
     if (level == null || renderState == null) {
+      final Paint background = Paint()..color = const Color(0xFF0B1014);
+      canvas.drawRect(Offset.zero & size, background);
       _drawText(canvas, 'Loading level 0...', const Offset(20, 20));
       return;
     }
 
-    final double parallaxSensitivity = _levelParallaxSensitivity();
+    final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
+    final double parallaxSensitivity =
+        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+      gamesTool: appData.gamesTool,
+      level: level,
+    );
 
-    CommonRenderer.drawLevelTileLayers(
+    GamesToolRuntimeRenderer.drawLevelTileLayers(
       canvas: canvas,
       painterSize: size,
       level: level!,
-      appData: appData,
-      camera: camera,
+      gamesTool: appData.gamesTool,
+      imagesCache: appData.imagesCache,
+      camera: runtimeCamera,
       backgroundColor: const Color(0xFF0B1014),
       parallaxSensitivity: parallaxSensitivity,
     );
 
-    CommonRenderer.drawAnimatedFlag(
+    GamesToolRuntimeRenderer.drawAnimatedSpriteByType(
       canvas: canvas,
       painterSize: size,
+      gameData: appData.gameData,
       level: level!,
-      appData: appData,
-      camera: camera,
-      tickCounter: renderState!.tickCounter,
+      gamesTool: appData.gamesTool,
+      imagesCache: appData.imagesCache,
+      camera: runtimeCamera,
+      spriteType: 'flag',
+      elapsedSeconds: renderState!.tickCounter / 60.0,
       parallaxSensitivity: parallaxSensitivity,
     );
 
@@ -309,7 +314,11 @@ class Level0Painter extends CustomPainter {
       const Offset(20, 20),
     );
 
-    CommonRenderer.drawConnectionIndicator(canvas, size, appData.isConnected);
+    GamesToolRuntimeRenderer.drawConnectionIndicator(
+      canvas,
+      size,
+      appData.isConnected,
+    );
   }
 
   void _drawText(Canvas canvas, String text, Offset offset) {
@@ -338,132 +347,63 @@ class Level0Painter extends CustomPainter {
       level!,
     );
     final _AnimationSelection animation = _resolveAnimationFor(state);
-    final Map<String, dynamic>? animationData =
-        appData.gamesTool.findAnimationByName(
-      appData.gameData,
-      animation.animationName,
+    if (sprite == null) {
+      _drawFallbackPlayer(canvas, size);
+      return;
+    }
+
+    final double parallaxSensitivity =
+        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+      gamesTool: appData.gamesTool,
+      level: level,
     );
-
-    if (sprite == null || animationData == null) {
-      _drawFallbackPlayer(canvas, size);
-      return;
-    }
-
-    final Object? mediaFile = animationData['mediaFile'];
-    if (mediaFile is! String || mediaFile.isEmpty) {
-      _drawFallbackPlayer(canvas, size);
-      return;
-    }
-
-    final String sheetPath = appData.gamesTool.toRelativeAssetKey(mediaFile);
-    final ui.Image? sheet = appData.imagesCache[sheetPath];
-    if (sheet == null) {
-      _drawFallbackPlayer(canvas, size);
-      return;
-    }
-
-    final Map<String, dynamic>? mediaAsset =
-        appData.gamesTool.findMediaAssetByFile(
-      appData.gameData,
-      mediaFile,
-    );
-    final double frameWidth = mediaAsset == null
-        ? appData.gamesTool.spriteWidth(sprite, fallback: state.playerWidth)
-        : appData.gamesTool.mediaTileWidth(
-            mediaAsset,
-            fallback: appData.gamesTool.spriteWidth(
-              sprite,
-              fallback: state.playerWidth,
-            ),
-          );
-    final double frameHeight = mediaAsset == null
-        ? appData.gamesTool.spriteHeight(sprite, fallback: state.playerHeight)
-        : appData.gamesTool.mediaTileHeight(
-            mediaAsset,
-            fallback: appData.gamesTool.spriteHeight(
-              sprite,
-              fallback: state.playerHeight,
-            ),
-          );
-
-    final int columns = (sheet.width / frameWidth).floor();
-    if (columns <= 0) {
-      _drawFallbackPlayer(canvas, size);
-      return;
-    }
-
-    final AnimationPlaybackConfig playback =
-        appData.gamesTool.animationPlaybackConfig(
-      animationData,
+    final bool drewSprite = GamesToolRuntimeRenderer.drawAnimatedSprite(
+      canvas: canvas,
+      painterSize: size,
+      gameData: appData.gameData,
+      gamesTool: appData.gamesTool,
+      imagesCache: appData.imagesCache,
+      sprite: sprite,
+      camera: camera.toRuntimeCamera2D(),
+      elapsedSeconds: state.animationTimeSeconds,
+      animationName: animation.animationName,
+      worldX: state.playerX,
+      worldY: state.playerY,
+      flipX: animation.mirrorX,
+      drawWidthWorld: state.playerWidth,
+      drawHeightWorld: state.playerHeight,
+      parallaxSensitivity: parallaxSensitivity,
       fallbackFps: 8,
     );
-    final int frameIndex = appData.gamesTool.animationFrameIndexAtTime(
-      playback: playback,
-      elapsedSeconds: state.animationTimeSeconds,
-    );
-    final int srcCol = frameIndex % columns;
-    final int srcRow = frameIndex ~/ columns;
-    final Rect srcRect = Rect.fromLTWH(
-      srcCol * frameWidth,
-      srcRow * frameHeight,
-      frameWidth,
-      frameHeight,
-    );
-
-    final CameraScale cameraScale = CommonRenderer.getCameraScale(size, camera);
-    final double parallaxSensitivity = _levelParallaxSensitivity();
-    final Offset screenPos = CommonRenderer.worldToScreen(
-      state.playerX,
-      state.playerY,
-      size,
-      camera,
-      parallaxSensitivity: parallaxSensitivity,
-    );
-    final double anchorX = appData.gamesTool.animationAnchorXForFrame(
-      animationData,
-      frameIndex: frameIndex,
-    );
-    final double anchorY = appData.gamesTool.animationAnchorYForFrame(
-      animationData,
-      frameIndex: frameIndex,
-    );
-    final double drawWidth = state.playerWidth * cameraScale.scale;
-    final double drawHeight = state.playerHeight * cameraScale.scale;
-
-    final Paint paint = Paint()..filterQuality = FilterQuality.none;
-    canvas.save();
-    canvas.translate(screenPos.dx, screenPos.dy);
-    canvas.scale(animation.mirrorX ? -1.0 : 1.0, 1.0);
-    canvas.drawImageRect(
-      sheet,
-      srcRect,
-      Rect.fromLTWH(
-        -drawWidth * anchorX,
-        -drawHeight * anchorY,
-        drawWidth,
-        drawHeight,
-      ),
-      paint,
-    );
-    canvas.restore();
+    if (!drewSprite) {
+      _drawFallbackPlayer(canvas, size);
+    }
   }
 
   void _drawFallbackPlayer(Canvas canvas, Size size) {
     final Level0RenderState state = renderState!;
-    final CameraScale cameraScale = CommonRenderer.getCameraScale(size, camera);
-    final double parallaxSensitivity = _levelParallaxSensitivity();
-    final Offset screenPos = CommonRenderer.worldToScreen(
-      state.playerX,
-      state.playerY,
-      size,
-      camera,
+    final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
+    final double cameraScale = RuntimeCameraMath.cameraScaleForViewport(
+      viewportSize: size,
+      focal: runtimeCamera.focal,
+    );
+    final double parallaxSensitivity =
+        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+      gamesTool: appData.gamesTool,
+      level: level,
+    );
+    final Offset screenPos = RuntimeCameraMath.worldToScreen(
+      worldX: state.playerX,
+      worldY: state.playerY,
+      viewportSize: size,
+      camera: runtimeCamera,
       parallaxSensitivity: parallaxSensitivity,
     );
     final Rect playerRect = Rect.fromLTWH(
       screenPos.dx,
       screenPos.dy,
-      state.playerWidth * cameraScale.scale,
-      state.playerHeight * cameraScale.scale,
+      state.playerWidth * cameraScale,
+      state.playerHeight * cameraScale,
     );
     final Paint playerPaint = Paint()..color = const Color(0xFF4DA3FF);
     canvas.drawRect(playerRect, playerPaint);
@@ -499,14 +439,6 @@ class Level0Painter extends CustomPainter {
       default:
         return _AnimationSelection(animationName: '${prefix}Avall');
     }
-  }
-
-  double _levelParallaxSensitivity() {
-    final Map<String, dynamic>? currentLevel = level;
-    if (currentLevel == null) {
-      return GamesToolApi.defaultParallaxSensitivity;
-    }
-    return appData.gamesTool.levelParallaxSensitivity(currentLevel);
   }
 
   @override
