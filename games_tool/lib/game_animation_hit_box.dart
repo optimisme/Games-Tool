@@ -1,5 +1,5 @@
 class GameAnimationHitBox {
-  static const String defaultColor = 'red';
+  static const String defaultColor = 'green';
   static const List<String> colorPalette = <String>[
     'red',
     'deepOrange',

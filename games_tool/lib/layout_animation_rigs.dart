@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +12,7 @@ import 'app_data.dart';
 import 'game_animation.dart';
 import 'game_animation_hit_box.dart';
 import 'game_list_group.dart';
+import 'game_media_asset.dart';
 import 'layout_utils.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -310,6 +314,108 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     );
   }
 
+  Future<_AutoHitBoxDraft?> _autoDetectHitBoxDraft(
+    AppData appData,
+    GameAnimation animation,
+  ) async {
+    final GameMediaAsset? media =
+        appData.mediaAssetByFileName(animation.mediaFile);
+    if (media == null || media.tileWidth <= 0 || media.tileHeight <= 0) {
+      appData.projectStatusMessage =
+          'Auto hit box failed: missing valid media tile size.';
+      appData.update();
+      return null;
+    }
+
+    final ui.Image image = await appData.getImage(animation.mediaFile);
+    final int frameWidth = media.tileWidth;
+    final int frameHeight = media.tileHeight;
+    final int cols = math.max(1, (image.width / frameWidth).floor());
+    final int rows = math.max(1, (image.height / frameHeight).floor());
+    final int totalFrames = math.max(1, cols * rows);
+    final int activeFrame = _activeRigFrame(
+      appData,
+      animation,
+      writeBack: true,
+    );
+    final int frameIndex = activeFrame.clamp(0, totalFrames - 1);
+    final int srcCol = frameIndex % cols;
+    final int srcRow = frameIndex ~/ cols;
+    final int srcLeft = srcCol * frameWidth;
+    final int srcTop = srcRow * frameHeight;
+    final int srcRight = math.min(image.width, srcLeft + frameWidth);
+    final int srcBottom = math.min(image.height, srcTop + frameHeight);
+    if (srcRight <= srcLeft || srcBottom <= srcTop) {
+      appData.projectStatusMessage =
+          'Auto hit box failed: frame area is outside sprite sheet.';
+      appData.update();
+      return null;
+    }
+
+    final ByteData? data =
+        await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (data == null) {
+      appData.projectStatusMessage =
+          'Auto hit box failed: pixel data unavailable.';
+      appData.update();
+      return null;
+    }
+    final Uint8List rgba = data.buffer.asUint8List();
+
+    int minX = srcRight;
+    int minY = srcBottom;
+    int maxX = srcLeft - 1;
+    int maxY = srcTop - 1;
+
+    for (int y = srcTop; y < srcBottom; y++) {
+      final int rowOffset = y * image.width * 4;
+      for (int x = srcLeft; x < srcRight; x++) {
+        final int alpha = rgba[rowOffset + x * 4 + 3];
+        if (alpha == 0) {
+          continue;
+        }
+        if (x < minX) {
+          minX = x;
+        }
+        if (y < minY) {
+          minY = y;
+        }
+        if (x > maxX) {
+          maxX = x;
+        }
+        if (y > maxY) {
+          maxY = y;
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) {
+      appData.projectStatusMessage =
+          'Auto hit box failed: selected frame is fully transparent.';
+      appData.update();
+      return null;
+    }
+
+    final int localMinX = minX - srcLeft;
+    final int localMinY = minY - srcTop;
+    final int localMaxX = maxX - srcLeft;
+    final int localMaxY = maxY - srcTop;
+
+    double width = (localMaxX - localMinX + 1) / frameWidth;
+    double height = (localMaxY - localMinY + 1) / frameHeight;
+    width = width.clamp(0.01, 1.0).toDouble();
+    height = height.clamp(0.01, 1.0).toDouble();
+    double x = (localMinX / frameWidth).clamp(0.0, 1.0 - width).toDouble();
+    double y = (localMinY / frameHeight).clamp(0.0, 1.0 - height).toDouble();
+
+    return _AutoHitBoxDraft(
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+    );
+  }
+
   Future<void> _persistAnimationRig(
     AppData appData,
     GameAnimation animation,
@@ -390,6 +496,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
         hitBoxColorPalette: GameAnimationHitBox.colorPalette,
         anchorColorPalette: GameAnimation.anchorColorPalette,
         selectedFramesLabel: selectedFramesLabel,
+        onAutoHitBox: () => _autoDetectHitBoxDraft(appData, animation),
         onSelectedHitBoxChanged: (int index) {
           if (appData.selectedAnimationHitBox == index) {
             return;
@@ -833,6 +940,20 @@ class _HitBoxDraft {
   }
 }
 
+class _AutoHitBoxDraft {
+  const _AutoHitBoxDraft({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+}
+
 class _AnimationRigEditorPopover extends StatefulWidget {
   const _AnimationRigEditorPopover({
     required this.initialDraft,
@@ -840,6 +961,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
     required this.hitBoxColorPalette,
     required this.anchorColorPalette,
     required this.selectedFramesLabel,
+    required this.onAutoHitBox,
     required this.onSelectedHitBoxChanged,
     required this.onDraftChanged,
   });
@@ -849,6 +971,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
   final List<String> hitBoxColorPalette;
   final List<String> anchorColorPalette;
   final String selectedFramesLabel;
+  final Future<_AutoHitBoxDraft?> Function() onAutoHitBox;
   final ValueChanged<int> onSelectedHitBoxChanged;
   final Future<void> Function(_AnimationRigDraft draft) onDraftChanged;
 
@@ -881,12 +1004,16 @@ class _AnimationRigEditorPopoverState
   int _selectedIndex = -1;
   int _newKeyCounter = 0;
   int _selectedPanelIndex = 0;
+  bool _isAutoDetecting = false;
   late String _newHitBoxColor;
 
   @override
   void initState() {
     super.initState();
-    _newHitBoxColor = widget.hitBoxColorPalette.first;
+    _newHitBoxColor =
+        widget.hitBoxColorPalette.contains(GameAnimationHitBox.defaultColor)
+            ? GameAnimationHitBox.defaultColor
+            : widget.hitBoxColorPalette.first;
     _refreshAnchorControllers();
     final int initialIndex = widget.initialSelectedHitBoxIndex >= 0 &&
             widget.initialSelectedHitBoxIndex < _drafts.length
@@ -1093,6 +1220,40 @@ class _AnimationRigEditorPopoverState
       y: y,
       width: width,
       height: height,
+    );
+    setState(() {
+      _drafts.add(next);
+    });
+    _setSelectedIndex(_drafts.length - 1, notifyParent: true);
+    _emitChanged();
+  }
+
+  Future<void> _addAutoHitBox() async {
+    if (_isAutoDetecting) {
+      return;
+    }
+    setState(() {
+      _isAutoDetecting = true;
+    });
+    final _AutoHitBoxDraft? autoDraft = await widget.onAutoHitBox();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isAutoDetecting = false;
+    });
+    if (autoDraft == null) {
+      return;
+    }
+
+    final _HitBoxDraft next = _HitBoxDraft(
+      id: '__hb_${DateTime.now().microsecondsSinceEpoch}_${_newKeyCounter++}',
+      name: 'Hit Box ${_drafts.length + 1}',
+      color: GameAnimationHitBox.defaultColor,
+      x: autoDraft.x,
+      y: autoDraft.y,
+      width: autoDraft.width,
+      height: autoDraft.height,
     );
     setState(() {
       _drafts.add(next);
@@ -1416,7 +1577,24 @@ class _AnimationRigEditorPopoverState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CDKText('Animation Rigs', role: CDKTextRole.title),
+              Row(
+                children: [
+                  const Expanded(
+                    child: CDKText('Animation Rigs', role: CDKTextRole.title),
+                  ),
+                  CDKButton(
+                    style: CDKButtonStyle.action,
+                    onPressed: _isAutoDetecting ? null : _addAutoHitBox,
+                    child: _isAutoDetecting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CupertinoActivityIndicator(radius: 6),
+                          )
+                        : const Text('Auto'),
+                  ),
+                ],
+              ),
               SizedBox(height: spacing.md),
               const CDKText('Selected Frames', role: CDKTextRole.caption),
               const SizedBox(height: 4),

@@ -13,12 +13,12 @@
     {
       "id": "__group_1772115377170906_0",
       "name": "Heroi Salt",
-      "collapsed": true
+      "collapsed": false
     },
     {
       "id": "__group_1772115389184027_2",
       "name": "Heroi Camina",
-      "collapsed": true
+      "collapsed": false
     }
   ],
   "animations": [
@@ -32,37 +32,87 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
-      "hitBoxes": [],
+      "hitBoxes": [
+        {
+          "id": "__hb_1772400438313192_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.2,
+          "y": 0.19999999999999996,
+          "width": 0.6,
+          "height": 0.8
+        }
+      ],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400438313192_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400438313192_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400438313192_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400438313192_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         }
       ]
     },
@@ -76,37 +126,87 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
-      "hitBoxes": [],
+      "hitBoxes": [
+        {
+          "id": "__hb_1772400448794454_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.2,
+          "y": 0.19999999999999996,
+          "width": 0.6,
+          "height": 0.8
+        }
+      ],
       "frameRigs": [
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400448794454_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400448794454_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400448794454_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
-          "hitBoxes": []
+          "hitBoxes": [
+            {
+              "id": "__hb_1772400448794454_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.2,
+              "y": 0.19999999999999996,
+              "width": 0.6,
+              "height": 0.8
+            }
+          ]
         }
       ]
     },
@@ -120,35 +220,35 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -164,35 +264,35 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -208,35 +308,35 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -252,42 +352,42 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -303,42 +403,42 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -354,42 +454,42 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -405,42 +505,42 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -456,42 +556,42 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 20,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 21,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 22,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 23,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 24,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -507,35 +607,35 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -551,35 +651,35 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -595,35 +695,35 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -639,35 +739,35 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
@@ -683,35 +783,35 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": []
         }
