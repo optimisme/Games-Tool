@@ -133,10 +133,7 @@ Behavior:
 5. Applies sprite `flipX/flipY` by mirroring normalized hitboxes.
 6. Converts hitboxes to world-space `Rect`.
 
-If an animation has no hitboxes, API provides a fallback full-body hitbox:
-
-- id: `__auto__body`
-- normalized rect: `(0,0,1,1)`
+If an animation/frame has no hitboxes, `spriteHitBoxes` returns an empty list and no hitbox-based collisions are detected for that sprite in that frame.
 
 ### Zone collisions
 
