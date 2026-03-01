@@ -17,14 +17,23 @@ class Level0 extends StatefulWidget {
 }
 
 class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
+  static const Set<String> _blockedZoneTypes = <String>{
+    'Mur',
+    'Aigua',
+  };
+  static const String _decoracionsLayerName = 'Decoracions';
+
   final FocusNode _focusNode = FocusNode();
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   final Camera _camera = Camera();
+  final GameDataRuntimeApi _runtimeApi = GameDataRuntimeApi();
 
   Ticker? _ticker;
   Duration? _lastTickTimestamp;
   bool _initialized = false;
   Map<String, dynamic>? _level;
+  int? _heroSpriteIndex;
+  int? _decoracionsLayerIndex;
   Level0UpdateState? _updateState;
 
   @override
@@ -47,8 +56,16 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
   void _initializeLevel(AppData appData) {
     _level = appData.getLevelByIndex(widget.levelIndex);
-    final Map<String, dynamic>? spawn =
-        appData.firstSpriteForLevel(widget.levelIndex);
+    _runtimeApi.useLoadedGameData(appData.gameData,
+        gamesTool: appData.gamesTool);
+    _heroSpriteIndex = _resolveHeroSpriteIndex(_level);
+    _decoracionsLayerIndex =
+        _resolveLayerIndexByName(_level, _decoracionsLayerName);
+
+    final Map<String, dynamic>? spawn = _level == null
+        ? null
+        : appData.gamesTool.findSpriteByType(_level!, 'Heroi') ??
+            appData.gamesTool.findFirstSprite(_level!);
 
     _updateState = Level0UpdateState(
       playerX: (spawn?['x'] as num?)?.toDouble() ?? 100,
@@ -126,9 +143,8 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
       inputY *= diagonalNormalization;
     }
 
-    final bool isMoving = inputX != 0 || inputY != 0;
-    state.isMoving = isMoving;
-    if (isMoving) {
+    final bool hasInput = inputX != 0 || inputY != 0;
+    if (hasInput) {
       if (up && left) {
         state.direction = 'upLeft';
       } else if (up && right) {
@@ -150,10 +166,184 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
     final double dx = inputX * state.speedPerSecond * dt;
     final double dy = inputY * state.speedPerSecond * dt;
-    state.playerX += dx;
-    state.playerY += dy;
+    final double previousX = state.playerX;
+    final double previousY = state.playerY;
+
+    if (dx != 0) {
+      final double nextX = state.playerX + dx;
+      if (!_wouldCollideWithBlockedZone(
+        state,
+        nextX: nextX,
+        nextY: state.playerY,
+      )) {
+        state.playerX = nextX;
+      }
+    }
+    if (dy != 0) {
+      final double nextY = state.playerY + dy;
+      if (!_wouldCollideWithBlockedZone(
+        state,
+        nextX: state.playerX,
+        nextY: nextY,
+      )) {
+        state.playerY = nextY;
+      }
+    }
+
+    state.isMoving = state.playerX != previousX || state.playerY != previousY;
+    _clearDecorationTileIfOnArbre(state);
+    state.isOnPont = _isInsidePontZone(state);
     state.animationTimeSeconds += dt;
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
+  }
+
+  bool _wouldCollideWithBlockedZone(
+    Level0UpdateState state, {
+    required double nextX,
+    required double nextY,
+  }) {
+    final int? spriteIndex = _heroSpriteIndex;
+    if (spriteIndex == null) {
+      return false;
+    }
+    return _runtimeApi
+        .collideSpriteWithZones(
+          levelIndex: widget.levelIndex,
+          spriteIndex: spriteIndex,
+          spritePose: RuntimeSpritePose(
+            levelIndex: widget.levelIndex,
+            spriteIndex: spriteIndex,
+            x: nextX,
+            y: nextY,
+            elapsedSeconds: state.animationTimeSeconds,
+          ),
+          zoneTypes: _blockedZoneTypes,
+          elapsedSeconds: state.animationTimeSeconds,
+        )
+        .isNotEmpty;
+  }
+
+  bool _isInsidePontZone(Level0UpdateState state) {
+    final int? spriteIndex = _heroSpriteIndex;
+    if (spriteIndex == null) {
+      return false;
+    }
+    return _runtimeApi
+        .collideSpriteWithZones(
+          levelIndex: widget.levelIndex,
+          spriteIndex: spriteIndex,
+          spritePose: RuntimeSpritePose(
+            levelIndex: widget.levelIndex,
+            spriteIndex: spriteIndex,
+            x: state.playerX,
+            y: state.playerY,
+            elapsedSeconds: state.animationTimeSeconds,
+          ),
+          zoneTypes: const <String>{'Pont'},
+          elapsedSeconds: state.animationTimeSeconds,
+        )
+        .isNotEmpty;
+  }
+
+  void _clearDecorationTileIfOnArbre(Level0UpdateState state) {
+    final int? spriteIndex = _heroSpriteIndex;
+    final int? layerIndex = _decoracionsLayerIndex;
+    if (spriteIndex == null || layerIndex == null) {
+      return;
+    }
+    final bool isInsideArbre = _runtimeApi
+        .collideSpriteWithZones(
+          levelIndex: widget.levelIndex,
+          spriteIndex: spriteIndex,
+          spritePose: RuntimeSpritePose(
+            levelIndex: widget.levelIndex,
+            spriteIndex: spriteIndex,
+            x: state.playerX,
+            y: state.playerY,
+            elapsedSeconds: state.animationTimeSeconds,
+          ),
+          zoneTypes: const <String>{'Arbre'},
+          elapsedSeconds: state.animationTimeSeconds,
+        )
+        .isNotEmpty;
+    if (!isInsideArbre) {
+      return;
+    }
+
+    final TileCoord? tile = _runtimeApi.worldToTile(
+      levelIndex: widget.levelIndex,
+      layerIndex: layerIndex,
+      worldX: state.playerX,
+      worldY: state.playerY,
+    );
+    if (tile == null) {
+      return;
+    }
+    final int tileId = _runtimeApi.tileAt(
+      levelIndex: widget.levelIndex,
+      layerIndex: layerIndex,
+      tileX: tile.x,
+      tileY: tile.y,
+    );
+    if (tileId < 0) {
+      return;
+    }
+
+    _runtimeApi.gameDataSet(
+      <Object>[
+        'levels',
+        widget.levelIndex,
+        'layers',
+        layerIndex,
+        'tileMap',
+        tile.y,
+        tile.x,
+      ],
+      -1,
+    );
+    state.arbresRemovedCount += 1;
+  }
+
+  int? _resolveHeroSpriteIndex(Map<String, dynamic>? level) {
+    if (level == null) {
+      return null;
+    }
+    final List<dynamic> sprites =
+        (level['sprites'] as List<dynamic>?) ?? const <dynamic>[];
+    for (int i = 0; i < sprites.length; i++) {
+      final dynamic sprite = sprites[i];
+      if (sprite is! Map<String, dynamic>) {
+        continue;
+      }
+      final String type = (sprite['type'] as String?)?.trim() ?? '';
+      final String name = (sprite['name'] as String?)?.trim() ?? '';
+      if (type == 'Heroi' || name == 'Heroi') {
+        return i;
+      }
+    }
+    if (sprites.isEmpty) {
+      return null;
+    }
+    return 0;
+  }
+
+  int? _resolveLayerIndexByName(Map<String, dynamic>? level, String layerName) {
+    if (level == null) {
+      return null;
+    }
+    final List<dynamic> layers =
+        (level['layers'] as List<dynamic>?) ?? const <dynamic>[];
+    for (int i = 0; i < layers.length; i++) {
+      final dynamic layer = layers[i];
+      if (layer is! Map<String, dynamic>) {
+        continue;
+      }
+      final String name = (layer['name'] as String?)?.trim() ?? '';
+      if (name == layerName) {
+        return i;
+      }
+    }
+    return null;
   }
 
   KeyEventResult _onKeyEvent(KeyEvent event) {
@@ -213,6 +403,8 @@ class Level0UpdateState {
   double playerHeight;
   String direction = 'down';
   bool isMoving = false;
+  bool isOnPont = false;
+  int arbresRemovedCount = 0;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   final double speedPerSecond;
@@ -226,6 +418,8 @@ class Level0RenderState {
     required this.playerHeight,
     required this.direction,
     required this.isMoving,
+    required this.isOnPont,
+    required this.arbresRemovedCount,
     required this.animationTimeSeconds,
     required this.tickCounter,
   });
@@ -238,6 +432,8 @@ class Level0RenderState {
       playerHeight: state.playerHeight,
       direction: state.direction,
       isMoving: state.isMoving,
+      isOnPont: state.isOnPont,
+      arbresRemovedCount: state.arbresRemovedCount,
       animationTimeSeconds: state.animationTimeSeconds,
       tickCounter: state.tickCounter,
     );
@@ -249,6 +445,8 @@ class Level0RenderState {
   final double playerHeight;
   final String direction;
   final bool isMoving;
+  final bool isOnPont;
+  final int arbresRemovedCount;
   final double animationTimeSeconds;
   final int tickCounter;
 }
@@ -293,19 +491,6 @@ class Level0Painter extends CustomPainter {
       parallaxSensitivity: parallaxSensitivity,
     );
 
-    GamesToolRuntimeRenderer.drawAnimatedSpriteByType(
-      canvas: canvas,
-      painterSize: size,
-      gameData: appData.gameData,
-      level: level!,
-      gamesTool: appData.gamesTool,
-      imagesCache: appData.imagesCache,
-      camera: runtimeCamera,
-      spriteType: 'flag',
-      elapsedSeconds: renderState!.tickCounter / 60.0,
-      parallaxSensitivity: parallaxSensitivity,
-    );
-
     _drawAnimatedPlayer(canvas, size);
 
     _drawText(
@@ -313,11 +498,14 @@ class Level0Painter extends CustomPainter {
       'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
       const Offset(20, 20),
     );
-
-    GamesToolRuntimeRenderer.drawConnectionIndicator(
+    if (renderState!.isOnPont) {
+      _drawText(canvas, 'Caminant pel pont', const Offset(20, 42));
+    }
+    _drawTopRightText(
       canvas,
       size,
-      appData.isConnected,
+      'Arbres: ${renderState!.arbresRemovedCount}',
+      20,
     );
   }
 
@@ -336,6 +524,21 @@ class Level0Painter extends CustomPainter {
     painter.paint(canvas, offset);
   }
 
+  void _drawTopRightText(Canvas canvas, Size size, String text, double top) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: Color(0xFFE0F2FF),
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, Offset(size.width - painter.width - 20, top));
+  }
+
   void _drawAnimatedPlayer(Canvas canvas, Size size) {
     final Level0RenderState state = renderState!;
     if (level == null) {
@@ -343,9 +546,9 @@ class Level0Painter extends CustomPainter {
       return;
     }
 
-    final Map<String, dynamic>? sprite = appData.gamesTool.findFirstSprite(
-      level!,
-    );
+    final Map<String, dynamic>? sprite =
+        appData.gamesTool.findSpriteByType(level!, 'Heroi') ??
+            appData.gamesTool.findFirstSprite(level!);
     final _AnimationSelection animation = _resolveAnimationFor(state);
     if (sprite == null) {
       _drawFallbackPlayer(canvas, size);

@@ -111,11 +111,6 @@ class GamesToolApi {
     return levels[safeIndex];
   }
 
-  String levelNameByIndex(Map<String, dynamic> gameData, int levelIndex) {
-    final Map<String, dynamic>? level = findLevelByIndex(gameData, levelIndex);
-    return (level?['name'] as String?) ?? 'Level $levelIndex';
-  }
-
   List<Map<String, dynamic>> listLevelLayers(
     Map<String, dynamic> level, {
     bool visibleOnly = false,

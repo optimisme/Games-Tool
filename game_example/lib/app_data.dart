@@ -7,12 +7,9 @@ import 'package:flutter/services.dart';
 import 'utils_gamestool/utils_gamestool.dart';
 
 class AppData extends ChangeNotifier {
-  bool isConnected = true;
-
   // Shared loaded project data from games_tool exports.
   Map<String, dynamic> gameData = {};
   Map<String, ui.Image> imagesCache = {};
-  int selectedLevelIndex = 0;
   bool isLoadingData = false;
   double loadingProgress = 0;
   String? loadingError;
@@ -39,21 +36,8 @@ class AppData extends ChangeNotifier {
     return _ongoingLoad!;
   }
 
-  void startGame(int levelIndex) {
-    if (levels.isEmpty) {
-      return;
-    }
-
-    selectedLevelIndex = levelIndex.clamp(0, levels.length - 1);
-    notifyListeners();
-  }
-
   Map<String, dynamic>? getLevelByIndex(int levelIndex) {
     return gamesTool.findLevelByIndex(gameData, levelIndex);
-  }
-
-  String levelNameByIndex(int levelIndex) {
-    return gamesTool.levelNameByIndex(gameData, levelIndex);
   }
 
   Map<String, dynamic>? firstSpriteForLevel(int levelIndex) {

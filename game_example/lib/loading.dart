@@ -64,7 +64,6 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
         return;
       }
 
-      appData.startGame(widget.levelIndex);
       Navigator.of(context).pushReplacement(
         CupertinoPageRoute<void>(
           builder: (_) {
