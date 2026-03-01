@@ -232,7 +232,7 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
 
     final AppData appData = Provider.of<AppData>(context, listen: false);
     final String? workingDirectoryPath = await appData.pickDirectory(
-      dialogTitle: "Select working folder",
+      dialogTitle: "Select project root folder",
       initialDirectory: appData.projectsPath,
     );
     if (workingDirectoryPath == null || !mounted) {

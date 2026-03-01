@@ -444,7 +444,7 @@ class AppData extends ChangeNotifier {
   }
 
   String projectDisplayNameForPath(String path) {
-    final String normalizedPath = _normalizeKnownProjectPath(path);
+    final String normalizedPath = _normalizeProjectFolderPath(path);
     final String explicitName =
         (_knownProjectNamesByPath[normalizedPath] ?? '').trim();
     if (explicitName.isNotEmpty) {
@@ -470,6 +470,19 @@ class AppData extends ChangeNotifier {
     while (
         normalized.length > 1 && normalized.endsWith(Platform.pathSeparator)) {
       normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
+  }
+
+  String _normalizeProjectFolderPath(String value) {
+    final String normalized = _normalizeKnownProjectPath(value);
+    if (normalized.isEmpty) {
+      return '';
+    }
+    final String parentPath = Directory(normalized).parent.path;
+    if (_lastPathSegment(parentPath).toLowerCase() ==
+        _lastPathSegment(normalized).toLowerCase()) {
+      return _normalizeKnownProjectPath(parentPath);
     }
     return normalized;
   }
@@ -534,7 +547,7 @@ class AppData extends ChangeNotifier {
     final Map<String, String> resolvedPathByRawPath = <String, String>{};
 
     for (final String rawPath in _knownProjectPaths) {
-      final String normalizedRawPath = _normalizeKnownProjectPath(rawPath);
+      final String normalizedRawPath = _normalizeProjectFolderPath(rawPath);
       if (normalizedRawPath.isEmpty) {
         continue;
       }
@@ -548,7 +561,7 @@ class AppData extends ChangeNotifier {
         final Map<String, String>? resolved =
             await _resolveSecurityBookmark(bookmark);
         if (resolved != null) {
-          resolvedPath = _normalizeKnownProjectPath(resolved['path'] ?? '');
+          resolvedPath = _normalizeProjectFolderPath(resolved['path'] ?? '');
           resolvedBookmark = resolved['bookmark'];
         }
       }
@@ -584,7 +597,7 @@ class AppData extends ChangeNotifier {
     _projectBookmarksByPath = nextBookmarks;
     _knownProjectNamesByPath = nextProjectNames;
     final String normalizedSelectedPath =
-        _normalizeKnownProjectPath(selectedProjectId);
+        _normalizeProjectFolderPath(selectedProjectId);
     if (normalizedSelectedPath.isNotEmpty) {
       selectedProjectId = resolvedPathByRawPath[normalizedSelectedPath] ??
           normalizedSelectedPath;
@@ -666,7 +679,7 @@ class AppData extends ChangeNotifier {
       if (candidate == null) {
         return;
       }
-      final String normalized = _normalizeKnownProjectPath(candidate);
+      final String normalized = _normalizeProjectFolderPath(candidate);
       if (normalized.isEmpty || !uniquePaths.add(normalized)) {
         return;
       }
@@ -690,7 +703,7 @@ class AppData extends ChangeNotifier {
           continue;
         }
         final String normalizedPath =
-            _normalizeKnownProjectPath(entry.key as String);
+            _normalizeProjectFolderPath(entry.key as String);
         final String name = (entry.value as String).trim();
         if (normalizedPath.isEmpty || name.isEmpty) {
           continue;
@@ -720,18 +733,19 @@ class AppData extends ChangeNotifier {
         if (pathFromLegacy == null) {
           continue;
         }
-        final String normalized = _normalizeKnownProjectPath(pathFromLegacy);
-        if (normalized.isEmpty) {
+        final String normalizedProjectPath =
+            _normalizeProjectFolderPath(pathFromLegacy);
+        if (normalizedProjectPath.isEmpty) {
           continue;
         }
-        addKnownPath(normalized);
+        addKnownPath(normalizedProjectPath);
         final dynamic rawName = map['name'];
         if (rawName is String && rawName.trim().isNotEmpty) {
-          parsedProjectNamesByPath[normalized] = rawName.trim();
+          parsedProjectNamesByPath[normalizedProjectPath] = rawName.trim();
         }
         final dynamic rawLegacyId = map['id'];
         if (rawLegacyId is String && rawLegacyId.isNotEmpty) {
-          legacyIdToPath[rawLegacyId] = normalized;
+          legacyIdToPath[rawLegacyId] = normalizedProjectPath;
         }
       }
     }
@@ -739,14 +753,14 @@ class AppData extends ChangeNotifier {
     String selectedPath = '';
     final dynamic rawSelectedPath = decoded['selectedProjectPath'];
     if (rawSelectedPath is String) {
-      selectedPath = _normalizeKnownProjectPath(rawSelectedPath);
+      selectedPath = _normalizeProjectFolderPath(rawSelectedPath);
     }
     if (selectedPath.isEmpty) {
       final String rawLegacySelectedId =
           (decoded['selectedProjectId'] as String?) ?? "";
       if (rawLegacySelectedId.isNotEmpty) {
         selectedPath = legacyIdToPath[rawLegacySelectedId] ??
-            _normalizeKnownProjectPath(rawLegacySelectedId);
+            _normalizeProjectFolderPath(rawLegacySelectedId);
       }
     }
 
@@ -766,12 +780,13 @@ class AppData extends ChangeNotifier {
         if (entry.key is! String || entry.value is! String) {
           continue;
         }
-        final String key = _normalizeKnownProjectPath(entry.key as String);
+        final String normalizedKey =
+            _normalizeProjectFolderPath(entry.key as String);
         final String value = (entry.value as String).trim();
-        if (key.isEmpty || value.isEmpty) {
+        if (normalizedKey.isEmpty || value.isEmpty) {
           continue;
         }
-        parsedBookmarks[key] = value;
+        parsedBookmarks[normalizedKey] = value;
       }
       _projectBookmarksByPath = parsedBookmarks;
     }
@@ -814,7 +829,7 @@ class AppData extends ChangeNotifier {
     final Map<String, String> normalizedBookmarks = <String, String>{};
     final Map<String, String> normalizedNames = <String, String>{};
     for (final String rawPath in _knownProjectPaths) {
-      final String normalized = _normalizeKnownProjectPath(rawPath);
+      final String normalized = _normalizeProjectFolderPath(rawPath);
       if (normalized.isEmpty || !uniqueKnown.add(normalized)) {
         continue;
       }
@@ -883,7 +898,7 @@ class AppData extends ChangeNotifier {
         if (entity is! Directory) {
           continue;
         }
-        final String normalizedPath = _normalizeKnownProjectPath(entity.path);
+        final String normalizedPath = _normalizeProjectFolderPath(entity.path);
         if (normalizedPath.isEmpty || uniqueKnown.contains(normalizedPath)) {
           continue;
         }
@@ -941,30 +956,6 @@ class AppData extends ChangeNotifier {
         .where((item) => item != "")
         .toList();
     return parts.isEmpty ? value : parts.last;
-  }
-
-  String _sanitizeFolderName(String value) {
-    final String cleaned = value
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9_\-]+'), "_")
-        .replaceAll(RegExp(r'_+'), "_")
-        .replaceAll(RegExp(r'^_|_$'), "");
-    return cleaned.isEmpty ? "project" : cleaned;
-  }
-
-  Future<String> _buildUniqueProjectFolderName({
-    required String parentDirectoryPath,
-    required String baseFolderName,
-  }) async {
-    String candidate = baseFolderName;
-    int cnt = 2;
-    while (await Directory(
-      "$parentDirectoryPath${Platform.pathSeparator}$candidate",
-    ).exists()) {
-      candidate = "${baseFolderName}_$cnt";
-      cnt++;
-    }
-    return candidate;
   }
 
   Future<String> _buildUniqueFileNameInDirectory(
@@ -1965,7 +1956,7 @@ class AppData extends ChangeNotifier {
     if (selectedPath == null) {
       return null;
     }
-    final String normalized = _normalizeKnownProjectPath(selectedPath);
+    final String normalized = _normalizeProjectFolderPath(selectedPath);
     return normalized.isEmpty ? null : normalized;
   }
 
@@ -1978,27 +1969,27 @@ class AppData extends ChangeNotifier {
       await initializeStorage();
     }
 
-    final String normalizedWorkingDirectory =
-        _normalizeKnownProjectPath(workingDirectoryPath);
-    if (normalizedWorkingDirectory.isEmpty) {
-      throw Exception("Invalid working directory path");
+    final String normalizedProjectPath =
+        _normalizeProjectFolderPath(workingDirectoryPath);
+    if (normalizedProjectPath.isEmpty) {
+      throw Exception("Invalid project folder path");
     }
-    final Directory workingDirectory = Directory(normalizedWorkingDirectory);
-    await workingDirectory.create(recursive: true);
+    final Directory projectDirectory = Directory(normalizedProjectPath);
+    await projectDirectory.create(recursive: true);
+    final File existingProjectFile = File(
+      "$normalizedProjectPath${Platform.pathSeparator}$gameFileName",
+    );
+    if (await existingProjectFile.exists()) {
+      throw Exception(
+        "A project already exists in \"$normalizedProjectPath\". "
+        "Use Add Existing instead.",
+      );
+    }
 
     final String defaultName = projectName?.trim().isNotEmpty == true
         ? projectName!.trim()
         : "New Project";
-    final String folderName = await _buildUniqueProjectFolderName(
-      parentDirectoryPath: normalizedWorkingDirectory,
-      baseFolderName: _sanitizeFolderName(defaultName),
-    );
-    final Directory projectDirectory = Directory(
-        "$normalizedWorkingDirectory${Platform.pathSeparator}$folderName");
-    await projectDirectory.create(recursive: true);
-
-    final String projectPath =
-        _normalizeKnownProjectPath(projectDirectory.path);
+    final String projectPath = normalizedProjectPath;
     final StoredProject newProject = StoredProject.fromPath(
       folderPath: projectPath,
       name: defaultName,
@@ -2079,7 +2070,8 @@ class AppData extends ChangeNotifier {
 
   Future<String?> addExistingProjectFromPath(String projectFolderPath) async {
     await flushPendingAutosave();
-    final String normalizedPath = _normalizeKnownProjectPath(projectFolderPath);
+    final String normalizedPath =
+        _normalizeProjectFolderPath(projectFolderPath);
     if (normalizedPath.isEmpty) {
       projectStatusMessage = "Invalid project folder path";
       notifyListeners();
@@ -2116,7 +2108,8 @@ class AppData extends ChangeNotifier {
   }
 
   Future<void> removeKnownProjectPath(String projectFolderPath) async {
-    final String normalizedPath = _normalizeKnownProjectPath(projectFolderPath);
+    final String normalizedPath =
+        _normalizeProjectFolderPath(projectFolderPath);
     if (normalizedPath.isEmpty) {
       return;
     }
@@ -2141,9 +2134,9 @@ class AppData extends ChangeNotifier {
     required String replacementProjectPath,
   }) async {
     final String normalizedMissingPath =
-        _normalizeKnownProjectPath(missingProjectPath);
+        _normalizeProjectFolderPath(missingProjectPath);
     final String normalizedReplacementPath =
-        _normalizeKnownProjectPath(replacementProjectPath);
+        _normalizeProjectFolderPath(replacementProjectPath);
     if (normalizedMissingPath.isEmpty || normalizedReplacementPath.isEmpty) {
       return false;
     }
@@ -2258,39 +2251,52 @@ class AppData extends ChangeNotifier {
       return false;
     }
 
-    final String normalizedDestinationRoot =
-        _normalizeKnownProjectPath(destinationRootPath);
-    if (normalizedDestinationRoot.isEmpty) {
+    final String destinationProjectPath =
+        _normalizeProjectFolderPath(destinationRootPath);
+    if (destinationProjectPath.isEmpty) {
       return false;
     }
 
-    final String sourcePath = _normalizeKnownProjectPath(project.folderPath);
-    if (sourcePath == normalizedDestinationRoot) {
+    final String sourcePath = _normalizeProjectFolderPath(project.folderPath);
+    if (sourcePath == destinationProjectPath) {
       return false;
     }
 
     try {
-      final Directory destinationRootDirectory =
-          Directory(normalizedDestinationRoot);
-      await destinationRootDirectory.create(recursive: true);
-
-      final String destinationFolderName = await _buildUniqueProjectFolderName(
-        parentDirectoryPath: normalizedDestinationRoot,
-        baseFolderName: _sanitizeFolderName(project.folderName),
-      );
-      final String destinationProjectPath =
-          "$normalizedDestinationRoot${Platform.pathSeparator}$destinationFolderName";
-
-      await _copyDirectoryRecursively(
-        source: Directory(sourcePath),
-        destination: Directory(destinationProjectPath),
-      );
-
-      final File destinationGameFile = File(
+      final Directory destinationDirectory = Directory(destinationProjectPath);
+      await destinationDirectory.create(recursive: true);
+      final File existingDestinationGameFile = File(
         "$destinationProjectPath${Platform.pathSeparator}$gameFileName",
       );
-      if (!await destinationGameFile.exists()) {
-        throw Exception("Copy failed: missing $gameFileName in destination");
+
+      // If destination already has project data, relink directly.
+      if (!await existingDestinationGameFile.exists()) {
+        bool destinationHasEntries = false;
+        await for (final FileSystemEntity _ in destinationDirectory.list(
+          recursive: false,
+          followLinks: false,
+        )) {
+          destinationHasEntries = true;
+          break;
+        }
+        if (destinationHasEntries) {
+          throw Exception(
+            "Destination folder must be empty or already contain "
+            "$gameFileName: $destinationProjectPath",
+          );
+        }
+
+        await _copyDirectoryRecursively(
+          source: Directory(sourcePath),
+          destination: destinationDirectory,
+        );
+
+        final File copiedGameFile = File(
+          "$destinationProjectPath${Platform.pathSeparator}$gameFileName",
+        );
+        if (!await copiedGameFile.exists()) {
+          throw Exception("Copy failed: missing $gameFileName in destination");
+        }
       }
 
       if (deleteOldFolderIfCopied) {
@@ -2299,16 +2305,24 @@ class AppData extends ChangeNotifier {
         } catch (_) {}
       }
 
-      final int knownIndex = _knownProjectPaths.indexOf(sourcePath);
-      if (knownIndex >= 0) {
-        _knownProjectPaths[knownIndex] = destinationProjectPath;
+      if (sourcePath != destinationProjectPath &&
+          _knownProjectPaths.contains(destinationProjectPath)) {
+        _knownProjectPaths.removeWhere((String item) => item == sourcePath);
       } else {
-        _knownProjectPaths.add(destinationProjectPath);
+        final int knownIndex = _knownProjectPaths.indexOf(sourcePath);
+        if (knownIndex >= 0) {
+          _knownProjectPaths[knownIndex] = destinationProjectPath;
+        } else {
+          _knownProjectPaths.add(destinationProjectPath);
+        }
       }
       _knownProjectPaths.removeWhere((String item) => item == sourcePath);
       if (!_knownProjectPaths.contains(destinationProjectPath)) {
         _knownProjectPaths.add(destinationProjectPath);
       }
+      final File destinationGameFile = File(
+        "$destinationProjectPath${Platform.pathSeparator}$gameFileName",
+      );
       final String destinationProjectName =
           await _readProjectNameFromDisk(destinationGameFile) ?? project.name;
       _knownProjectNamesByPath.remove(sourcePath);
@@ -2493,7 +2507,7 @@ class AppData extends ChangeNotifier {
         print("Error opening project: $e");
       }
       final StoredProject? project = _findProjectById(projectId);
-      final String failedPath = _normalizeKnownProjectPath(
+      final String failedPath = _normalizeProjectFolderPath(
         project?.folderPath ?? projectId,
       );
       if (_isMacOSPathPermissionDenied(e, failedPath)) {

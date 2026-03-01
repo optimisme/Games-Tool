@@ -12,6 +12,46 @@ class RuntimeCamera2D {
   final double focal;
 }
 
+class RuntimeLevelViewport {
+  const RuntimeLevelViewport({
+    required this.width,
+    required this.height,
+    required this.x,
+    required this.y,
+    required this.adaptation,
+    this.initialColorName,
+    this.previewColorName,
+  });
+
+  final double width;
+  final double height;
+  final double x;
+  final double y;
+  final String adaptation;
+  final String? initialColorName;
+  final String? previewColorName;
+}
+
+class RuntimeViewportLayout {
+  const RuntimeViewportLayout({
+    required this.virtualSize,
+    required this.destinationRect,
+    required this.scaleX,
+    required this.scaleY,
+  });
+
+  final Size virtualSize;
+  final Rect destinationRect;
+  final double scaleX;
+  final double scaleY;
+
+  bool get hasVisibleArea =>
+      virtualSize.width > 0 &&
+      virtualSize.height > 0 &&
+      destinationRect.width > 0 &&
+      destinationRect.height > 0;
+}
+
 class TileCoord {
   const TileCoord(this.x, this.y);
 

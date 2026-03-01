@@ -25,6 +25,9 @@ class GamesToolApi {
   static const double defaultAnimationFps = 12.0;
   static const double defaultAnchorX = 0.5;
   static const double defaultAnchorY = 0.5;
+  static const double defaultViewportWidth = 320;
+  static const double defaultViewportHeight = 180;
+  static const String defaultViewportAdaptation = 'letterbox';
 
   final String projectFolder;
   String? _resolvedProjectFolder;
@@ -197,6 +200,90 @@ class GamesToolApi {
     return raw;
   }
 
+  double levelViewportWidth(
+    Map<String, dynamic> level, {
+    double fallback = defaultViewportWidth,
+  }) {
+    return _positiveFiniteDouble(level['viewportWidth'], fallback);
+  }
+
+  double levelViewportHeight(
+    Map<String, dynamic> level, {
+    double fallback = defaultViewportHeight,
+  }) {
+    return _positiveFiniteDouble(level['viewportHeight'], fallback);
+  }
+
+  double levelViewportX(
+    Map<String, dynamic> level, {
+    double fallback = 0,
+  }) {
+    return _finiteDouble(level['viewportX'], fallback);
+  }
+
+  double levelViewportY(
+    Map<String, dynamic> level, {
+    double fallback = 0,
+  }) {
+    return _finiteDouble(level['viewportY'], fallback);
+  }
+
+  String levelViewportAdaptation(
+    Map<String, dynamic> level, {
+    String fallback = defaultViewportAdaptation,
+  }) {
+    final String? adaptation = (level['viewportAdaptation'] as String?)?.trim();
+    if (adaptation == null || adaptation.isEmpty) {
+      return fallback;
+    }
+    return adaptation;
+  }
+
+  String? levelViewportInitialColorName(Map<String, dynamic> level) {
+    final String? value = (level['viewportInitialColor'] as String?)?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
+  String? levelViewportPreviewColorName(Map<String, dynamic> level) {
+    final String? value = (level['viewportPreviewColor'] as String?)?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
+  String levelBackgroundColorHex(
+    Map<String, dynamic> level, {
+    String fallback = '#000000',
+  }) {
+    final String? value = (level['backgroundColorHex'] as String?)?.trim();
+    if (value == null || value.isEmpty) {
+      return fallback;
+    }
+    return value;
+  }
+
+  double levelViewportCenterX(
+    Map<String, dynamic> level, {
+    double fallbackWidth = defaultViewportWidth,
+    double fallbackX = 0,
+  }) {
+    return levelViewportX(level, fallback: fallbackX) +
+        levelViewportWidth(level, fallback: fallbackWidth) * 0.5;
+  }
+
+  double levelViewportCenterY(
+    Map<String, dynamic> level, {
+    double fallbackHeight = defaultViewportHeight,
+    double fallbackY = 0,
+  }) {
+    return levelViewportY(level, fallback: fallbackY) +
+        levelViewportHeight(level, fallback: fallbackHeight) * 0.5;
+  }
+
   double spriteWidth(Map<String, dynamic> sprite, {double fallback = 16}) {
     final double? value = (sprite['width'] as num?)?.toDouble();
     if (value == null || !value.isFinite || value <= 0) {
@@ -223,6 +310,14 @@ class GamesToolApi {
 
   double spriteY(Map<String, dynamic> sprite, {double fallback = 0}) {
     final double? value = (sprite['y'] as num?)?.toDouble();
+    if (value == null || !value.isFinite) {
+      return fallback;
+    }
+    return value;
+  }
+
+  double spriteDepth(Map<String, dynamic> sprite, {double fallback = 0}) {
+    final double? value = (sprite['depth'] as num?)?.toDouble();
     if (value == null || !value.isFinite) {
       return fallback;
     }
@@ -661,5 +756,24 @@ class GamesToolApi {
       return fallbackSafe;
     }
     return raw.clamp(0.0, 1.0).toDouble();
+  }
+
+  double _positiveFiniteDouble(Object? value, double fallback) {
+    final double safeFallback =
+        (fallback.isFinite && fallback > 0) ? fallback : 1;
+    final double? raw = (value as num?)?.toDouble();
+    if (raw == null || !raw.isFinite || raw <= 0) {
+      return safeFallback;
+    }
+    return raw;
+  }
+
+  double _finiteDouble(Object? value, double fallback) {
+    final double safeFallback = fallback.isFinite ? fallback : 0;
+    final double? raw = (value as num?)?.toDouble();
+    if (raw == null || !raw.isFinite) {
+      return safeFallback;
+    }
+    return raw;
   }
 }

@@ -62,23 +62,44 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     _decoracionsLayerIndex =
         _resolveLayerIndexByName(_level, _decoracionsLayerName);
 
+    final double levelViewportWidth = _level == null
+        ? GamesToolApi.defaultViewportWidth
+        : appData.gamesTool.levelViewportWidth(
+            _level!,
+            fallback: GamesToolApi.defaultViewportWidth,
+          );
+    final double levelViewportCenterX = _level == null
+        ? 100
+        : appData.gamesTool.levelViewportCenterX(
+            _level!,
+            fallbackWidth: GamesToolApi.defaultViewportWidth,
+            fallbackX: 0,
+          );
+    final double levelViewportCenterY = _level == null
+        ? 100
+        : appData.gamesTool.levelViewportCenterY(
+            _level!,
+            fallbackHeight: GamesToolApi.defaultViewportHeight,
+            fallbackY: 0,
+          );
+
     final Map<String, dynamic>? spawn = _level == null
         ? null
         : appData.gamesTool.findSpriteByType(_level!, 'Heroi') ??
             appData.gamesTool.findFirstSprite(_level!);
 
     _updateState = Level0UpdateState(
-      playerX: (spawn?['x'] as num?)?.toDouble() ?? 100,
-      playerY: (spawn?['y'] as num?)?.toDouble() ?? 100,
+      playerX: (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX,
+      playerY: (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY,
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 20,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 20,
       speedPerSecond: 95,
     );
 
     _camera
-      ..x = _updateState!.playerX
-      ..y = _updateState!.playerY
-      ..focal = 500;
+      ..x = levelViewportCenterX
+      ..y = levelViewportCenterY
+      ..focal = levelViewportWidth;
   }
 
   void _startLoop() {
@@ -479,33 +500,56 @@ class Level0Painter extends CustomPainter {
       gamesTool: appData.gamesTool,
       level: level,
     );
+    final RuntimeLevelViewport viewport =
+        GamesToolRuntimeRenderer.levelViewport(
+      gamesTool: appData.gamesTool,
+      level: level,
+    );
+    final Color levelBackground = GamesToolRuntimeRenderer.levelBackgroundColor(
+      gamesTool: appData.gamesTool,
+      level: level,
+      fallback: const Color(0xFF0B1014),
+    );
 
-    GamesToolRuntimeRenderer.drawLevelTileLayers(
+    GamesToolRuntimeRenderer.withViewport(
       canvas: canvas,
       painterSize: size,
-      level: level!,
-      gamesTool: appData.gamesTool,
-      imagesCache: appData.imagesCache,
-      camera: runtimeCamera,
-      backgroundColor: const Color(0xFF0B1014),
-      parallaxSensitivity: parallaxSensitivity,
-    );
+      viewport: viewport,
+      outerBackgroundColor: levelBackground,
+      drawInViewport: (Size viewportSize) {
+        final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
+          x: runtimeCamera.x,
+          y: runtimeCamera.y,
+          focal: viewportSize.width,
+        );
+        GamesToolRuntimeRenderer.drawLevelTileLayers(
+          canvas: canvas,
+          painterSize: viewportSize,
+          level: level!,
+          gamesTool: appData.gamesTool,
+          imagesCache: appData.imagesCache,
+          camera: effectiveCamera,
+          backgroundColor: levelBackground,
+          parallaxSensitivity: parallaxSensitivity,
+        );
 
-    _drawAnimatedPlayer(canvas, size);
+        _drawAnimatedPlayer(canvas, viewportSize, effectiveCamera);
 
-    _drawText(
-      canvas,
-      'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
-      const Offset(20, 20),
-    );
-    if (renderState!.isOnPont) {
-      _drawText(canvas, 'Caminant pel pont', const Offset(20, 42));
-    }
-    _drawTopRightText(
-      canvas,
-      size,
-      'Arbres: ${renderState!.arbresRemovedCount}',
-      20,
+        _drawText(
+          canvas,
+          'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
+          const Offset(20, 20),
+        );
+        if (renderState!.isOnPont) {
+          _drawText(canvas, 'Caminant pel pont', const Offset(20, 42));
+        }
+        _drawTopRightText(
+          canvas,
+          viewportSize,
+          'Arbres: ${renderState!.arbresRemovedCount}',
+          20,
+        );
+      },
     );
   }
 
@@ -515,7 +559,7 @@ class Level0Painter extends CustomPainter {
         text: text,
         style: const TextStyle(
           color: Color(0xFFE0F2FF),
-          fontSize: 16,
+          fontSize: 6.5,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -530,7 +574,7 @@ class Level0Painter extends CustomPainter {
         text: text,
         style: const TextStyle(
           color: Color(0xFFE0F2FF),
-          fontSize: 16,
+          fontSize: 6.5,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -539,10 +583,14 @@ class Level0Painter extends CustomPainter {
     painter.paint(canvas, Offset(size.width - painter.width - 20, top));
   }
 
-  void _drawAnimatedPlayer(Canvas canvas, Size size) {
+  void _drawAnimatedPlayer(
+    Canvas canvas,
+    Size size,
+    RuntimeCamera2D runtimeCamera,
+  ) {
     final Level0RenderState state = renderState!;
     if (level == null) {
-      _drawFallbackPlayer(canvas, size);
+      _drawFallbackPlayer(canvas, size, runtimeCamera);
       return;
     }
 
@@ -551,7 +599,7 @@ class Level0Painter extends CustomPainter {
             appData.gamesTool.findFirstSprite(level!);
     final _AnimationSelection animation = _resolveAnimationFor(state);
     if (sprite == null) {
-      _drawFallbackPlayer(canvas, size);
+      _drawFallbackPlayer(canvas, size, runtimeCamera);
       return;
     }
 
@@ -567,7 +615,7 @@ class Level0Painter extends CustomPainter {
       gamesTool: appData.gamesTool,
       imagesCache: appData.imagesCache,
       sprite: sprite,
-      camera: camera.toRuntimeCamera2D(),
+      camera: runtimeCamera,
       elapsedSeconds: state.animationTimeSeconds,
       animationName: animation.animationName,
       worldX: state.playerX,
@@ -579,13 +627,16 @@ class Level0Painter extends CustomPainter {
       fallbackFps: 8,
     );
     if (!drewSprite) {
-      _drawFallbackPlayer(canvas, size);
+      _drawFallbackPlayer(canvas, size, runtimeCamera);
     }
   }
 
-  void _drawFallbackPlayer(Canvas canvas, Size size) {
+  void _drawFallbackPlayer(
+    Canvas canvas,
+    Size size,
+    RuntimeCamera2D runtimeCamera,
+  ) {
     final Level0RenderState state = renderState!;
-    final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
     final double cameraScale = RuntimeCameraMath.cameraScaleForViewport(
       viewportSize: size,
       focal: runtimeCamera.focal,
