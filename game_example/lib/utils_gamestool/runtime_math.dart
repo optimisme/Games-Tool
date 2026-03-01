@@ -81,4 +81,41 @@ class RuntimeCameraMath {
       (screenY - viewportSize.height / 2) / scale + camera.y * parallax,
     );
   }
+
+  static Rect? worldViewportRect({
+    required RuntimeCamera2D camera,
+    required Size viewportSize,
+    double depth = 0,
+    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double paddingWorld = 0,
+  }) {
+    final Offset? topLeft = screenToWorld(
+      screenX: 0,
+      screenY: 0,
+      camera: camera,
+      viewportSize: viewportSize,
+      depth: depth,
+      parallaxSensitivity: parallaxSensitivity,
+    );
+    final Offset? bottomRight = screenToWorld(
+      screenX: viewportSize.width,
+      screenY: viewportSize.height,
+      camera: camera,
+      viewportSize: viewportSize,
+      depth: depth,
+      parallaxSensitivity: parallaxSensitivity,
+    );
+    if (topLeft == null || bottomRight == null) {
+      return null;
+    }
+
+    final double left = math.min(topLeft.dx, bottomRight.dx) - paddingWorld;
+    final double top = math.min(topLeft.dy, bottomRight.dy) - paddingWorld;
+    final double right = math.max(topLeft.dx, bottomRight.dx) + paddingWorld;
+    final double bottom = math.max(topLeft.dy, bottomRight.dy) + paddingWorld;
+    if (right <= left || bottom <= top) {
+      return null;
+    }
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
 }

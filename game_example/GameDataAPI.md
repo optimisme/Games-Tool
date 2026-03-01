@@ -84,6 +84,7 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 - `cameraScaleForViewport(viewportSize, camera)`
 - `worldToScreen(worldX, worldY, camera, viewportSize, depth?, parallaxSensitivity?)`
 - `screenToWorld(screenX, screenY, camera, viewportSize, depth?, parallaxSensitivity?)`
+- `worldViewportRect(camera, viewportSize, depth?, parallaxSensitivity?, paddingWorld?)`
 - `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY)`
 - `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize)`
 - `tileAt(levelIndex, layerIndex?|layerName?, tileX, tileY)` returns `-1` if invalid/empty
@@ -105,6 +106,11 @@ Notes:
 - `drawAnimatedSpriteByType(canvas, painterSize, gameData, level, gamesTool, imagesCache, camera, spriteType, elapsedSeconds, ...)`
 - `drawAnimatedSprite(canvas, painterSize, gameData, gamesTool, imagesCache, sprite, camera, elapsedSeconds, ...)`
 - `drawConnectionIndicator(canvas, painterSize, isConnected)`
+
+Runtime culling now included:
+
+- tile layers: visible tile-range culling per layer (row/column window from viewport in world space)
+- sprites: offscreen culling (`cullWhenOffscreen = true` by default)
 
 ## Hitboxes and collisions
 
