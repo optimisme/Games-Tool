@@ -174,8 +174,12 @@ class CommonRenderer {
       return;
     }
 
-    final String? imageFile = appData.gamesTool.spriteImageFile(flagSprite);
-    if (imageFile == null) {
+    final Map<String, dynamic>? animationData =
+        appData.gamesTool.findAnimationForSprite(appData.gameData, flagSprite);
+    final String? imageFile = animationData == null
+        ? appData.gamesTool.spriteImageFile(flagSprite)
+        : (animationData['mediaFile'] as String?);
+    if (imageFile == null || imageFile.isEmpty) {
       return;
     }
 
@@ -185,15 +189,67 @@ class CommonRenderer {
     }
 
     final ui.Image spriteImg = appData.imagesCache[spritePath]!;
-    final double spriteWidth = appData.gamesTool.spriteWidth(flagSprite);
-    final double spriteHeight = appData.gamesTool.spriteHeight(flagSprite);
-    final int frameCount = (spriteImg.width / spriteWidth).floor();
-    if (frameCount <= 0) {
+    final Map<String, dynamic>? mediaAsset =
+        appData.gamesTool.findMediaAssetByFile(
+      appData.gameData,
+      imageFile,
+    );
+    final double spriteWidth = mediaAsset == null
+        ? appData.gamesTool.spriteWidth(flagSprite)
+        : appData.gamesTool.mediaTileWidth(
+            mediaAsset,
+            fallback: appData.gamesTool.spriteWidth(flagSprite),
+          );
+    final double spriteHeight = mediaAsset == null
+        ? appData.gamesTool.spriteHeight(flagSprite)
+        : appData.gamesTool.mediaTileHeight(
+            mediaAsset,
+            fallback: appData.gamesTool.spriteHeight(flagSprite),
+          );
+    if (spriteWidth <= 0 || spriteHeight <= 0) {
       return;
     }
 
-    final double frameIndex = (tickCounter % frameCount).toDouble();
-    final double srcX = frameIndex * spriteWidth;
+    final int columns = (spriteImg.width / spriteWidth).floor();
+    if (columns <= 0) {
+      return;
+    }
+    final int rows = (spriteImg.height / spriteHeight).floor();
+    if (rows <= 0) {
+      return;
+    }
+    final int totalFrames = columns * rows;
+
+    final int rawFrameIndex = animationData == null
+        ? tickCounter
+        : appData.gamesTool.animationFrameIndexAtTime(
+            playback: appData.gamesTool.animationPlaybackConfig(animationData),
+            elapsedSeconds: tickCounter / 60.0,
+          );
+    final int frameIndex = rawFrameIndex % totalFrames;
+    final int srcCol = frameIndex % columns;
+    final int srcRow = frameIndex ~/ columns;
+    final Rect srcRect = Rect.fromLTWH(
+      srcCol * spriteWidth,
+      srcRow * spriteHeight,
+      spriteWidth,
+      spriteHeight,
+    );
+
+    final double anchorX = animationData == null
+        ? GamesToolApi.defaultAnchorX
+        : appData.gamesTool.animationAnchorXForFrame(
+            animationData,
+            frameIndex: frameIndex,
+          );
+    final double anchorY = animationData == null
+        ? GamesToolApi.defaultAnchorY
+        : appData.gamesTool.animationAnchorYForFrame(
+            animationData,
+            frameIndex: frameIndex,
+          );
+    final bool flipX = flagSprite['flipX'] == true;
+    final bool flipY = flagSprite['flipY'] == true;
 
     final Offset screenPos = worldToScreen(
       appData.gamesTool.spriteX(flagSprite),
@@ -206,18 +262,23 @@ class CommonRenderer {
     final CameraScale camData = getCameraScale(painterSize, camera);
     final double destWidth = spriteWidth * camData.scale;
     final double destHeight = spriteHeight * camData.scale;
+    final Paint paint = Paint()..filterQuality = FilterQuality.none;
 
+    canvas.save();
+    canvas.translate(screenPos.dx, screenPos.dy);
+    canvas.scale(flipX ? -1.0 : 1.0, flipY ? -1.0 : 1.0);
     canvas.drawImageRect(
       spriteImg,
-      Rect.fromLTWH(srcX, 0, spriteWidth, spriteHeight),
+      srcRect,
       Rect.fromLTWH(
-        screenPos.dx - destWidth / 2,
-        screenPos.dy - destHeight / 2,
+        -destWidth * anchorX,
+        -destHeight * anchorY,
         destWidth,
         destHeight,
       ),
-      Paint(),
+      paint,
     );
+    canvas.restore();
   }
 
   static void drawSpriteFromSheet(

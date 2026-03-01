@@ -20,18 +20,23 @@ class AnimationPlaybackConfig {
 }
 
 class GamesToolApi {
-  const GamesToolApi({this.projectFolder = 'example_0'});
+  GamesToolApi({this.projectFolder = 'levels'});
   static const double defaultParallaxSensitivity = 0.08;
   static const double defaultAnimationFps = 12.0;
+  static const double defaultAnchorX = 0.5;
+  static const double defaultAnchorY = 0.5;
 
   final String projectFolder;
+  String? _resolvedProjectFolder;
 
-  String get projectAssetsRoot => 'assets/$projectFolder';
+  String get activeProjectFolder => _resolvedProjectFolder ?? projectFolder;
+
+  String get projectAssetsRoot => 'assets/$activeProjectFolder';
   String get gameDataAssetPath => '$projectAssetsRoot/game_data.json';
 
   String toRelativeAssetKey(String relativePath) {
     final String normalizedPath = _normalizePath(relativePath);
-    return '$projectFolder/$normalizedPath';
+    return '$activeProjectFolder/$normalizedPath';
   }
 
   String toBundleAssetPath(String relativePath) {
@@ -39,11 +44,15 @@ class GamesToolApi {
   }
 
   Future<Map<String, dynamic>> loadGameData(AssetBundle bundle) async {
-    final String jsonString = await bundle.loadString(gameDataAssetPath);
+    final ({String projectRoot, String jsonString}) loaded =
+        await _loadGameDataJsonString(bundle);
+    _resolvedProjectFolder = loaded.projectRoot;
+    final String jsonString = loaded.jsonString;
     final Map<String, dynamic> parsed =
         jsonDecode(jsonString) as Map<String, dynamic>;
     await _attachTileMaps(bundle, parsed);
     await _attachZones(bundle, parsed);
+    await _attachAnimations(bundle, parsed);
     return parsed;
   }
 
@@ -284,6 +293,54 @@ class GamesToolApi {
     return null;
   }
 
+  Map<String, dynamic>? findAnimationById(
+    Map<String, dynamic> gameData,
+    String animationId,
+  ) {
+    if (animationId.isEmpty) {
+      return null;
+    }
+    final List<dynamic> animations =
+        (gameData['animations'] as List<dynamic>?) ?? const <dynamic>[];
+    for (final dynamic animation in animations) {
+      if (animation is Map<String, dynamic> && animation['id'] == animationId) {
+        return animation;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? findAnimationForSprite(
+    Map<String, dynamic> gameData,
+    Map<String, dynamic> sprite,
+  ) {
+    final String animationId = (sprite['animationId'] as String?) ?? '';
+    final Map<String, dynamic>? byId = findAnimationById(gameData, animationId);
+    if (byId != null) {
+      return byId;
+    }
+
+    final String? spriteFile = spriteImageFile(sprite);
+    if (spriteFile == null) {
+      return null;
+    }
+
+    final String normalizedSpriteFile = _normalizePath(spriteFile);
+    final List<dynamic> animations =
+        (gameData['animations'] as List<dynamic>?) ?? const <dynamic>[];
+    for (final dynamic animation in animations) {
+      if (animation is! Map<String, dynamic>) {
+        continue;
+      }
+      final Object? mediaFile = animation['mediaFile'];
+      if (mediaFile is String &&
+          _normalizePath(mediaFile) == normalizedSpriteFile) {
+        return animation;
+      }
+    }
+    return null;
+  }
+
   Map<String, dynamic>? findMediaAssetByFile(
     Map<String, dynamic> gameData,
     String fileName,
@@ -359,6 +416,70 @@ class GamesToolApi {
     return playback.startFrame + frameOffset;
   }
 
+  double animationAnchorX(
+    Map<String, dynamic> animationData, {
+    double fallback = defaultAnchorX,
+  }) {
+    return _normalizedAnchorValue(animationData['anchorX'], fallback);
+  }
+
+  double animationAnchorY(
+    Map<String, dynamic> animationData, {
+    double fallback = defaultAnchorY,
+  }) {
+    return _normalizedAnchorValue(animationData['anchorY'], fallback);
+  }
+
+  double animationAnchorXForFrame(
+    Map<String, dynamic> animationData, {
+    required int frameIndex,
+    double fallback = defaultAnchorX,
+  }) {
+    final Map<String, dynamic>? frameRig =
+        animationFrameRig(animationData, frameIndex: frameIndex);
+    if (frameRig != null) {
+      return _normalizedAnchorValue(
+        frameRig['anchorX'],
+        animationAnchorX(animationData, fallback: fallback),
+      );
+    }
+    return animationAnchorX(animationData, fallback: fallback);
+  }
+
+  double animationAnchorYForFrame(
+    Map<String, dynamic> animationData, {
+    required int frameIndex,
+    double fallback = defaultAnchorY,
+  }) {
+    final Map<String, dynamic>? frameRig =
+        animationFrameRig(animationData, frameIndex: frameIndex);
+    if (frameRig != null) {
+      return _normalizedAnchorValue(
+        frameRig['anchorY'],
+        animationAnchorY(animationData, fallback: fallback),
+      );
+    }
+    return animationAnchorY(animationData, fallback: fallback);
+  }
+
+  Map<String, dynamic>? animationFrameRig(
+    Map<String, dynamic> animationData, {
+    required int frameIndex,
+  }) {
+    final List<dynamic> frameRigs =
+        (animationData['frameRigs'] as List<dynamic>?) ?? const <dynamic>[];
+    for (final dynamic rig in frameRigs) {
+      if (rig is! Map<String, dynamic>) {
+        continue;
+      }
+      final int? rigFrame = (rig['frame'] as num?)?.toInt();
+      if (rigFrame == frameIndex) {
+        return rig;
+      }
+    }
+    return null;
+  }
+
   Future<void> _attachTileMaps(
     AssetBundle bundle,
     Map<String, dynamic> gameData,
@@ -420,17 +541,130 @@ class GamesToolApi {
     }
   }
 
+  Future<void> _attachAnimations(
+    AssetBundle bundle,
+    Map<String, dynamic> gameData,
+  ) async {
+    final Object? animationsFile = gameData['animationsFile'];
+    if (animationsFile is! String || animationsFile.isEmpty) {
+      return;
+    }
+
+    final String animationsJson =
+        await bundle.loadString(toBundleAssetPath(animationsFile));
+    final Map<String, dynamic> animationsData =
+        jsonDecode(animationsJson) as Map<String, dynamic>;
+
+    final Object? animations = animationsData['animations'];
+    if (animations is List<dynamic>) {
+      gameData['animations'] = animations;
+    }
+
+    final Object? animationGroups = animationsData['animationGroups'];
+    if (animationGroups is List<dynamic>) {
+      gameData['animationGroups'] = animationGroups;
+    }
+  }
+
+  Future<({String projectRoot, String jsonString})> _loadGameDataJsonString(
+    AssetBundle bundle,
+  ) async {
+    final List<String> candidates = <String>[
+      _normalizeRootFolder(projectFolder),
+      'levels',
+      'exemple_0',
+      'example_0',
+      ...await _discoverProjectRoots(bundle),
+    ];
+
+    final Set<String> tried = <String>{};
+    for (final String candidate in candidates) {
+      final String normalized = _normalizeRootFolder(candidate);
+      if (normalized.isEmpty || tried.contains(normalized)) {
+        continue;
+      }
+      tried.add(normalized);
+      final String gameDataPath = 'assets/$normalized/game_data.json';
+      try {
+        final String jsonString = await bundle.loadString(gameDataPath);
+        return (projectRoot: normalized, jsonString: jsonString);
+      } catch (_) {
+        // Keep trying additional candidates until one resolves.
+      }
+    }
+
+    throw StateError(
+      'Unable to locate games_tool export data. Tried: '
+      '${tried.map((root) => 'assets/$root/game_data.json').join(', ')}',
+    );
+  }
+
+  Future<List<String>> _discoverProjectRoots(AssetBundle bundle) async {
+    try {
+      final String manifestRaw = await bundle.loadString('AssetManifest.json');
+      final Map<String, dynamic> manifest =
+          jsonDecode(manifestRaw) as Map<String, dynamic>;
+      final Set<String> roots = <String>{};
+      for (final String key in manifest.keys) {
+        final String normalized = key.replaceAll('\\', '/');
+        if (!normalized.startsWith('assets/') ||
+            !normalized.endsWith('/game_data.json')) {
+          continue;
+        }
+        final String root = normalized
+            .substring(
+                'assets/'.length, normalized.length - '/game_data.json'.length)
+            .trim();
+        if (root.isNotEmpty) {
+          roots.add(_normalizeRootFolder(root));
+        }
+      }
+      return roots.toList(growable: false);
+    } catch (_) {
+      return const <String>[];
+    }
+  }
+
   String _normalizePath(String path) {
     String normalized = path.replaceAll('\\', '/');
     if (normalized.startsWith('assets/')) {
       normalized = normalized.substring('assets/'.length);
     }
-    if (normalized.startsWith('$projectFolder/')) {
-      normalized = normalized.substring(projectFolder.length + 1);
+    final String activeRoot = activeProjectFolder;
+    if (normalized.startsWith('$activeRoot/')) {
+      normalized = normalized.substring(activeRoot.length + 1);
     }
     if (normalized.startsWith('/')) {
       normalized = normalized.substring(1);
     }
     return normalized;
+  }
+
+  String _normalizeRootFolder(String path) {
+    String normalized = path.replaceAll('\\', '/').trim();
+    if (normalized.startsWith('assets/')) {
+      normalized = normalized.substring('assets/'.length);
+    }
+    if (normalized.endsWith('/game_data.json')) {
+      normalized =
+          normalized.substring(0, normalized.length - '/game_data.json'.length);
+    }
+    while (normalized.startsWith('/')) {
+      normalized = normalized.substring(1);
+    }
+    while (normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return normalized;
+  }
+
+  double _normalizedAnchorValue(Object? value, double fallback) {
+    final double fallbackSafe =
+        fallback.isFinite ? fallback.clamp(0.0, 1.0).toDouble() : 0.5;
+    final double? raw = (value as num?)?.toDouble();
+    if (raw == null || !raw.isFinite) {
+      return fallbackSafe;
+    }
+    return raw.clamp(0.0, 1.0).toDouble();
   }
 }

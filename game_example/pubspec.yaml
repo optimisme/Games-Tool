@@ -84,10 +84,11 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/
-    - assets/exemple_0/
-    - assets/exemple_0/media/
-    - assets/exemple_0/tilemaps/
-    - assets/exemple_0/zones/
+    - assets/levels/
+    - assets/levels/media/
+    - assets/levels/tilemaps/
+    - assets/levels/zones/
+    - assets/levels/animations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
