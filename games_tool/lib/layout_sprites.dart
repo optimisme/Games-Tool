@@ -1060,7 +1060,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
                           horizontal: 8,
                         ),
                         color:
-                            CupertinoColors.systemBlue.withValues(alpha: 0.08),
+                            CupertinoColors.systemBlue.withValues(alpha: 0.2),
                         child: Row(
                           children: [
                             CupertinoButton(
@@ -1188,7 +1188,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
                               ),
                               color: isSelected
                                   ? CupertinoColors.systemBlue
-                                      .withValues(alpha: 0.2)
+                                      .withValues(alpha: 0.08)
                                   : cdkColors.backgroundSecondary0,
                               child: Row(
                                 children: [

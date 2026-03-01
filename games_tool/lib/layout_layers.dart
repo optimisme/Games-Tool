@@ -1026,7 +1026,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                                 horizontal: 8,
                               ),
                               color: CupertinoColors.systemBlue
-                                  .withValues(alpha: 0.08),
+                                  .withValues(alpha: 0.2),
                               child: Row(
                                 children: [
                                   CupertinoButton(
@@ -1153,7 +1153,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                                     ),
                                     color: isSelected
                                         ? CupertinoColors.systemBlue
-                                            .withValues(alpha: 0.2)
+                                            .withValues(alpha: 0.08)
                                         : cdkColors.backgroundSecondary0,
                                     child: Row(
                                       children: [
