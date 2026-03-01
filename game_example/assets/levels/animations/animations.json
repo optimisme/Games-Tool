@@ -13,12 +13,12 @@
     {
       "id": "__group_1772115377170906_0",
       "name": "Heroi Salt",
-      "collapsed": false
+      "collapsed": true
     },
     {
       "id": "__group_1772115389184027_2",
       "name": "Heroi Camina",
-      "collapsed": false
+      "collapsed": true
     }
   ],
   "animations": [
@@ -313,8 +313,8 @@
       "fps": 8.0,
       "loop": true,
       "groupId": "__group_1772115382813671_1",
-      "anchorX": 0.9519809034752914,
-      "anchorY": 0.670319719264765,
+      "anchorX": 0.5,
+      "anchorY": 0.7,
       "anchorColor": "red",
       "hitBoxes": [
         {
@@ -330,8 +330,8 @@
       "frameRigs": [
         {
           "frame": 12,
-          "anchorX": 0.9519809034752914,
-          "anchorY": 0.670319719264765,
+          "anchorX": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": [
             {
@@ -347,8 +347,8 @@
         },
         {
           "frame": 13,
-          "anchorX": 0.9519809034752914,
-          "anchorY": 0.670319719264765,
+          "anchorX": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": [
             {
@@ -364,8 +364,8 @@
         },
         {
           "frame": 14,
-          "anchorX": 0.9519809034752914,
-          "anchorY": 0.670319719264765,
+          "anchorX": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": [
             {
@@ -381,8 +381,8 @@
         },
         {
           "frame": 15,
-          "anchorX": 0.9519809034752914,
-          "anchorY": 0.670319719264765,
+          "anchorX": 0.5,
+          "anchorY": 0.7,
           "anchorColor": "red",
           "hitBoxes": [
             {
