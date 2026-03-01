@@ -288,19 +288,6 @@ class Level1Painter extends CustomPainter {
       parallaxSensitivity: parallaxSensitivity,
     );
 
-    GamesToolRuntimeRenderer.drawAnimatedSpriteByType(
-      canvas: canvas,
-      painterSize: size,
-      gameData: appData.gameData,
-      level: level!,
-      gamesTool: appData.gamesTool,
-      imagesCache: appData.imagesCache,
-      camera: runtimeCamera,
-      spriteType: 'flag',
-      elapsedSeconds: renderState!.tickCounter / 60.0,
-      parallaxSensitivity: parallaxSensitivity,
-    );
-
     final Offset groundStart = RuntimeCameraMath.worldToScreen(
       worldX: renderState!.playerX - 1200,
       worldY: renderState!.groundY + renderState!.playerHeight,
@@ -354,12 +341,6 @@ class Level1Painter extends CustomPainter {
       canvas,
       'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
       const Offset(20, 20),
-    );
-
-    GamesToolRuntimeRenderer.drawConnectionIndicator(
-      canvas,
-      size,
-      appData.isConnected,
     );
   }
 

@@ -391,15 +391,4 @@ class GamesToolRuntimeRenderer {
         a.top < b.bottom &&
         a.bottom > b.top;
   }
-
-  static void drawConnectionIndicator(
-    ui.Canvas canvas,
-    ui.Size painterSize,
-    bool isConnected,
-  ) {
-    final ui.Paint paint = ui.Paint()
-      ..color =
-          isConnected ? const ui.Color(0xFF00B600) : const ui.Color(0xFFD80000);
-    canvas.drawCircle(ui.Offset(painterSize.width - 10, 10), 5, paint);
-  }
 }
