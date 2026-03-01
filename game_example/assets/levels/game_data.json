@@ -69,10 +69,10 @@
       "viewportHeight": 180,
       "viewportX": 280,
       "viewportY": 175,
-      "viewportAdaptation": "letterbox",
+      "viewportAdaptation": "expand",
       "viewportInitialColor": "yellow",
       "viewportPreviewColor": "pink",
-      "backgroundColorHex": "#DCDCE1",
+      "backgroundColorHex": "#000000",
       "parallaxSensitivity": 0.08,
       "zonesFile": "zones/level_000_zones.json"
     },
@@ -133,7 +133,7 @@
       "tileWidth": 20,
       "tileHeight": 20,
       "selectionColorHex": "#FFCC00",
-      "groupId": "__group_1772359181414251_0"
+      "groupId": "__main__"
     },
     {
       "name": "Heroi Salt",
@@ -142,7 +142,7 @@
       "tileWidth": 20,
       "tileHeight": 20,
       "selectionColorHex": "#FFCC00",
-      "groupId": "__group_1772359181414251_0"
+      "groupId": "__main__"
     },
     {
       "name": "Heroi Camina",
@@ -151,18 +151,13 @@
       "tileWidth": 20,
       "tileHeight": 20,
       "selectionColorHex": "#FFCC00",
-      "groupId": "__group_1772359181414251_0"
+      "groupId": "__main__"
     }
   ],
   "mediaGroups": [
     {
       "id": "__main__",
       "name": "Main",
-      "collapsed": false
-    },
-    {
-      "id": "__group_1772359181414251_0",
-      "name": "Heroi",
       "collapsed": false
     }
   ],

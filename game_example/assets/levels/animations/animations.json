@@ -32,87 +32,37 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.17438779239766083,
-          "y": 0.09402803884711783,
-          "width": 0.6604173193400167,
-          "height": 0.9059719611528821
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.17438779239766083,
-              "y": 0.09402803884711783,
-              "width": 0.6604173193400167,
-              "height": 0.9059719611528821
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.17438779239766083,
-              "y": 0.09402803884711783,
-              "width": 0.6604173193400167,
-              "height": 0.9059719611528821
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.17438779239766083,
-              "y": 0.09402803884711783,
-              "width": 0.6604173193400167,
-              "height": 0.9059719611528821
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.17438779239766083,
-              "y": 0.09402803884711783,
-              "width": 0.6604173193400167,
-              "height": 0.9059719611528821
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -126,87 +76,37 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -220,87 +120,37 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.19893807079251152,
-          "y": 0.09999999999999998,
-          "width": 0.6014303633135871,
-          "height": 0.8973452511487052
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19893807079251152,
-              "y": 0.09999999999999998,
-              "width": 0.6014303633135871,
-              "height": 0.8973452511487052
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19893807079251152,
-              "y": 0.09999999999999998,
-              "width": 0.6014303633135871,
-              "height": 0.8973452511487052
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19893807079251152,
-              "y": 0.09999999999999998,
-              "width": 0.6014303633135871,
-              "height": 0.8973452511487052
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19893807079251152,
-              "y": 0.09999999999999998,
-              "width": 0.6014303633135871,
-              "height": 0.8973452511487052
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -314,87 +164,37 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -408,87 +208,37 @@
       "loop": true,
       "groupId": "__group_1772115382813671_1",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -502,104 +252,44 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -613,104 +303,44 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -724,104 +354,44 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -835,104 +405,44 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -946,104 +456,44 @@
       "loop": false,
       "groupId": "__group_1772115377170906_0",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 20,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 21,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 22,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 23,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 24,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -1057,87 +507,37 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 0,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 1,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 2,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 3,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -1151,87 +551,37 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 4,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 5,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 6,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 7,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -1245,87 +595,37 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 8,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 9,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 10,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 11,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -1339,87 +639,37 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.19830987269309625,
-          "y": 0.09999999999999998,
-          "width": 0.6020096109117492,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 12,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19830987269309625,
-              "y": 0.09999999999999998,
-              "width": 0.6020096109117492,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 13,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19830987269309625,
-              "y": 0.09999999999999998,
-              "width": 0.6020096109117492,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 14,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19830987269309625,
-              "y": 0.09999999999999998,
-              "width": 0.6020096109117492,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 15,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.19830987269309625,
-              "y": 0.09999999999999998,
-              "width": 0.6020096109117492,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     },
@@ -1433,87 +683,37 @@
       "loop": true,
       "groupId": "__group_1772115389184027_2",
       "anchorX": 0.5,
-      "anchorY": 0.7,
+      "anchorY": 0.5,
       "anchorColor": "red",
-      "hitBoxes": [
-        {
-          "id": "__hb_1772358656410791_0",
-          "name": "xocs",
-          "color": "cyan",
-          "x": 0.11974431818181808,
-          "y": 0.09999999999999998,
-          "width": 0.75,
-          "height": 0.9
-        }
-      ],
+      "hitBoxes": [],
       "frameRigs": [
         {
           "frame": 16,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 17,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 18,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         },
         {
           "frame": 19,
           "anchorX": 0.5,
-          "anchorY": 0.7,
+          "anchorY": 0.5,
           "anchorColor": "red",
-          "hitBoxes": [
-            {
-              "id": "__hb_1772358656410791_0",
-              "name": "xocs",
-              "color": "cyan",
-              "x": 0.11974431818181808,
-              "y": 0.09999999999999998,
-              "width": 0.75,
-              "height": 0.9
-            }
-          ]
+          "hitBoxes": []
         }
       ]
     }

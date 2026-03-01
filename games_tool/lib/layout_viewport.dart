@@ -723,6 +723,10 @@ class _ViewportPreviewPainter extends CustomPainter {
     final double safeViewportW = math.max(1, viewportW).toDouble();
     final double safeViewportH = math.max(1, viewportH).toDouble();
     final bool isPortrait = viewportH > viewportW;
+    final String normalizedAdaptation = adaptation.trim().toLowerCase();
+    final bool isLetterbox = normalizedAdaptation == 'letterbox' ||
+        normalizedAdaptation == 'fit' ||
+        normalizedAdaptation == 'contain';
 
     // Screen aspect ratio used in the preview
     final double screenAspect =
@@ -754,11 +758,15 @@ class _ViewportPreviewPainter extends CustomPainter {
       adaptation: adaptation,
     );
 
-    // Screen background
+    // Screen background. In letterbox mode, unused bands must match the
+    // level background color shown in gameplay.
+    final Color screenBackgroundColor = isLetterbox
+        ? sceneBackgroundColor
+        : (_isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8));
     canvas.drawRRect(
       clippedScreen,
       Paint()
-        ..color = _isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8)
+        ..color = screenBackgroundColor
         ..style = PaintingStyle.fill,
     );
     canvas.drawRRect(

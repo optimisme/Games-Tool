@@ -50,9 +50,31 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     _level = appData.getLevelByIndex(widget.levelIndex);
     final Map<String, dynamic>? spawn =
         appData.firstSpriteForLevel(widget.levelIndex);
+    final double levelViewportWidth = _level == null
+        ? GamesToolApi.defaultViewportWidth
+        : appData.gamesTool.levelViewportWidth(
+            _level!,
+            fallback: GamesToolApi.defaultViewportWidth,
+          );
+    final double levelViewportCenterX = _level == null
+        ? 100
+        : appData.gamesTool.levelViewportCenterX(
+            _level!,
+            fallbackWidth: GamesToolApi.defaultViewportWidth,
+            fallbackX: 0,
+          );
+    final double levelViewportCenterY = _level == null
+        ? 120
+        : appData.gamesTool.levelViewportCenterY(
+            _level!,
+            fallbackHeight: GamesToolApi.defaultViewportHeight,
+            fallbackY: 0,
+          );
 
-    final double spawnX = (spawn?['x'] as num?)?.toDouble() ?? 100;
-    final double spawnY = (spawn?['y'] as num?)?.toDouble() ?? 120;
+    final double spawnX =
+        (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX;
+    final double spawnY =
+        (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY;
 
     _updateState = Level1UpdateState(
       playerX: spawnX,
@@ -63,9 +85,9 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     );
 
     _camera
-      ..x = spawnX
-      ..y = spawnY - 80
-      ..focal = 560;
+      ..x = levelViewportCenterX
+      ..y = levelViewportCenterY
+      ..focal = levelViewportWidth;
   }
 
   void _startLoop() {
@@ -276,71 +298,98 @@ class Level1Painter extends CustomPainter {
       gamesTool: appData.gamesTool,
       level: level,
     );
+    final RuntimeLevelViewport viewport =
+        GamesToolRuntimeRenderer.levelViewport(
+      gamesTool: appData.gamesTool,
+      level: level,
+    );
+    final Color levelBackground = GamesToolRuntimeRenderer.levelBackgroundColor(
+      gamesTool: appData.gamesTool,
+      level: level,
+      fallback: const Color(0xFF0A0D1A),
+    );
 
-    GamesToolRuntimeRenderer.drawLevelTileLayers(
+    GamesToolRuntimeRenderer.withViewport(
       canvas: canvas,
       painterSize: size,
-      level: level!,
-      gamesTool: appData.gamesTool,
-      imagesCache: appData.imagesCache,
-      camera: runtimeCamera,
-      backgroundColor: const Color(0xFF0A0D1A),
-      parallaxSensitivity: parallaxSensitivity,
-    );
+      viewport: viewport,
+      outerBackgroundColor: levelBackground,
+      drawInViewport: (Size viewportSize) {
+        final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
+          x: runtimeCamera.x,
+          y: runtimeCamera.y,
+          focal: viewportSize.width,
+        );
+        GamesToolRuntimeRenderer.drawLevelTileLayers(
+          canvas: canvas,
+          painterSize: viewportSize,
+          level: level!,
+          gamesTool: appData.gamesTool,
+          imagesCache: appData.imagesCache,
+          camera: effectiveCamera,
+          backgroundColor: levelBackground,
+          parallaxSensitivity: parallaxSensitivity,
+        );
 
-    final Offset groundStart = RuntimeCameraMath.worldToScreen(
-      worldX: renderState!.playerX - 1200,
-      worldY: renderState!.groundY + renderState!.playerHeight,
-      viewportSize: size,
-      camera: runtimeCamera,
-      parallaxSensitivity: parallaxSensitivity,
-    );
-    final Offset groundEnd = RuntimeCameraMath.worldToScreen(
-      worldX: renderState!.playerX + 1200,
-      worldY: renderState!.groundY + renderState!.playerHeight,
-      viewportSize: size,
-      camera: runtimeCamera,
-      parallaxSensitivity: parallaxSensitivity,
-    );
-    final Paint groundPaint = Paint()
-      ..color = const Color(0xFF32C96C)
-      ..strokeWidth = 3;
-    canvas.drawLine(groundStart, groundEnd, groundPaint);
+        final Offset groundStart = RuntimeCameraMath.worldToScreen(
+          worldX: renderState!.playerX - 1200,
+          worldY: renderState!.groundY + renderState!.playerHeight,
+          viewportSize: viewportSize,
+          camera: effectiveCamera,
+          parallaxSensitivity: parallaxSensitivity,
+        );
+        final Offset groundEnd = RuntimeCameraMath.worldToScreen(
+          worldX: renderState!.playerX + 1200,
+          worldY: renderState!.groundY + renderState!.playerHeight,
+          viewportSize: viewportSize,
+          camera: effectiveCamera,
+          parallaxSensitivity: parallaxSensitivity,
+        );
+        final Paint groundPaint = Paint()
+          ..color = const Color(0xFF32C96C)
+          ..strokeWidth = 3;
+        canvas.drawLine(groundStart, groundEnd, groundPaint);
 
-    final double cameraScale = RuntimeCameraMath.cameraScaleForViewport(
-      viewportSize: size,
-      focal: runtimeCamera.focal,
-    );
-    final Offset screenPos = RuntimeCameraMath.worldToScreen(
-      worldX: renderState!.playerX,
-      worldY: renderState!.playerY,
-      viewportSize: size,
-      camera: runtimeCamera,
-      parallaxSensitivity: parallaxSensitivity,
-    );
+        final double cameraScale = RuntimeCameraMath.cameraScaleForViewport(
+          viewportSize: viewportSize,
+          focal: effectiveCamera.focal,
+        );
+        final Offset screenPos = RuntimeCameraMath.worldToScreen(
+          worldX: renderState!.playerX,
+          worldY: renderState!.playerY,
+          viewportSize: viewportSize,
+          camera: effectiveCamera,
+          parallaxSensitivity: parallaxSensitivity,
+        );
 
-    final Rect playerRect = Rect.fromLTWH(
-      screenPos.dx,
-      screenPos.dy,
-      renderState!.playerWidth * cameraScale,
-      renderState!.playerHeight * cameraScale,
-    );
+        final Rect playerRect = Rect.fromLTWH(
+          screenPos.dx,
+          screenPos.dy,
+          renderState!.playerWidth * cameraScale,
+          renderState!.playerHeight * cameraScale,
+        );
 
-    final Paint bodyPaint = Paint()..color = const Color(0xFFFFB347);
-    canvas.drawRect(playerRect, bodyPaint);
+        final Paint bodyPaint = Paint()..color = const Color(0xFFFFB347);
+        canvas.drawRect(playerRect, bodyPaint);
 
-    final Paint eyePaint = Paint()..color = const Color(0xFF121212);
-    final double eyeX = renderState!.facingRight
-        ? playerRect.right - (playerRect.width * 0.25)
-        : playerRect.left + (playerRect.width * 0.25);
-    final Offset eyePos =
-        Offset(eyeX, playerRect.top + (playerRect.height * 0.3));
-    canvas.drawCircle(eyePos, (playerRect.width * 0.08).clamp(2, 6), eyePaint);
+        final Paint eyePaint = Paint()..color = const Color(0xFF121212);
+        final double eyeX = renderState!.facingRight
+            ? playerRect.right - (playerRect.width * 0.25)
+            : playerRect.left + (playerRect.width * 0.25);
+        final Offset eyePos =
+            Offset(eyeX, playerRect.top + (playerRect.height * 0.3));
+        canvas.drawCircle(
+          eyePos,
+          (playerRect.width * 0.08).clamp(2, 6),
+          eyePaint,
+        );
 
-    _drawText(
-      canvas,
-      'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
-      const Offset(20, 20),
+        _drawText(
+          canvas,
+          'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
+          const Offset(20, 20),
+        );
+      },
     );
   }
 
@@ -350,7 +399,7 @@ class Level1Painter extends CustomPainter {
         text: text,
         style: const TextStyle(
           color: Color(0xFFE0F2FF),
-          fontSize: 15,
+          fontSize: 6.5,
           fontWeight: FontWeight.w600,
         ),
       ),

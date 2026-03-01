@@ -47,6 +47,205 @@ class GamesToolRuntimeRenderer {
     );
   }
 
+  static RuntimeLevelViewport levelViewport({
+    required GamesToolApi gamesTool,
+    required Map<String, dynamic>? level,
+    double fallbackWidth = GamesToolApi.defaultViewportWidth,
+    double fallbackHeight = GamesToolApi.defaultViewportHeight,
+    String fallbackAdaptation = GamesToolApi.defaultViewportAdaptation,
+  }) {
+    if (level == null) {
+      return RuntimeLevelViewport(
+        width: fallbackWidth,
+        height: fallbackHeight,
+        x: 0,
+        y: 0,
+        adaptation: fallbackAdaptation,
+      );
+    }
+    return RuntimeLevelViewport(
+      width: gamesTool.levelViewportWidth(level, fallback: fallbackWidth),
+      height: gamesTool.levelViewportHeight(level, fallback: fallbackHeight),
+      x: gamesTool.levelViewportX(level),
+      y: gamesTool.levelViewportY(level),
+      adaptation: gamesTool.levelViewportAdaptation(level,
+          fallback: fallbackAdaptation),
+      initialColorName: gamesTool.levelViewportInitialColorName(level),
+      previewColorName: gamesTool.levelViewportPreviewColorName(level),
+    );
+  }
+
+  static RuntimeViewportLayout resolveViewportLayout({
+    required ui.Size painterSize,
+    required RuntimeLevelViewport viewport,
+  }) {
+    final double viewportWidth = viewport.width > 0 ? viewport.width : 1;
+    final double viewportHeight = viewport.height > 0 ? viewport.height : 1;
+    if (painterSize.width <= 0 || painterSize.height <= 0) {
+      return RuntimeViewportLayout(
+        virtualSize: ui.Size(viewportWidth, viewportHeight),
+        destinationRect: ui.Rect.zero,
+        scaleX: 0,
+        scaleY: 0,
+      );
+    }
+
+    final String adaptation = _normalizeViewportAdaptation(viewport.adaptation);
+    ui.Size virtualSize = ui.Size(viewportWidth, viewportHeight);
+    ui.Rect destinationRect = ui.Rect.fromLTWH(
+      0,
+      0,
+      painterSize.width,
+      painterSize.height,
+    );
+
+    if (adaptation == 'letterbox') {
+      final double screenAspect = painterSize.width / painterSize.height;
+      final double viewportAspect = viewportWidth / viewportHeight;
+      if (viewportAspect > screenAspect) {
+        final double outputHeight = painterSize.width / viewportAspect;
+        destinationRect = ui.Rect.fromLTWH(
+          0,
+          (painterSize.height - outputHeight) / 2,
+          painterSize.width,
+          outputHeight,
+        );
+      } else {
+        final double outputWidth = painterSize.height * viewportAspect;
+        destinationRect = ui.Rect.fromLTWH(
+          (painterSize.width - outputWidth) / 2,
+          0,
+          outputWidth,
+          painterSize.height,
+        );
+      }
+    } else if (adaptation == 'expand') {
+      final double screenAspect = painterSize.width / painterSize.height;
+      final double viewportAspect = viewportWidth / viewportHeight;
+      if (screenAspect > viewportAspect) {
+        virtualSize = ui.Size(viewportHeight * screenAspect, viewportHeight);
+      } else {
+        virtualSize = ui.Size(viewportWidth, viewportWidth / screenAspect);
+      }
+    }
+
+    final double scaleX = destinationRect.width / virtualSize.width;
+    final double scaleY = destinationRect.height / virtualSize.height;
+
+    return RuntimeViewportLayout(
+      virtualSize: virtualSize,
+      destinationRect: destinationRect,
+      scaleX: scaleX,
+      scaleY: scaleY,
+    );
+  }
+
+  static RuntimeViewportLayout withViewport({
+    required ui.Canvas canvas,
+    required ui.Size painterSize,
+    required RuntimeLevelViewport viewport,
+    required void Function(ui.Size viewportSize) drawInViewport,
+    ui.Color outerBackgroundColor = const ui.Color(0xFF000000),
+    bool clearOuterBackground = true,
+    bool clipToViewport = true,
+  }) {
+    final RuntimeViewportLayout layout = resolveViewportLayout(
+      painterSize: painterSize,
+      viewport: viewport,
+    );
+    if (clearOuterBackground) {
+      canvas.drawRect(
+        ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
+        ui.Paint()..color = outerBackgroundColor,
+      );
+    }
+    if (!layout.hasVisibleArea || layout.scaleX == 0 || layout.scaleY == 0) {
+      return layout;
+    }
+
+    canvas.save();
+    if (clipToViewport) {
+      canvas.clipRect(layout.destinationRect);
+    }
+    canvas.translate(layout.destinationRect.left, layout.destinationRect.top);
+    canvas.scale(layout.scaleX, layout.scaleY);
+    drawInViewport(layout.virtualSize);
+    canvas.restore();
+    return layout;
+  }
+
+  static ui.Color colorFromName(
+    String? colorName, {
+    ui.Color fallback = const ui.Color(0xFF000000),
+  }) {
+    final String normalized = colorName?.trim().toLowerCase() ?? '';
+    if (normalized.isEmpty) {
+      return fallback;
+    }
+    if (normalized.startsWith('#')) {
+      final String hex = normalized.substring(1);
+      if (hex.length == 6) {
+        final int? value = int.tryParse(hex, radix: 16);
+        if (value != null) {
+          return ui.Color(0xFF000000 | value);
+        }
+      } else if (hex.length == 8) {
+        final int? value = int.tryParse(hex, radix: 16);
+        if (value != null) {
+          return ui.Color(value);
+        }
+      }
+    }
+
+    switch (normalized) {
+      case 'black':
+        return const ui.Color(0xFF000000);
+      case 'white':
+        return const ui.Color(0xFFFFFFFF);
+      case 'red':
+        return const ui.Color(0xFFD80000);
+      case 'green':
+        return const ui.Color(0xFF00B600);
+      case 'blue':
+        return const ui.Color(0xFF007AFF);
+      case 'yellow':
+        return const ui.Color(0xFFFFCC00);
+      case 'amber':
+        return const ui.Color(0xFFFFB300);
+      case 'orange':
+        return const ui.Color(0xFFFF9500);
+      case 'pink':
+        return const ui.Color(0xFFFF2D55);
+      case 'purple':
+        return const ui.Color(0xFFAF52DE);
+      case 'teal':
+        return const ui.Color(0xFF30B0C7);
+      case 'cyan':
+        return const ui.Color(0xFF32ADE6);
+      case 'indigo':
+        return const ui.Color(0xFF5856D6);
+      case 'brown':
+        return const ui.Color(0xFFA2845E);
+      case 'gray':
+      case 'grey':
+        return const ui.Color(0xFF8E8E93);
+      default:
+        return fallback;
+    }
+  }
+
+  static ui.Color levelBackgroundColor({
+    required GamesToolApi gamesTool,
+    required Map<String, dynamic>? level,
+    ui.Color fallback = const ui.Color(0xFF000000),
+  }) {
+    if (level == null) {
+      return fallback;
+    }
+    final String hex = gamesTool.levelBackgroundColorHex(level);
+    return colorFromName(hex, fallback: fallback);
+  }
+
   static void drawLevelTileLayers({
     required ui.Canvas canvas,
     required ui.Size painterSize,
@@ -188,7 +387,8 @@ class GamesToolRuntimeRenderer {
     required RuntimeCamera2D camera,
     required String spriteType,
     required double elapsedSeconds,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double? depth,
+    double? parallaxSensitivity,
     bool cullWhenOffscreen = true,
     int? frameIndex,
     double fallbackFps = GamesToolApi.defaultAnimationFps,
@@ -200,6 +400,11 @@ class GamesToolRuntimeRenderer {
     if (sprite == null) {
       return false;
     }
+    final double resolvedParallaxSensitivity = parallaxSensitivity ??
+        gamesTool.levelParallaxSensitivity(
+          level,
+          fallback: GamesToolApi.defaultParallaxSensitivity,
+        );
     return drawAnimatedSprite(
       canvas: canvas,
       painterSize: painterSize,
@@ -209,7 +414,8 @@ class GamesToolRuntimeRenderer {
       sprite: sprite,
       camera: camera,
       elapsedSeconds: elapsedSeconds,
-      parallaxSensitivity: parallaxSensitivity,
+      depth: depth,
+      parallaxSensitivity: resolvedParallaxSensitivity,
       cullWhenOffscreen: cullWhenOffscreen,
       frameIndex: frameIndex,
       fallbackFps: fallbackFps,
@@ -232,7 +438,7 @@ class GamesToolRuntimeRenderer {
     bool? flipY,
     double? drawWidthWorld,
     double? drawHeightWorld,
-    double depth = 0,
+    double? depth,
     double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
     bool cullWhenOffscreen = true,
     int? frameIndex,
@@ -319,6 +525,7 @@ class GamesToolRuntimeRenderer {
           );
     final bool resolvedFlipX = flipX ?? (sprite['flipX'] == true);
     final bool resolvedFlipY = flipY ?? (sprite['flipY'] == true);
+    final double resolvedDepth = depth ?? gamesTool.spriteDepth(sprite);
     final double resolvedWorldX = worldX ?? gamesTool.spriteX(sprite);
     final double resolvedWorldY = worldY ?? gamesTool.spriteY(sprite);
     final double resolvedDrawWidthWorld = drawWidthWorld ?? frameWidth;
@@ -331,7 +538,7 @@ class GamesToolRuntimeRenderer {
       final ui.Rect? worldViewportRect = RuntimeCameraMath.worldViewportRect(
         camera: camera,
         viewportSize: painterSize,
-        depth: depth,
+        depth: resolvedDepth,
         parallaxSensitivity: parallaxSensitivity,
         paddingWorld: math.max(
           resolvedDrawWidthWorld,
@@ -357,7 +564,7 @@ class GamesToolRuntimeRenderer {
       worldY: resolvedWorldY,
       viewportSize: painterSize,
       camera: camera,
-      depth: depth,
+      depth: resolvedDepth,
       parallaxSensitivity: parallaxSensitivity,
     );
     final double scale = cameraScale(viewportSize: painterSize, camera: camera);
@@ -390,5 +597,22 @@ class GamesToolRuntimeRenderer {
         a.right > b.left &&
         a.top < b.bottom &&
         a.bottom > b.top;
+  }
+
+  static String _normalizeViewportAdaptation(String adaptation) {
+    final String normalized = adaptation.trim().toLowerCase();
+    switch (normalized) {
+      case 'fit':
+      case 'contain':
+      case 'letterbox':
+        return 'letterbox';
+      case 'expand':
+        return 'expand';
+      case 'stretch':
+      case 'strech':
+        return 'stretch';
+      default:
+        return GamesToolApi.defaultViewportAdaptation;
+    }
   }
 }

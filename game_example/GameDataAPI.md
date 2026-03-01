@@ -74,6 +74,7 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 
 - `levelByIndex(levelIndex)`
 - `levelByName(levelName)`
+- `levelViewportByIndex(levelIndex, fallbackWidth?, fallbackHeight?, fallbackAdaptation?)`
 - `layerByIndex(levelIndex, layerIndex)`
 - `layerByName(levelIndex, layerName)`
 - `spriteByIndex(levelIndex, spriteIndex)`
@@ -85,10 +86,11 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 - `worldToScreen(worldX, worldY, camera, viewportSize, depth?, parallaxSensitivity?)`
 - `screenToWorld(screenX, screenY, camera, viewportSize, depth?, parallaxSensitivity?)`
 - `worldViewportRect(camera, viewportSize, depth?, parallaxSensitivity?, paddingWorld?)`
-- `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY)`
-- `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize)`
+- `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY, depthDisplacement?)`
+- `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize, depthDisplacement?, parallaxSensitivity?)`
 - `tileAt(levelIndex, layerIndex?|layerName?, tileX, tileY)` returns `-1` if invalid/empty
-- `tileWorldRect(levelIndex, layerIndex?|layerName?, tileX, tileY)`
+- `tileWorldRect(levelIndex, layerIndex?|layerName?, tileX, tileY, depthDisplacement?)`
+- `tileScreenRect(levelIndex, layerIndex?|layerName?, tileX, tileY, camera, viewportSize, depthDisplacement?, parallaxSensitivity?)`
 
 Notes:
 
@@ -102,15 +104,19 @@ Notes:
 - `levelParallaxSensitivity(gamesTool, level?)`
 - `cameraScale(viewportSize, camera)`
 - `worldToScreen(...)`
+- `levelViewport(gamesTool, level, ...)`
+- `resolveViewportLayout(painterSize, viewport)`
+- `withViewport(canvas, painterSize, viewport, drawInViewport, ...)`
+- `colorFromName(name, fallback?)`
 - `drawLevelTileLayers(canvas, painterSize, level, gamesTool, imagesCache, camera, ...)`
 - `drawAnimatedSpriteByType(canvas, painterSize, gameData, level, gamesTool, imagesCache, camera, spriteType, elapsedSeconds, ...)`
 - `drawAnimatedSprite(canvas, painterSize, gameData, gamesTool, imagesCache, sprite, camera, elapsedSeconds, ...)`
-- `drawConnectionIndicator(canvas, painterSize, isConnected)`
 
 Runtime culling now included:
 
 - tile layers: visible tile-range culling per layer (row/column window from viewport in world space)
 - sprites: offscreen culling (`cullWhenOffscreen = true` by default)
+- sprite depth displacement: `drawAnimatedSprite(...)` now uses sprite `depth` by default (or explicit `depth` override)
 
 ## Hitboxes and collisions
 

@@ -132,6 +132,34 @@ class GameDataRuntimeApi {
     return _gamesTool.findLevelByName(_gameData, levelName);
   }
 
+  RuntimeLevelViewport levelViewportByIndex({
+    required int levelIndex,
+    double fallbackWidth = GamesToolApi.defaultViewportWidth,
+    double fallbackHeight = GamesToolApi.defaultViewportHeight,
+    String fallbackAdaptation = GamesToolApi.defaultViewportAdaptation,
+  }) {
+    final Map<String, dynamic>? level = levelByIndex(levelIndex);
+    if (level == null) {
+      return RuntimeLevelViewport(
+        width: fallbackWidth,
+        height: fallbackHeight,
+        x: 0,
+        y: 0,
+        adaptation: fallbackAdaptation,
+      );
+    }
+    return RuntimeLevelViewport(
+      width: _gamesTool.levelViewportWidth(level, fallback: fallbackWidth),
+      height: _gamesTool.levelViewportHeight(level, fallback: fallbackHeight),
+      x: _gamesTool.levelViewportX(level),
+      y: _gamesTool.levelViewportY(level),
+      adaptation: _gamesTool.levelViewportAdaptation(level,
+          fallback: fallbackAdaptation),
+      initialColorName: _gamesTool.levelViewportInitialColorName(level),
+      previewColorName: _gamesTool.levelViewportPreviewColorName(level),
+    );
+  }
+
   Map<String, dynamic>? layerByIndex({
     required int levelIndex,
     required int layerIndex,
@@ -247,6 +275,7 @@ class GameDataRuntimeApi {
     String? layerName,
     required double worldX,
     required double worldY,
+    double? depthDisplacement,
   }) {
     final Map<String, dynamic>? layer = _resolveLayer(
       levelIndex: levelIndex,
@@ -272,6 +301,10 @@ class GameDataRuntimeApi {
       return null;
     }
 
+    _resolveLayerDepthDisplacement(
+      layer: layer,
+      depthDisplacement: depthDisplacement,
+    );
     final double localX = worldX - _gamesTool.layerX(layer);
     final double localY = worldY - _gamesTool.layerY(layer);
     final int tileX = (localX / tileW).floor();
@@ -291,6 +324,8 @@ class GameDataRuntimeApi {
     required double screenY,
     required RuntimeCamera2D camera,
     required Size viewportSize,
+    double? depthDisplacement,
+    double? parallaxSensitivity,
   }) {
     final Map<String, dynamic>? layer = _resolveLayer(
       levelIndex: levelIndex,
@@ -301,13 +336,19 @@ class GameDataRuntimeApi {
     if (layer == null || level == null) {
       return null;
     }
+    final double resolvedDepth = _resolveLayerDepthDisplacement(
+      layer: layer,
+      depthDisplacement: depthDisplacement,
+    );
+    final double resolvedParallaxSensitivity =
+        parallaxSensitivity ?? _gamesTool.levelParallaxSensitivity(level);
     final Offset? world = screenToWorld(
       screenX: screenX,
       screenY: screenY,
       camera: camera,
       viewportSize: viewportSize,
-      depth: _gamesTool.layerDepth(layer),
-      parallaxSensitivity: _gamesTool.levelParallaxSensitivity(level),
+      depth: resolvedDepth,
+      parallaxSensitivity: resolvedParallaxSensitivity,
     );
     if (world == null) {
       return null;
@@ -319,6 +360,7 @@ class GameDataRuntimeApi {
       layerName: layerName,
       worldX: world.dx,
       worldY: world.dy,
+      depthDisplacement: resolvedDepth,
     );
   }
 
@@ -354,6 +396,7 @@ class GameDataRuntimeApi {
     String? layerName,
     required int tileX,
     required int tileY,
+    double? depthDisplacement,
   }) {
     final Map<String, dynamic>? layer = _resolveLayer(
       levelIndex: levelIndex,
@@ -368,9 +411,75 @@ class GameDataRuntimeApi {
     if (tileW <= 0 || tileH <= 0) {
       return null;
     }
+    _resolveLayerDepthDisplacement(
+      layer: layer,
+      depthDisplacement: depthDisplacement,
+    );
     final double left = _gamesTool.layerX(layer) + tileX * tileW;
     final double top = _gamesTool.layerY(layer) + tileY * tileH;
     return Rect.fromLTWH(left, top, tileW, tileH);
+  }
+
+  Rect? tileScreenRect({
+    required int levelIndex,
+    int? layerIndex,
+    String? layerName,
+    required int tileX,
+    required int tileY,
+    required RuntimeCamera2D camera,
+    required Size viewportSize,
+    double? depthDisplacement,
+    double? parallaxSensitivity,
+  }) {
+    final Map<String, dynamic>? layer = _resolveLayer(
+      levelIndex: levelIndex,
+      layerIndex: layerIndex,
+      layerName: layerName,
+    );
+    final Map<String, dynamic>? level = levelByIndex(levelIndex);
+    if (layer == null || level == null) {
+      return null;
+    }
+    final Rect? worldRect = tileWorldRect(
+      levelIndex: levelIndex,
+      layerIndex: layerIndex,
+      layerName: layerName,
+      tileX: tileX,
+      tileY: tileY,
+      depthDisplacement: depthDisplacement,
+    );
+    if (worldRect == null) {
+      return null;
+    }
+
+    final double resolvedDepth = _resolveLayerDepthDisplacement(
+      layer: layer,
+      depthDisplacement: depthDisplacement,
+    );
+    final double resolvedParallaxSensitivity =
+        parallaxSensitivity ?? _gamesTool.levelParallaxSensitivity(level);
+    final Offset topLeft = worldToScreen(
+      worldX: worldRect.left,
+      worldY: worldRect.top,
+      camera: camera,
+      viewportSize: viewportSize,
+      depth: resolvedDepth,
+      parallaxSensitivity: resolvedParallaxSensitivity,
+    );
+    final double scale = cameraScaleForViewport(
+      viewportSize: viewportSize,
+      camera: camera,
+    );
+    if (scale == 0) {
+      return null;
+    }
+
+    return Rect.fromLTWH(
+      topLeft.dx,
+      topLeft.dy,
+      worldRect.width * scale,
+      worldRect.height * scale,
+    );
   }
 
   List<int> spriteIndicesInGroup({
@@ -1028,6 +1137,16 @@ class GameDataRuntimeApi {
       playback: playback,
       elapsedSeconds: elapsedSeconds,
     );
+  }
+
+  double _resolveLayerDepthDisplacement({
+    required Map<String, dynamic> layer,
+    double? depthDisplacement,
+  }) {
+    if (depthDisplacement != null && depthDisplacement.isFinite) {
+      return depthDisplacement;
+    }
+    return _gamesTool.layerDepth(layer);
   }
 
   double _asFiniteDouble(Object? value, double fallback) {
