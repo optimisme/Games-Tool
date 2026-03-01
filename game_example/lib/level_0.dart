@@ -419,26 +419,30 @@ class Level0Painter extends CustomPainter {
       camera,
       parallaxSensitivity: parallaxSensitivity,
     );
-    final Rect destRect = Rect.fromLTWH(
-      screenPos.dx,
-      screenPos.dy,
-      state.playerWidth * cameraScale.scale,
-      state.playerHeight * cameraScale.scale,
+    final double anchorX = appData.gamesTool.animationAnchorXForFrame(
+      animationData,
+      frameIndex: frameIndex,
     );
+    final double anchorY = appData.gamesTool.animationAnchorYForFrame(
+      animationData,
+      frameIndex: frameIndex,
+    );
+    final double drawWidth = state.playerWidth * cameraScale.scale;
+    final double drawHeight = state.playerHeight * cameraScale.scale;
 
     final Paint paint = Paint()..filterQuality = FilterQuality.none;
-    if (!animation.mirrorX) {
-      canvas.drawImageRect(sheet, srcRect, destRect, paint);
-      return;
-    }
-
     canvas.save();
-    canvas.translate(destRect.left + destRect.width, destRect.top);
-    canvas.scale(-1, 1);
+    canvas.translate(screenPos.dx, screenPos.dy);
+    canvas.scale(animation.mirrorX ? -1.0 : 1.0, 1.0);
     canvas.drawImageRect(
       sheet,
       srcRect,
-      Rect.fromLTWH(0, 0, destRect.width, destRect.height),
+      Rect.fromLTWH(
+        -drawWidth * anchorX,
+        -drawHeight * anchorY,
+        drawWidth,
+        drawHeight,
+      ),
       paint,
     );
     canvas.restore();

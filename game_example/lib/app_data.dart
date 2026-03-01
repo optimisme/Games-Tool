@@ -18,7 +18,7 @@ class AppData extends ChangeNotifier {
   String? loadingError;
   Future<void>? _ongoingLoad;
 
-  final GamesToolApi gamesTool = const GamesToolApi(projectFolder: 'exemple_0');
+  final GamesToolApi gamesTool = GamesToolApi(projectFolder: 'levels');
 
   AppData();
 
