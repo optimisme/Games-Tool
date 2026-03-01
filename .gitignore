@@ -1,0 +1,112 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+.claude
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+bin/*
+
+# Ignore release folder
+Release/
+node_modules
+
+target/
+target/classes
+target/maven-status
+target/surefire-reports
+*.class
+dades.sqlite
+
+.continue
+
+# Ignore pycache
+__pycache__
+
+# Flutter/Dart/Pub related
+# Keep platform source/config folders (android/ios/macos/linux/windows/web) tracked.
+# Ignore only generated, machine-local, and build artifacts.
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+.casperr/
+
+# Android generated/local files
+**/android/.gradle/
+**/android/local.properties
+**/android/**/captures/
+
+# iOS generated files
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner.xcworkspace/xcuserdata/
+
+# macOS generated files
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Pods/
+**/macos/Runner.xcworkspace/xcuserdata/
+**/macos/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Linux generated files
+**/linux/flutter/ephemeral/
+**/linux/flutter/generated_plugin_registrant.*
+
+# Windows generated files
+**/windows/flutter/ephemeral/
+**/windows/flutter/generated_plugin_registrant.*
+
+# GamesTool policy: commit only personalized OS code/config, not full generated
+# platform scaffolding.
+**/game_example/android/
+**/game_example/ios/
+**/game_example/linux/
+**/game_example/macos/
+**/game_example/web/
+**/game_example/windows/
+
+**/games_tool/android/
+**/games_tool/ios/
+**/games_tool/linux/
+**/games_tool/web/
+**/games_tool/windows/
+
+# macOS in games_tool: keep only custom Runner files versioned.
+**/games_tool/macos/**
+!**/games_tool/macos/
+!**/games_tool/macos/Runner/
+!**/games_tool/macos/Runner/MainFlutterWindow.swift
+!**/games_tool/macos/Runner/DebugProfile.entitlements
+!**/games_tool/macos/Runner/Release.entitlements

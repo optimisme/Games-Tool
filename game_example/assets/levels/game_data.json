@@ -1,0 +1,188 @@
+{
+  "name": "Demo game",
+  "levels": [
+    {
+      "name": "L'era Xampinyó",
+      "description": "",
+      "gameplayData": "",
+      "layers": [
+        {
+          "name": "Decoracions",
+          "gameplayData": "",
+          "x": 0,
+          "y": 0,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_000.json"
+        },
+        {
+          "name": "Terreny",
+          "gameplayData": "",
+          "x": 0,
+          "y": 0,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_001.json"
+        }
+      ],
+      "layerGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "sprites": [
+        {
+          "name": "Heroi",
+          "gameplayData": "",
+          "type": "Heroi",
+          "animationId": "anim_1772099194341380",
+          "x": 430,
+          "y": 268,
+          "width": 20,
+          "height": 20,
+          "imageFile": "media/16x16 Idle-Sheet.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__main__"
+        }
+      ],
+      "spriteGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "groupId": "__main__",
+      "viewportWidth": 320,
+      "viewportHeight": 180,
+      "viewportX": 280,
+      "viewportY": 175,
+      "viewportAdaptation": "letterbox",
+      "viewportInitialColor": "yellow",
+      "viewportPreviewColor": "pink",
+      "backgroundColorHex": "#DCDCE1",
+      "parallaxSensitivity": 0.08,
+      "zonesFile": "zones/level_000_zones.json"
+    },
+    {
+      "name": "El prat Muu Muu",
+      "description": "",
+      "gameplayData": "",
+      "layers": [],
+      "layerGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "sprites": [],
+      "spriteGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "groupId": "__main__",
+      "viewportWidth": 320,
+      "viewportHeight": 180,
+      "viewportX": 0,
+      "viewportY": 0,
+      "viewportAdaptation": "letterbox",
+      "viewportInitialColor": "green",
+      "viewportPreviewColor": "blue",
+      "backgroundColorHex": "#DCDCE1",
+      "parallaxSensitivity": 0.08,
+      "zonesFile": "zones/level_001_zones.json"
+    }
+  ],
+  "levelGroups": [
+    {
+      "id": "__main__",
+      "name": "Main",
+      "collapsed": false
+    }
+  ],
+  "mediaAssets": [
+    {
+      "name": "Terreny",
+      "fileName": "media/punyworld-overworld-tileset.png",
+      "mediaType": "tileset",
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "selectionColorHex": "#FF2D55",
+      "groupId": "__main__"
+    },
+    {
+      "name": "Heroi Aturat",
+      "fileName": "media/16x16 Idle-Sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 20,
+      "tileHeight": 20,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772359181414251_0"
+    },
+    {
+      "name": "Heroi Salt",
+      "fileName": "media/16x16 Jump-Sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 20,
+      "tileHeight": 20,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772359181414251_0"
+    },
+    {
+      "name": "Heroi Camina",
+      "fileName": "media/16x16 Walk-Sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 20,
+      "tileHeight": 20,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772359181414251_0"
+    }
+  ],
+  "mediaGroups": [
+    {
+      "id": "__main__",
+      "name": "Main",
+      "collapsed": false
+    },
+    {
+      "id": "__group_1772359181414251_0",
+      "name": "Heroi",
+      "collapsed": false
+    }
+  ],
+  "zoneTypes": [
+    {
+      "name": "Aigua",
+      "color": "blue"
+    },
+    {
+      "name": "Mur",
+      "color": "red"
+    },
+    {
+      "name": "Pont",
+      "color": "amber"
+    },
+    {
+      "name": "Arbre",
+      "color": "teal"
+    }
+  ],
+  "animationsFile": "animations/animations.json"
+}
