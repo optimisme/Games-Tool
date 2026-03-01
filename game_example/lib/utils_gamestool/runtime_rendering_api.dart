@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'project_data_api.dart';
@@ -99,18 +100,49 @@ class GamesToolRuntimeRenderer {
         continue;
       }
 
+      final double layerDepth = gamesTool.layerDepth(layer);
       final double parallax = RuntimeCameraMath.parallaxFactorForDepth(
-        gamesTool.layerDepth(layer),
+        layerDepth,
         sensitivity: parallaxSensitivity,
       );
       final double camX = camera.x * parallax;
       final double camY = camera.y * parallax;
       final double layerX = gamesTool.layerX(layer);
       final double layerY = gamesTool.layerY(layer);
+      final ui.Rect? viewportWorldRect = RuntimeCameraMath.worldViewportRect(
+        camera: camera,
+        viewportSize: painterSize,
+        depth: layerDepth,
+        parallaxSensitivity: parallaxSensitivity,
+        paddingWorld: math.max(tileW, tileH),
+      );
+      if (viewportWorldRect == null) {
+        continue;
+      }
+      final int rawRowStart =
+          ((viewportWorldRect.top - layerY) / tileH).floor() - 1;
+      final int rawRowEnd =
+          ((viewportWorldRect.bottom - layerY) / tileH).ceil();
+      final int rowStart = rawRowStart.clamp(0, tileMap.length - 1).toInt();
+      final int rowEnd = rawRowEnd.clamp(0, tileMap.length - 1).toInt();
+      if (rowEnd < rowStart) {
+        continue;
+      }
+      final int rawColStart =
+          ((viewportWorldRect.left - layerX) / tileW).floor() - 1;
+      final int rawColEnd = ((viewportWorldRect.right - layerX) / tileW).ceil();
 
-      for (int row = 0; row < tileMap.length; row++) {
+      for (int row = rowStart; row <= rowEnd; row++) {
         final List<dynamic> rowData = tileMap[row];
-        for (int col = 0; col < rowData.length; col++) {
+        if (rowData.isEmpty) {
+          continue;
+        }
+        final int colStart = rawColStart.clamp(0, rowData.length - 1).toInt();
+        final int colEnd = rawColEnd.clamp(0, rowData.length - 1).toInt();
+        if (colEnd < colStart) {
+          continue;
+        }
+        for (int col = colStart; col <= colEnd; col++) {
           final int tileIndex = (rowData[col] as num?)?.toInt() ?? -1;
           if (tileIndex < 0) {
             continue;
@@ -157,6 +189,7 @@ class GamesToolRuntimeRenderer {
     required String spriteType,
     required double elapsedSeconds,
     double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    bool cullWhenOffscreen = true,
     int? frameIndex,
     double fallbackFps = GamesToolApi.defaultAnimationFps,
   }) {
@@ -177,6 +210,7 @@ class GamesToolRuntimeRenderer {
       camera: camera,
       elapsedSeconds: elapsedSeconds,
       parallaxSensitivity: parallaxSensitivity,
+      cullWhenOffscreen: cullWhenOffscreen,
       frameIndex: frameIndex,
       fallbackFps: fallbackFps,
     );
@@ -200,6 +234,7 @@ class GamesToolRuntimeRenderer {
     double? drawHeightWorld,
     double depth = 0,
     double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    bool cullWhenOffscreen = true,
     int? frameIndex,
     double fallbackFps = GamesToolApi.defaultAnimationFps,
   }) {
@@ -284,10 +319,42 @@ class GamesToolRuntimeRenderer {
           );
     final bool resolvedFlipX = flipX ?? (sprite['flipX'] == true);
     final bool resolvedFlipY = flipY ?? (sprite['flipY'] == true);
+    final double resolvedWorldX = worldX ?? gamesTool.spriteX(sprite);
+    final double resolvedWorldY = worldY ?? gamesTool.spriteY(sprite);
+    final double resolvedDrawWidthWorld = drawWidthWorld ?? frameWidth;
+    final double resolvedDrawHeightWorld = drawHeightWorld ?? frameHeight;
+    if (resolvedDrawWidthWorld <= 0 || resolvedDrawHeightWorld <= 0) {
+      return false;
+    }
+
+    if (cullWhenOffscreen) {
+      final ui.Rect? worldViewportRect = RuntimeCameraMath.worldViewportRect(
+        camera: camera,
+        viewportSize: painterSize,
+        depth: depth,
+        parallaxSensitivity: parallaxSensitivity,
+        paddingWorld: math.max(
+          resolvedDrawWidthWorld,
+          resolvedDrawHeightWorld,
+        ),
+      );
+      if (worldViewportRect == null) {
+        return false;
+      }
+      final ui.Rect spriteWorldRect = ui.Rect.fromLTWH(
+        resolvedWorldX - resolvedDrawWidthWorld * anchorX,
+        resolvedWorldY - resolvedDrawHeightWorld * anchorY,
+        resolvedDrawWidthWorld,
+        resolvedDrawHeightWorld,
+      );
+      if (!_rectsIntersect(spriteWorldRect, worldViewportRect)) {
+        return true;
+      }
+    }
 
     final ui.Offset screenPos = worldToScreen(
-      worldX: worldX ?? gamesTool.spriteX(sprite),
-      worldY: worldY ?? gamesTool.spriteY(sprite),
+      worldX: resolvedWorldX,
+      worldY: resolvedWorldY,
       viewportSize: painterSize,
       camera: camera,
       depth: depth,
@@ -297,8 +364,8 @@ class GamesToolRuntimeRenderer {
     if (scale == 0) {
       return false;
     }
-    final double destWidth = (drawWidthWorld ?? frameWidth) * scale;
-    final double destHeight = (drawHeightWorld ?? frameHeight) * scale;
+    final double destWidth = resolvedDrawWidthWorld * scale;
+    final double destHeight = resolvedDrawHeightWorld * scale;
 
     canvas.save();
     canvas.translate(screenPos.dx, screenPos.dy);
@@ -316,6 +383,13 @@ class GamesToolRuntimeRenderer {
     );
     canvas.restore();
     return true;
+  }
+
+  static bool _rectsIntersect(ui.Rect a, ui.Rect b) {
+    return a.left < b.right &&
+        a.right > b.left &&
+        a.top < b.bottom &&
+        a.bottom > b.top;
   }
 
   static void drawConnectionIndicator(
