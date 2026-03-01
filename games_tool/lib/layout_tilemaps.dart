@@ -115,48 +115,14 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
   }
 
   Widget _buildSelectionColorRow(AppData appData, GameLayer layer) {
-    void toggleEraser() {
-      appData.tilemapEraserEnabled = !appData.tilemapEraserEnabled;
-      appData.update();
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CDKText(
-                'Erase',
-                role: CDKTextRole.caption,
-              ),
-              const SizedBox(height: 6),
-              CDKButton(
-                style: appData.tilemapEraserEnabled
-                    ? CDKButtonStyle.action
-                    : CDKButtonStyle.normal,
-                onPressed: toggleEraser,
-                child: const Icon(
-                  CupertinoIcons.trash,
-                  size: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          const Spacer(),
-          _TilesetSelectionColorPicker(
-            selectedColor:
-                appData.tilesetSelectionColorForFile(layer.tilesSheetFile),
-            onSelect: (Color color) {
-              unawaited(_setSelectionColorForLayer(appData, layer, color));
-            },
-            compact: true,
-          ),
-        ],
+      child: _TilesetSelectionColorPicker(
+        selectedColor:
+            appData.tilesetSelectionColorForFile(layer.tilesSheetFile),
+        onSelect: (Color color) {
+          unawaited(_setSelectionColorForLayer(appData, layer, color));
+        },
       ),
     );
   }
@@ -389,7 +355,13 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     });
   }
 
-  Widget _buildZoomAndToolRow() {
+  Widget _buildZoomAndToolRow(AppData appData) {
+    final bool pointerSelected =
+        _tilesetPointerToolActive && !appData.tilemapEraserEnabled;
+    final bool trashSelected =
+        _tilesetPointerToolActive && appData.tilemapEraserEnabled;
+    final bool handSelected = _tilesetHandToolActive;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
@@ -405,22 +377,33 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
           ),
           const Spacer(),
           SizedBox(
-            width: 80,
+            width: 116,
             child: CDKPickerButtonsBar(
               selectedStates: <bool>[
-                _tilesetPointerToolActive,
-                _tilesetHandToolActive
+                pointerSelected,
+                trashSelected,
+                handSelected,
               ],
               options: const [
                 Icon(CupertinoIcons.cursor_rays),
+                Icon(CupertinoIcons.trash),
                 Icon(CupertinoIcons.hand_raised),
               ],
               onChanged: (states) {
+                final bool nextHand = states.length > 2 && states[2] == true;
+                final bool nextTrash = states.length > 1 && states[1] == true;
+
                 setState(() {
-                  _tilesetCanvasTool = states.length > 1 && states[1] == true
+                  _tilesetCanvasTool = nextHand
                       ? _TilesetCanvasTool.hand
                       : _TilesetCanvasTool.pointer;
                 });
+
+                final bool enableEraser = !nextHand && nextTrash;
+                if (appData.tilemapEraserEnabled != enableEraser) {
+                  appData.tilemapEraserEnabled = enableEraser;
+                  appData.update();
+                }
               },
             ),
           ),
@@ -664,13 +647,13 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8.0),
           child: CDKText(
-            'Pointer: click/drag tiles. Hand: drag to pan. Scroll to zoom.',
+            'Pointer: click/drag tiles. Trash: erase on map. Hand: drag to pan. Scroll to zoom.',
             role: CDKTextRole.caption,
             secondary: true,
           ),
         ),
         const SizedBox(height: 6),
-        _buildZoomAndToolRow(),
+        _buildZoomAndToolRow(appData),
         const SizedBox(height: 8),
         Expanded(
           child: FutureBuilder<ui.Image>(
@@ -1000,43 +983,14 @@ class _TilesetSelectionColorPicker extends StatelessWidget {
   const _TilesetSelectionColorPicker({
     required this.selectedColor,
     required this.onSelect,
-    this.compact = false,
   });
 
   final Color selectedColor;
   final ValueChanged<Color> onSelect;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CDKText(
-            'Selection Color',
-            role: CDKTextRole.caption,
-          ),
-          SizedBox(height: spacing.xs),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: spacing.xs,
-            runSpacing: spacing.xs,
-            children: _tilesetAccentOptions.map((option) {
-              final bool isSelected = option.color == selectedColor;
-              return SelectableColorSwatch(
-                color: option.color,
-                selected: isSelected,
-                onTap: () => onSelect(option.color),
-              );
-            }).toList(growable: false),
-          ),
-        ],
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
