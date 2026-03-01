@@ -5,8 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'app_data.dart';
 import 'camera.dart';
-import 'rendering.dart';
-import 'utils_gamestool.dart';
+import 'utils_gamestool/utils_gamestool.dart';
 
 class Level1 extends StatefulWidget {
   const Level1({super.key, required this.levelIndex});
@@ -264,48 +263,56 @@ class Level1Painter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint background = Paint()..color = const Color(0xFF0A0D1A);
-    canvas.drawRect(Offset.zero & size, background);
-
     if (level == null || renderState == null) {
+      final Paint background = Paint()..color = const Color(0xFF0A0D1A);
+      canvas.drawRect(Offset.zero & size, background);
       _drawText(canvas, 'Loading level 1...', const Offset(20, 20));
       return;
     }
 
-    final double parallaxSensitivity = _levelParallaxSensitivity();
+    final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
+    final double parallaxSensitivity =
+        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+      gamesTool: appData.gamesTool,
+      level: level,
+    );
 
-    CommonRenderer.drawLevelTileLayers(
+    GamesToolRuntimeRenderer.drawLevelTileLayers(
       canvas: canvas,
       painterSize: size,
       level: level!,
-      appData: appData,
-      camera: camera,
+      gamesTool: appData.gamesTool,
+      imagesCache: appData.imagesCache,
+      camera: runtimeCamera,
       backgroundColor: const Color(0xFF0A0D1A),
       parallaxSensitivity: parallaxSensitivity,
     );
 
-    CommonRenderer.drawAnimatedFlag(
+    GamesToolRuntimeRenderer.drawAnimatedSpriteByType(
       canvas: canvas,
       painterSize: size,
+      gameData: appData.gameData,
       level: level!,
-      appData: appData,
-      camera: camera,
-      tickCounter: renderState!.tickCounter,
+      gamesTool: appData.gamesTool,
+      imagesCache: appData.imagesCache,
+      camera: runtimeCamera,
+      spriteType: 'flag',
+      elapsedSeconds: renderState!.tickCounter / 60.0,
       parallaxSensitivity: parallaxSensitivity,
     );
 
-    final Offset groundStart = CommonRenderer.worldToScreen(
-      renderState!.playerX - 1200,
-      renderState!.groundY + renderState!.playerHeight,
-      size,
-      camera,
+    final Offset groundStart = RuntimeCameraMath.worldToScreen(
+      worldX: renderState!.playerX - 1200,
+      worldY: renderState!.groundY + renderState!.playerHeight,
+      viewportSize: size,
+      camera: runtimeCamera,
       parallaxSensitivity: parallaxSensitivity,
     );
-    final Offset groundEnd = CommonRenderer.worldToScreen(
-      renderState!.playerX + 1200,
-      renderState!.groundY + renderState!.playerHeight,
-      size,
-      camera,
+    final Offset groundEnd = RuntimeCameraMath.worldToScreen(
+      worldX: renderState!.playerX + 1200,
+      worldY: renderState!.groundY + renderState!.playerHeight,
+      viewportSize: size,
+      camera: runtimeCamera,
       parallaxSensitivity: parallaxSensitivity,
     );
     final Paint groundPaint = Paint()
@@ -313,20 +320,23 @@ class Level1Painter extends CustomPainter {
       ..strokeWidth = 3;
     canvas.drawLine(groundStart, groundEnd, groundPaint);
 
-    final CameraScale cameraScale = CommonRenderer.getCameraScale(size, camera);
-    final Offset screenPos = CommonRenderer.worldToScreen(
-      renderState!.playerX,
-      renderState!.playerY,
-      size,
-      camera,
+    final double cameraScale = RuntimeCameraMath.cameraScaleForViewport(
+      viewportSize: size,
+      focal: runtimeCamera.focal,
+    );
+    final Offset screenPos = RuntimeCameraMath.worldToScreen(
+      worldX: renderState!.playerX,
+      worldY: renderState!.playerY,
+      viewportSize: size,
+      camera: runtimeCamera,
       parallaxSensitivity: parallaxSensitivity,
     );
 
     final Rect playerRect = Rect.fromLTWH(
       screenPos.dx,
       screenPos.dy,
-      renderState!.playerWidth * cameraScale.scale,
-      renderState!.playerHeight * cameraScale.scale,
+      renderState!.playerWidth * cameraScale,
+      renderState!.playerHeight * cameraScale,
     );
 
     final Paint bodyPaint = Paint()..color = const Color(0xFFFFB347);
@@ -346,7 +356,11 @@ class Level1Painter extends CustomPainter {
       const Offset(20, 20),
     );
 
-    CommonRenderer.drawConnectionIndicator(canvas, size, appData.isConnected);
+    GamesToolRuntimeRenderer.drawConnectionIndicator(
+      canvas,
+      size,
+      appData.isConnected,
+    );
   }
 
   void _drawText(Canvas canvas, String text, Offset offset) {
@@ -362,14 +376,6 @@ class Level1Painter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: 900);
     painter.paint(canvas, offset);
-  }
-
-  double _levelParallaxSensitivity() {
-    final Map<String, dynamic>? currentLevel = level;
-    if (currentLevel == null) {
-      return GamesToolApi.defaultParallaxSensitivity;
-    }
-    return appData.gamesTool.levelParallaxSensitivity(currentLevel);
   }
 
   @override
