@@ -575,22 +575,12 @@ class GameDataRuntimeApi {
       frameIndex: resolvedFrame,
     );
 
-    final List<Map<String, dynamic>> hitBoxes = rawHitBoxes.isEmpty
-        ? <Map<String, dynamic>>[
-            const <String, dynamic>{
-              'id': '__auto__body',
-              'name': 'Body',
-              'color': 'blue',
-              'x': 0.0,
-              'y': 0.0,
-              'width': 1.0,
-              'height': 1.0,
-            }
-          ]
-        : rawHitBoxes;
+    if (rawHitBoxes.isEmpty) {
+      return const <WorldHitBox>[];
+    }
 
     final List<WorldHitBox> resolved = <WorldHitBox>[];
-    for (final Map<String, dynamic> hitBox in hitBoxes) {
+    for (final Map<String, dynamic> hitBox in rawHitBoxes) {
       final String hitBoxId = (hitBox['id'] as String?) ?? '__hitbox__';
       final String hitBoxName = (hitBox['name'] as String?) ?? hitBoxId;
       final String hitBoxColor = (hitBox['color'] as String?) ?? 'blue';
