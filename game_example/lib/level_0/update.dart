@@ -10,6 +10,16 @@ extension _Level0Update on _Level0State {
       setLastTickTimestamp: (Duration? value) {
         _lastTickTimestamp = value;
       },
+      onFrame: (double frameDt) {
+        final Level0UpdateState? state = _updateState;
+        if (state == null) {
+          return;
+        }
+        state.fps = _runtimeApi.updateSmoothedFps(
+          previousFps: state.fps,
+          dtSeconds: frameDt,
+        );
+      },
       onTick: _tick,
     );
   }
@@ -19,10 +29,6 @@ extension _Level0Update on _Level0State {
     if (!mounted || state == null) {
       return;
     }
-    state.fps = _runtimeApi.updateSmoothedFps(
-      previousFps: state.fps,
-      dtSeconds: dt,
-    );
 
     if (!state.isWin) {
       _updateMovement(state, dt);

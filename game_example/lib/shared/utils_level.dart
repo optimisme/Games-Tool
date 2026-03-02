@@ -103,18 +103,39 @@ Ticker restartGameLoopTicker({
   required Duration? Function() getLastTickTimestamp,
   required void Function(Duration? value) setLastTickTimestamp,
   required void Function(double dt) onTick,
+  void Function(double frameDt)? onFrame,
   double initialDtSeconds = 1 / 60,
+  double fixedDtSeconds = 1 / 60,
   double maxDtSeconds = 0.05,
+  int maxSubsteps = 5,
 }) {
   ticker?.dispose();
   setLastTickTimestamp(null);
+  final double safeFixedDt =
+      fixedDtSeconds.isFinite && fixedDtSeconds > 0 ? fixedDtSeconds : 1 / 60;
+  final int safeMaxSubsteps = maxSubsteps < 1 ? 1 : maxSubsteps;
+  double accumulatorSeconds = 0;
   final Ticker nextTicker = tickerProvider.createTicker((Duration elapsed) {
     final Duration? previous = getLastTickTimestamp();
     setLastTickTimestamp(elapsed);
-    final double dt = previous == null
+    final double frameDt = previous == null
         ? initialDtSeconds
         : (elapsed - previous).inMicroseconds / 1000000;
-    onTick(dt.clamp(0.0, maxDtSeconds));
+    final double clampedFrameDt = frameDt.clamp(0.0, maxDtSeconds);
+    onFrame?.call(clampedFrameDt);
+
+    accumulatorSeconds += clampedFrameDt;
+    int substeps = 0;
+    while (accumulatorSeconds >= safeFixedDt && substeps < safeMaxSubsteps) {
+      onTick(safeFixedDt);
+      accumulatorSeconds -= safeFixedDt;
+      substeps += 1;
+    }
+
+    // Drop excess backlog to avoid spiral-of-death under sustained slowdown.
+    if (substeps >= safeMaxSubsteps && accumulatorSeconds > safeFixedDt) {
+      accumulatorSeconds = safeFixedDt;
+    }
   });
   nextTicker.start();
   return nextTicker;
