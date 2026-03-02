@@ -803,13 +803,16 @@ class _ViewportPreviewPainter extends CustomPainter {
     required double viewportH,
     required String adaptation,
   }) {
+    final String normalizedAdaptation = _normalizeViewportAdaptation(adaptation);
     final double screenAspect = screenRect.width / screenRect.height;
     final double viewportAspect = viewportW / viewportH;
     Rect contentRect = screenRect;
     double cameraWorldW = viewportW;
     double cameraWorldH = viewportH;
+    double cameraWorldLeft = previewX.toDouble();
+    double cameraWorldTop = previewY.toDouble();
 
-    switch (adaptation) {
+    switch (normalizedAdaptation) {
       case 'letterbox':
         if (viewportAspect > screenAspect) {
           final double h = screenRect.width / viewportAspect;
@@ -837,6 +840,8 @@ class _ViewportPreviewPainter extends CustomPainter {
           cameraWorldW = viewportW;
           cameraWorldH = viewportW / screenAspect;
         }
+        cameraWorldLeft = previewX - (cameraWorldW - viewportW) / 2;
+        cameraWorldTop = previewY - (cameraWorldH - viewportH) / 2;
         break;
       case 'stretch':
       default:
@@ -847,12 +852,31 @@ class _ViewportPreviewPainter extends CustomPainter {
       contentRect: contentRect,
       cameraWorldW: cameraWorldW,
       cameraWorldH: cameraWorldH,
+      cameraWorldLeft: cameraWorldLeft,
+      cameraWorldTop: cameraWorldTop,
     );
   }
 
+  String _normalizeViewportAdaptation(String value) {
+    final String normalized = value.trim().toLowerCase();
+    switch (normalized) {
+      case 'fit':
+      case 'contain':
+      case 'letterbox':
+        return 'letterbox';
+      case 'expand':
+        return 'expand';
+      case 'stretch':
+      case 'strech':
+        return 'stretch';
+      default:
+        return 'letterbox';
+    }
+  }
+
   void _paintScene(Canvas canvas, _PreviewSceneMapping mapping) {
-    final double cameraX = previewX.toDouble();
-    final double cameraY = previewY.toDouble();
+    final double cameraX = mapping.cameraWorldLeft;
+    final double cameraY = mapping.cameraWorldTop;
     final double levelParallaxSensitivity = level.parallaxSensitivity;
     final double scaleX = mapping.contentRect.width / mapping.cameraWorldW;
     final double scaleY = mapping.contentRect.height / mapping.cameraWorldH;
@@ -992,10 +1016,14 @@ class _PreviewSceneMapping {
   final Rect contentRect;
   final double cameraWorldW;
   final double cameraWorldH;
+  final double cameraWorldLeft;
+  final double cameraWorldTop;
 
   const _PreviewSceneMapping({
     required this.contentRect,
     required this.cameraWorldW,
     required this.cameraWorldH,
+    required this.cameraWorldLeft,
+    required this.cameraWorldTop,
   });
 }

@@ -29,7 +29,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
       if (!mounted) {
         return;
       }
-      context.read<AppData>().ensureLoaded();
+      context.read<AppData>().ensureLoadedForLevel(widget.levelIndex);
     });
 
     _controller = AnimationController(
@@ -54,7 +54,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     if (_didNavigate) {
       return;
     }
-    if (!_controller.isCompleted || !appData.isReady) {
+    if (!_controller.isCompleted || !appData.isReadyForLevel(widget.levelIndex)) {
       return;
     }
 
@@ -82,10 +82,11 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     final AppData appData = context.watch<AppData>();
     _maybeNavigate(appData);
 
+    final bool levelReady = appData.isReadyForLevel(widget.levelIndex);
     final double rawProgress = _controller.value;
     final double dataProgress =
-        appData.isReady ? 1 : appData.loadingProgress.clamp(0.0, 0.95);
-    final double progress = appData.isReady
+        levelReady ? 1 : appData.loadingProgress.clamp(0.0, 0.95);
+    final double progress = levelReady
         ? rawProgress
         : math.min(0.95, math.max(rawProgress * 0.35, dataProgress));
 
@@ -96,7 +97,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
       label = 'Preparing level ${widget.levelIndex}...';
     } else if (appData.isLoadingData) {
       label = 'Loading assets...';
-    } else if (!appData.isReady) {
+    } else if (!levelReady) {
       label = 'Waiting for assets...';
     } else {
       label = 'Launching level ${widget.levelIndex}...';
