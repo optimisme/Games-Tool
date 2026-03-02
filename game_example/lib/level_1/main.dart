@@ -43,11 +43,11 @@ const List<Offset> _level1MovingPlatformPath = <Offset>[
   Offset(740, 340),
 ];
 const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
-  hudX: 20,
-  hudY: 5,
-  iconWidth: 8,
-  iconHeight: 8,
-  iconGap: 3,
+  hudX: 20 * kHudSpacingScaleX,
+  hudY: 5 * kHudSpacingScaleY,
+  iconWidth: 8 * kHudScale,
+  iconHeight: 8 * kHudScale,
+  iconGap: 3 * kHudSpacingScaleX,
 );
 
 bool _isLevel1PlayerSprite(Map<String, dynamic> sprite) {
@@ -203,7 +203,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
             final Size canvasSize =
                 Size(constraints.maxWidth, constraints.maxHeight);
             final Rect backLabelRect = _backLabelScreenRect(
-              appData: appData,
               canvasSize: canvasSize,
             );
 
@@ -240,20 +239,16 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   }
 }
 
-/// HUD helpers that map virtual viewport coordinates back to screen space.
+/// HUD helpers for screen-space interaction geometry.
 extension _Level1Hud on _Level1State {
   Rect _backLabelScreenRect({
-    required AppData appData,
     required Size canvasSize,
   }) {
-    final RuntimeLevelViewport viewport =
-        GamesToolRuntimeRenderer.levelViewport(
-      gamesTool: appData.gamesTool,
-      level: _level,
-    );
-    return resolveBackLabelScreenRect(
-      viewport: viewport,
+    final Rect hudRect = resolveScreenHudRect(
       canvasSize: canvasSize,
+    );
+    return resolveBackLabelRectInHud(
+      hudRect: hudRect,
       label: _level1BackLabel,
       layout: _level1BackHudLayout,
       textStyle: kHudTextStyle,

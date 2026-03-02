@@ -31,11 +31,11 @@ const String _level0BackLabel = 'Tornar';
 const String _level0ArbreZoneName = 'Arbre';
 const double _level0EndStateInputDelaySeconds = 1.0;
 const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
-  hudX: 20,
-  hudY: 5,
-  iconWidth: 8,
-  iconHeight: 8,
-  iconGap: 3,
+  hudX: 20 * kHudSpacingScaleX,
+  hudY: 5 * kHudSpacingScaleY,
+  iconWidth: 8 * kHudScale,
+  iconHeight: 8 * kHudScale,
+  iconGap: 3 * kHudSpacingScaleX,
 );
 
 String _level0TileKey(int x, int y) => '$x:$y';
@@ -195,7 +195,6 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
             final Size canvasSize =
                 Size(constraints.maxWidth, constraints.maxHeight);
             final Rect backLabelRect = _backLabelScreenRect(
-              appData: appData,
               canvasSize: canvasSize,
             );
 
@@ -233,20 +232,16 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   }
 }
 
-/// HUD helpers that map virtual viewport coordinates back to screen space.
+/// HUD helpers for screen-space interaction geometry.
 extension _Level0Hud on _Level0State {
   Rect _backLabelScreenRect({
-    required AppData appData,
     required Size canvasSize,
   }) {
-    final RuntimeLevelViewport viewport =
-        GamesToolRuntimeRenderer.levelViewport(
-      gamesTool: appData.gamesTool,
-      level: _level,
-    );
-    return resolveBackLabelScreenRect(
-      viewport: viewport,
+    final Rect hudRect = resolveScreenHudRect(
       canvasSize: canvasSize,
+    );
+    return resolveBackLabelRectInHud(
+      hudRect: hudRect,
       label: _level0BackLabel,
       layout: _level0BackHudLayout,
       textStyle: kHudTextStyle,

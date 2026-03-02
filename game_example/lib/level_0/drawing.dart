@@ -43,6 +43,9 @@ class Level0Painter extends CustomPainter {
       level: level,
       fallback: const Color(0xFF0B1014),
     );
+    final Rect screenHudRect = resolveScreenHudRect(
+      canvasSize: size,
+    );
 
     GamesToolRuntimeRenderer.withViewport(
       canvas: canvas,
@@ -50,10 +53,6 @@ class Level0Painter extends CustomPainter {
       viewport: viewport,
       outerBackgroundColor: levelBackground,
       drawInViewport: (Size viewportSize) {
-        final Rect hudRect = resolveHudRectInVirtualViewport(
-          viewport: viewport,
-          virtualViewportSize: viewportSize,
-        );
         final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
           x: runtimeCamera.x,
           y: runtimeCamera.y,
@@ -112,48 +111,53 @@ class Level0Painter extends CustomPainter {
         if (playerSprite == null) {
           _drawFallbackPlayer(canvas, viewportSize, effectiveCamera);
         }
-
-        drawBackToMenuHud(
-          canvas: canvas,
-          hudRect: hudRect,
-          iconImage: backIconImage,
-          label: _level0BackLabel,
-          layout: _level0BackHudLayout,
-        );
-        drawHudText(
-          canvas,
-          'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
-          Offset(hudRect.left + 20, hudRect.top + 170),
-        );
-        if (renderState!.isOnPont) {
-          drawHudText(
-            canvas,
-            'Caminant pel pont',
-            Offset(hudRect.left + 20, hudRect.top + 20),
-          );
-        }
-        drawTopRightHudText(
-          canvas: canvas,
-          hudRect: hudRect,
-          text:
-              'Arbres: ${renderState!.arbresRemovedCount}/${renderState!.totalArbres}',
-          top: 5,
-        );
-        drawTopRightHudText(
-          canvas: canvas,
-          hudRect: hudRect,
-          text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
-          top: 13,
-        );
-        if (renderState!.isWin) {
-          _drawYouWinOverlay(
-            canvas,
-            viewportSize,
-            showPressAnyKey: renderState!.canExitEndState,
-          );
-        }
       },
     );
+    drawBackToMenuHud(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      iconImage: backIconImage,
+      label: _level0BackLabel,
+      layout: _level0BackHudLayout,
+    );
+    drawHudText(
+      canvas,
+      'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
+      Offset(
+        screenHudRect.left + hudSpacingX(20),
+        screenHudRect.bottom - hudSpacingY(14),
+      ),
+    );
+    if (renderState!.isOnPont) {
+      drawHudText(
+        canvas,
+        'Caminant pel pont',
+        Offset(
+          screenHudRect.left + hudSpacingX(20),
+          screenHudRect.top + hudSpacingY(20),
+        ),
+      );
+    }
+    drawTopRightHudText(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      text:
+          'Arbres: ${renderState!.arbresRemovedCount}/${renderState!.totalArbres}',
+      top: hudSpacingY(5),
+    );
+    drawTopRightHudText(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
+      top: hudSpacingY(20),
+    );
+    if (renderState!.isWin) {
+      _drawYouWinOverlay(
+        canvas,
+        size,
+        showPressAnyKey: renderState!.canExitEndState,
+      );
+    }
   }
 
   void _drawSpritesAtDepth({
@@ -298,12 +302,12 @@ class Level0Painter extends CustomPainter {
       hintText: 'Prem qualsevol tecla',
       hintStyle: const TextStyle(
         color: Color(0xFFE8F3FF),
-        fontSize: 10,
+        fontSize: 10 * kHudScale,
         fontWeight: FontWeight.w500,
-        letterSpacing: 0.8,
+        letterSpacing: 0.8 * kHudScale,
       ),
-      titleCenterYOffset: -20,
-      hintCenterYOffset: 6,
+      titleCenterYOffset: -20 * kHudSpacingScaleY,
+      hintCenterYOffset: 6 * kHudSpacingScaleY,
     );
   }
 
