@@ -728,6 +728,10 @@ class LayoutLevelsState extends State<LayoutLevels> {
       fontSize: (typography.body.fontSize ?? 14) + 2,
       fontWeight: FontWeight.w700,
     );
+    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
+      fontSize: typography.body.fontSize,
+      fontWeight: FontWeight.w500,
+    );
     final levelRows = _buildLevelRows(appData);
 
     return Column(
@@ -911,6 +915,9 @@ class LayoutLevelsState extends State<LayoutLevels> {
 
                           final int levelIndex = row.itemIndex!;
                           final GameLevel level = row.item!;
+                          final String levelGameplayData = level.gameplayData
+                              .replaceAll(RegExp(r'\s+'), ' ')
+                              .trim();
                           final bool isSelected =
                               (levelIndex == appData.selectedLevel);
                           final bool hiddenByCollapse = row.hiddenByCollapse;
@@ -949,12 +956,44 @@ class LayoutLevelsState extends State<LayoutLevels> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                CDKText(
-                                                  level.name,
-                                                  role: isSelected
-                                                      ? CDKTextRole.bodyStrong
-                                                      : CDKTextRole.body,
-                                                  style: listItemTitleStyle,
+                                                RichText(
+                                                  maxLines: 1,
+                                                  softWrap: false,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  strutStyle:
+                                                      StrutStyle.fromTextStyle(
+                                                    listItemTitleStyle,
+                                                    forceStrutHeight: true,
+                                                  ),
+                                                  text: TextSpan(
+                                                    children: [
+                                                      TextSpan(
+                                                        text: level.name,
+                                                        style:
+                                                            listItemTitleStyle
+                                                                .copyWith(
+                                                          color: cdkColors
+                                                              .colorText,
+                                                        ),
+                                                      ),
+                                                      if (levelGameplayData
+                                                          .isNotEmpty)
+                                                        TextSpan(
+                                                          text:
+                                                              '  Gameplay: $levelGameplayData',
+                                                          style:
+                                                              listItemInlineMetaStyle
+                                                                  .copyWith(
+                                                            color: cdkColors
+                                                                .colorText
+                                                                .withValues(
+                                                              alpha: 0.72,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
                                                 ),
                                                 const SizedBox(height: 2),
                                                 CDKText(
