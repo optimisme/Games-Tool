@@ -123,7 +123,7 @@
         },
         {
           "name": "Platform",
-          "gameplayData": "Platform 0",
+          "gameplayData": "",
           "x": 597,
           "y": 440,
           "depth": 0.0,
@@ -189,7 +189,7 @@
         {
           "name": "Back Sky",
           "gameplayData": "",
-          "x": 0,
+          "x": -75,
           "y": 0,
           "depth": 5.0,
           "tilesSheetFile": "media/decoration-sky.png",
@@ -462,21 +462,6 @@
           "flipY": false,
           "depth": 0.0,
           "groupId": "__group_1772445390454183_0"
-        },
-        {
-          "name": "Dragon",
-          "gameplayData": "",
-          "type": "Dragon",
-          "animationId": "anim_1772439605687385",
-          "x": 992,
-          "y": 443,
-          "width": 46,
-          "height": 49,
-          "imageFile": "media/gator-sheet.png",
-          "flipX": false,
-          "flipY": false,
-          "depth": 0.0,
-          "groupId": "__group_1772445390454183_0"
         }
       ],
       "spriteGroups": [
@@ -499,8 +484,8 @@
       "groupId": "__main__",
       "viewportWidth": 320,
       "viewportHeight": 180,
-      "viewportX": 25,
-      "viewportY": 300,
+      "viewportX": 24,
+      "viewportY": 340,
       "viewportAdaptation": "letterbox",
       "viewportInitialColor": "green",
       "viewportPreviewColor": "blue",

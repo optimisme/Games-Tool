@@ -29,11 +29,21 @@
     },
     {
       "type": "Floor",
+      "gameplayData": "Platform Floor",
+      "x": 597,
+      "y": 444,
+      "width": 80,
+      "height": 28,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Floor",
       "gameplayData": "",
       "x": 833,
       "y": 378,
       "width": 318,
-      "height": 25,
+      "height": 16,
       "color": "purple",
       "groupId": "__main__"
     },
@@ -51,9 +61,9 @@
       "type": "Floor",
       "gameplayData": "",
       "x": 1136,
-      "y": 409,
+      "y": 394,
       "width": 15,
-      "height": 65,
+      "height": 81,
       "color": "purple",
       "groupId": "__main__"
     },

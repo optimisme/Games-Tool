@@ -876,8 +876,10 @@ class _ViewportPreviewPainter extends CustomPainter {
   }
 
   void _paintScene(Canvas canvas, _PreviewSceneMapping mapping) {
-    final double cameraX = mapping.cameraWorldLeft;
-    final double cameraY = mapping.cameraWorldTop;
+    final double cameraCenterX =
+        mapping.cameraWorldLeft + mapping.cameraWorldW / 2;
+    final double cameraCenterY =
+        mapping.cameraWorldTop + mapping.cameraWorldH / 2;
     final double levelDepthSensitivity = level.depthSensitivity;
     final double scaleX = mapping.contentRect.width / mapping.cameraWorldW;
     final double scaleY = mapping.contentRect.height / mapping.cameraWorldH;
@@ -909,8 +911,10 @@ class _ViewportPreviewPainter extends CustomPainter {
       if (scaledTileW <= 0 || scaledTileH <= 0) continue;
       final double layerXScaled = layerX * depthProjection;
       final double layerYScaled = layerY * depthProjection;
-      final double cameraPx = cameraX * depthProjection;
-      final double cameraPy = cameraY * depthProjection;
+      final double cameraPx =
+          cameraCenterX * depthProjection - mapping.cameraWorldW / 2;
+      final double cameraPy =
+          cameraCenterY * depthProjection - mapping.cameraWorldH / 2;
       final double visibleLeft = cameraPx;
       final double visibleTop = cameraPy;
       final double visibleRight = cameraPx + mapping.cameraWorldW;
@@ -975,8 +979,10 @@ class _ViewportPreviewPainter extends CustomPainter {
         sprite.depth,
         sensitivity: levelDepthSensitivity,
       );
-      final double cameraPx = cameraX * depthProjection;
-      final double cameraPy = cameraY * depthProjection;
+      final double cameraPx =
+          cameraCenterX * depthProjection - mapping.cameraWorldW / 2;
+      final double cameraPy =
+          cameraCenterY * depthProjection - mapping.cameraWorldH / 2;
       final Rect spriteWorldRect = LayoutUtils.spriteWorldRect(
         appData,
         sprite,
