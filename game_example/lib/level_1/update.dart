@@ -27,6 +27,9 @@ extension _Level1Update on _Level1State {
       _camera
         ..x = state.playerX + _cameraFollowOffsetX
         ..y = state.playerY + _cameraFollowOffsetY;
+    } else if (!state.canExitEndState) {
+      state.endStateElapsedSeconds += dt;
+      state.tickCounter += 1;
     }
 
     _refreshLevel1();
@@ -178,24 +181,24 @@ extension _Level1Update on _Level1State {
 
   void _triggerGameOver(Level1UpdateState state) {
     state.isGameOver = true;
+    state.endStateElapsedSeconds = 0;
     state.velocityX = 0;
     state.velocityY = 0;
     state.onGround = false;
     state.isInJumpArc = false;
     _jumpQueued = false;
     _pressedKeys.clear();
-    _ticker?.stop();
   }
 
   void _triggerWin(Level1UpdateState state) {
     state.isWin = true;
+    state.endStateElapsedSeconds = 0;
     state.velocityX = 0;
     state.velocityY = 0;
     state.onGround = false;
     state.isInJumpArc = false;
     _jumpQueued = false;
     _pressedKeys.clear();
-    _ticker?.stop();
   }
 
   void _handleDragonInteractions(Level1UpdateState state) {

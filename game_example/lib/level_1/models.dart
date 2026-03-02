@@ -23,6 +23,7 @@ class Level1UpdateState {
   bool facingRight = true;
   bool isGameOver = false;
   bool isWin = false;
+  double endStateElapsedSeconds = 0;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   double platformMotionTimeSeconds = 0;
@@ -38,6 +39,9 @@ class Level1UpdateState {
   final double jumpImpulsePerSecond = 708;
   final double maxFallSpeedPerSecond = 840;
   final Set<int> touchingDragonSpriteIndices = <int>{};
+
+  bool get canExitEndState =>
+      endStateElapsedSeconds >= _level1EndStateInputDelaySeconds;
 }
 
 class Level1RenderState {
@@ -51,6 +55,7 @@ class Level1RenderState {
     required this.onGround,
     required this.isGameOver,
     required this.isWin,
+    required this.canExitEndState,
     required this.facingRight,
     required this.tickCounter,
     required this.animationTimeSeconds,
@@ -72,6 +77,7 @@ class Level1RenderState {
       onGround: state.onGround,
       isGameOver: state.isGameOver,
       isWin: state.isWin,
+      canExitEndState: state.canExitEndState,
       facingRight: state.facingRight,
       tickCounter: state.tickCounter,
       animationTimeSeconds: state.animationTimeSeconds,
@@ -95,6 +101,7 @@ class Level1RenderState {
   final bool onGround;
   final bool isGameOver;
   final bool isWin;
+  final bool canExitEndState;
   final bool facingRight;
   final int tickCounter;
   final double animationTimeSeconds;

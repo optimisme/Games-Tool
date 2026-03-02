@@ -156,9 +156,17 @@ class Level1Painter extends CustomPainter {
           progress: renderState!.lifePercent / 100.0,
         );
         if (renderState!.isGameOver) {
-          _drawGameOverOverlay(canvas, viewportSize);
+          _drawGameOverOverlay(
+            canvas,
+            viewportSize,
+            showPressAnyKey: renderState!.canExitEndState,
+          );
         } else if (renderState!.isWin) {
-          _drawYouWinOverlay(canvas, viewportSize);
+          _drawYouWinOverlay(
+            canvas,
+            viewportSize,
+            showPressAnyKey: renderState!.canExitEndState,
+          );
         }
       },
     );
@@ -259,19 +267,29 @@ class Level1Painter extends CustomPainter {
     );
   }
 
-  void _drawGameOverOverlay(Canvas canvas, Size viewportSize) {
+  void _drawGameOverOverlay(
+    Canvas canvas,
+    Size viewportSize, {
+    required bool showPressAnyKey,
+  }) {
     _drawCenteredOverlay(
       canvas,
       viewportSize,
       title: 'GAME OVER',
+      showPressAnyKey: showPressAnyKey,
     );
   }
 
-  void _drawYouWinOverlay(Canvas canvas, Size viewportSize) {
+  void _drawYouWinOverlay(
+    Canvas canvas,
+    Size viewportSize, {
+    required bool showPressAnyKey,
+  }) {
     _drawCenteredOverlay(
       canvas,
       viewportSize,
       title: 'YOU WIN',
+      showPressAnyKey: showPressAnyKey,
     );
   }
 
@@ -279,6 +297,7 @@ class Level1Painter extends CustomPainter {
     Canvas canvas,
     Size viewportSize, {
     required String title,
+    required bool showPressAnyKey,
   }) {
     canvas.drawRect(
       Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
@@ -304,24 +323,26 @@ class Level1Painter extends CustomPainter {
       ),
     );
 
-    final TextPainter hintPainter = TextPainter(
-      text: const TextSpan(
-        text: 'Press any key to return to menu',
-        style: TextStyle(
-          color: Color(0xFFE0F2FF),
-          fontSize: 8.5,
-          fontWeight: FontWeight.w600,
+    if (showPressAnyKey) {
+      final TextPainter hintPainter = TextPainter(
+        text: const TextSpan(
+          text: 'Press any key to return to menu',
+          style: TextStyle(
+            color: Color(0xFFE0F2FF),
+            fontSize: 8.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    hintPainter.paint(
-      canvas,
-      Offset(
-        (viewportSize.width - hintPainter.width) / 2,
-        (viewportSize.height - hintPainter.height) / 2 + 16,
-      ),
-    );
+        textDirection: TextDirection.ltr,
+      )..layout();
+      hintPainter.paint(
+        canvas,
+        Offset(
+          (viewportSize.width - hintPainter.width) / 2,
+          (viewportSize.height - hintPainter.height) / 2 + 16,
+        ),
+      );
+    }
   }
 
   void _drawText(Canvas canvas, String text, Offset offset) {
@@ -346,6 +367,8 @@ class Level1Painter extends CustomPainter {
         oldDelegate.renderState?.lifePercent != renderState?.lifePercent ||
         oldDelegate.renderState?.isGameOver != renderState?.isGameOver ||
         oldDelegate.renderState?.isWin != renderState?.isWin ||
+        oldDelegate.renderState?.canExitEndState !=
+            renderState?.canExitEndState ||
         oldDelegate.backIconImage != backIconImage ||
         oldDelegate.level != level;
   }
