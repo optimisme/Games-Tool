@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Input and navigation rules for active gameplay and end states.
 extension _Level1Interaction on _Level1State {
   void _goBackToMenu() {
     if (!mounted || _isLeavingLevel) {
@@ -51,6 +52,7 @@ extension _Level1Interaction on _Level1State {
 
     if (event is KeyDownEvent) {
       _pressedKeys.add(key);
+      // Jump is edge-triggered; update loop consumes this flag once per tick.
       if (key == LogicalKeyboardKey.space ||
           key == LogicalKeyboardKey.arrowUp ||
           key == LogicalKeyboardKey.keyW) {

@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Level setup helpers for runtime references, spawn state, and camera defaults.
 extension _Level1Initialize on _Level1State {
   void _initializeLevel(AppData appData) {
     _runtimeApi.useLoadedGameData(
@@ -44,6 +45,7 @@ extension _Level1Initialize on _Level1State {
         (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX;
     final double spawnY =
         (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY;
+    // Keep vertical follow offset stable relative to spawn and configured viewport.
     _cameraFollowOffsetX = 0;
     _cameraFollowOffsetY = levelViewportCenterY - spawnY;
 

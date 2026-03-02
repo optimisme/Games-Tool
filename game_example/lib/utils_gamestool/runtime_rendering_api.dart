@@ -246,6 +246,7 @@ class GamesToolRuntimeRenderer {
     return colorFromName(hex, fallback: fallback);
   }
 
+  /// Renders visible tile layers with viewport-aware culling for performance.
   static void drawLevelTileLayers({
     required ui.Canvas canvas,
     required ui.Size painterSize,
@@ -424,6 +425,7 @@ class GamesToolRuntimeRenderer {
     );
   }
 
+  /// Renders one animated sprite with camera/depth projection and optional culling.
   static bool drawAnimatedSprite({
     required ui.Canvas canvas,
     required ui.Size painterSize,

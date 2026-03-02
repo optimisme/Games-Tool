@@ -5,12 +5,13 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../level_0/main.dart';
-import '../level_1.dart';
+import '../level_1/main.dart';
 
-part 'initialize.dart';
+part 'lifecycle.dart';
 part 'interaction.dart';
 part 'layout.dart';
 
+/// Transitional screen that waits for both data readiness and minimum UX timing.
 class Loading extends StatefulWidget {
   const Loading({super.key, required this.levelIndex});
 
@@ -21,6 +22,7 @@ class Loading extends StatefulWidget {
 }
 
 class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
+  // Prevents a flash transition when assets are already warm in memory.
   static const Duration _minimumLoadingTime = Duration(milliseconds: 1100);
 
   late final AnimationController _controller;
@@ -49,6 +51,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final AppData appData = context.watch<AppData>();
+    // Navigation is state-driven; keep this check in build to react immediately.
     _maybeNavigate(appData);
 
     final bool levelReady = appData.isReadyForLevel(widget.levelIndex);

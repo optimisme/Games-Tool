@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Input handling and scene transitions for level 0.
 extension _Level0Interaction on _Level0State {
   KeyEventResult _onKeyEvent(KeyEvent event) {
     final LogicalKeyboardKey key = event.logicalKey;
@@ -12,6 +13,7 @@ extension _Level0Interaction on _Level0State {
     }
 
     if (event is KeyDownEvent) {
+      // Keep pressed keys as the single source of truth for movement polling.
       _pressedKeys.add(key);
     } else if (event is KeyUpEvent) {
       _pressedKeys.remove(key);
@@ -51,6 +53,7 @@ extension _Level0Interaction on _Level0State {
   }
 
   void _goBackToMenu() {
+    // One-way guard to avoid duplicate pushReplacement transitions.
     if (!mounted || _isLeavingLevel) {
       return;
     }

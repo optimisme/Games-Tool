@@ -1,7 +1,9 @@
 part of 'main.dart';
 
+/// Level bootstrapping and teardown-adjacent setup.
 extension _Level0Initialize on _Level0State {
   void _initializeLevel(AppData appData) {
+    // Work on a cloned game-data tree so runtime tile edits stay level-local.
     _runtimeGameData = _cloneGameData(appData.gameData);
     _level = _runtimeGameData == null
         ? null
@@ -55,6 +57,7 @@ extension _Level0Initialize on _Level0State {
     );
 
     _camera
+      // Camera tracks player world coordinates directly in this level.
       ..x = levelViewportCenterX
       ..y = levelViewportCenterY
       ..focal = levelViewportWidth;

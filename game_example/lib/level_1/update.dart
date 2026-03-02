@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Per-frame simulation for platforming physics, combat, and win/lose state.
 extension _Level1Update on _Level1State {
   void _startLoop() {
     _ticker?.dispose();
@@ -11,6 +12,7 @@ extension _Level1Update on _Level1State {
       final double dt = previous == null
           ? 1 / 60
           : (elapsed - previous).inMicroseconds / 1000000;
+      // Clamp frame delta to keep physics stable after stalls/backgrounding.
       _tick(dt.clamp(0.0, 0.05));
     });
     _ticker?.start();
@@ -24,6 +26,7 @@ extension _Level1Update on _Level1State {
 
     if (!state.isGameOver && !state.isWin) {
       _updatePhysics(state, dt);
+      // Camera follows player with level-configured offsets.
       _camera
         ..x = state.playerX + _cameraFollowOffsetX
         ..y = state.playerY + _cameraFollowOffsetY;
@@ -73,6 +76,7 @@ extension _Level1Update on _Level1State {
       state.onGround = false;
       state.isInJumpArc = true;
     }
+    // Consume queued jump once so one key press cannot trigger repeated jumps.
     _jumpQueued = false;
 
     if (!state.onGround || state.velocityY < 0) {
@@ -128,6 +132,7 @@ extension _Level1Update on _Level1State {
         _level1MovingPlatformLoopSeconds <= 0) {
       return _level1MovingPlatformPath.first;
     }
+    // Motion follows a looping triangle path A->B->C->A at constant speed.
     final Offset a = _level1MovingPlatformPath[0];
     final Offset b = _level1MovingPlatformPath[1];
     final Offset c = _level1MovingPlatformPath[2];
@@ -230,6 +235,7 @@ extension _Level1Update on _Level1State {
         continue;
       }
       if (foxyIsFalling) {
+        // Stomp rule: falling onto dragon kills dragon and bounces player up.
         state.dragonDeathStartSeconds[dragonIndex] = state.animationTimeSeconds;
         state.velocityY = -state.jumpImpulsePerSecond * 0.38;
         state.onGround = false;

@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Progress and messaging helpers for the loading screen.
 extension _LoadingLayout on _LoadingState {
   double _buildProgress({
     required AppData appData,
@@ -8,6 +9,7 @@ extension _LoadingLayout on _LoadingState {
     final double rawProgress = _controller.value;
     final double dataProgress =
         levelReady ? 1 : appData.loadingProgress.clamp(0.0, 0.95);
+    // Blend UI animation and real load progress; reserve final 5% for handoff.
     return levelReady
         ? rawProgress
         : math.min(0.95, math.max(rawProgress * 0.35, dataProgress));

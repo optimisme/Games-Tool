@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Renderer for level 1 world layers, animated actors, and HUD/end overlays.
 class Level1Painter extends CustomPainter {
   const Level1Painter({
     required this.appData,
@@ -54,6 +55,7 @@ class Level1Painter extends CustomPainter {
         final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
           x: runtimeCamera.x,
           y: runtimeCamera.y,
+          // Rendering works in virtual viewport space, so focal follows viewport width.
           focal: viewportSize.width,
         );
         GamesToolRuntimeRenderer.drawLevelTileLayers(

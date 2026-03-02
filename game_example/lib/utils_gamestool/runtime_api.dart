@@ -269,6 +269,8 @@ class GameDataRuntimeApi {
     );
   }
 
+  /// Converts a world position to a tile coordinate in a target layer.
+  /// Returns null when coordinates are outside the layer tilemap bounds.
   TileCoord? worldToTile({
     required int levelIndex,
     int? layerIndex,
@@ -364,6 +366,7 @@ class GameDataRuntimeApi {
     );
   }
 
+  /// Reads tile id at a coordinate and returns -1 when unavailable/invalid.
   int tileAt({
     required int levelIndex,
     int? layerIndex,
@@ -623,6 +626,7 @@ class GameDataRuntimeApi {
     return resolved;
   }
 
+  /// Computes sprite-vs-zone contacts using resolved per-frame world hitboxes.
   List<ZoneContact> collideSpriteWithZones({
     required int levelIndex,
     required int spriteIndex,
@@ -692,6 +696,7 @@ class GameDataRuntimeApi {
     return contacts;
   }
 
+  /// Computes sprite-vs-sprite contacts against candidate sprites in the level.
   List<SpriteContact> collideSpriteWithSprites({
     required int levelIndex,
     required int spriteIndex,
@@ -944,6 +949,8 @@ class GameDataRuntimeApi {
     _previousStateBySpriteKey.clear();
   }
 
+  /// Builds per-frame entered/exited/staying collision sets for one sprite.
+  /// Call beginFrame() once per tick before collecting deltas.
   SpriteFrameDelta updateFrameDeltaForSprite({
     required int levelIndex,
     required int spriteIndex,

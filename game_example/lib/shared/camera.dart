@@ -1,4 +1,4 @@
-import 'utils_gamestool/utils_gamestool.dart';
+import '../utils_gamestool/utils_gamestool.dart';
 
 class Camera {
   double x = 500;

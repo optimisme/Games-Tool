@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// HUD helpers that map virtual viewport coordinates back to screen space.
 extension _Level1Hud on _Level1State {
   Rect _backLabelScreenRect({
     required AppData appData,

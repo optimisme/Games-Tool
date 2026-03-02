@@ -7,13 +7,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../app_data.dart';
-import '../camera.dart';
+import '../shared/camera.dart';
 import '../menu/main.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
 part 'drawing.dart';
 part 'hud.dart';
-part 'initialize.dart';
+part 'lifecycle.dart';
 part 'interaction.dart';
 part 'models.dart';
 part 'update.dart';
@@ -209,6 +209,7 @@ List<Rect> _resolveLevel1ZonesByTypeOrName(
   return floors;
 }
 
+/// Platformer level with moving platforms, collectibles, and enemy interactions.
 class Level1 extends StatefulWidget {
   const Level1({super.key, required this.levelIndex});
 
@@ -243,6 +244,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // Invariant: initialize once, and only after shared assets are ready.
     if (_initialized) {
       return;
     }

@@ -9,7 +9,7 @@ import '../app_data.dart';
 import '../loading/main.dart';
 
 part 'drawing.dart';
-part 'initialize.dart';
+part 'lifecycle.dart';
 part 'interaction.dart';
 part 'layout.dart';
 

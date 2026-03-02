@@ -46,6 +46,7 @@ class GamesToolApi {
     return 'assets/${toRelativeAssetKey(relativePath)}';
   }
 
+  /// Loads exported game data and enriches it with tilemaps, zones, and animations.
   Future<Map<String, dynamic>> loadGameData(AssetBundle bundle) async {
     final ({String projectRoot, String jsonString}) loaded =
         await _loadGameDataJsonString(bundle);
@@ -59,6 +60,7 @@ class GamesToolApi {
     return parsed;
   }
 
+  /// Collects every image referenced by levels and media assets for preloading.
   Set<String> collectReferencedImageFiles(Map<String, dynamic> gameData) {
     final Set<String> imageFiles = <String>{};
     final List<dynamic> levels =

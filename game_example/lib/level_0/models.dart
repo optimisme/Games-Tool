@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Mutable simulation state advanced by update.dart every frame.
 class Level0UpdateState {
   Level0UpdateState({
     required this.playerX,
@@ -38,6 +39,7 @@ class Level0RenderState {
   });
 
   factory Level0RenderState.from(Level0UpdateState state) {
+    // Snapshot mutable update state into an immutable render payload.
     return Level0RenderState(
       playerX: state.playerX,
       playerY: state.playerY,

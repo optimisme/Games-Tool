@@ -39,6 +39,8 @@ class AppData extends ChangeNotifier {
     return ensureLoadedForLevel();
   }
 
+  /// Ensures game data and optional level-specific assets are loaded exactly once.
+  /// Reuses an in-flight load so multiple callers do not trigger duplicate work.
   Future<void> ensureLoadedForLevel([int? levelIndex]) {
     if (_isReadyForRequestedLevel(levelIndex)) {
       return Future<void>.value();
