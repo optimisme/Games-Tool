@@ -9,6 +9,7 @@ class Level0UpdateState {
     required this.playerHeight,
     required this.speedPerSecond,
     required this.totalArbres,
+    required this.collectibleArbreTileKeys,
   });
 
   double playerX;
@@ -21,6 +22,8 @@ class Level0UpdateState {
   bool wasInsideFuturPontGameplayZone = false;
   int arbresRemovedCount = 0;
   final int totalArbres;
+  final Set<String> collectibleArbreTileKeys;
+  final Set<String> collectedArbreTileKeys = <String>{};
   bool isWin = false;
   double endStateElapsedSeconds = 0;
   int tickCounter = 0;
