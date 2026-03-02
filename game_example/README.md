@@ -42,7 +42,8 @@ flutter run -d macos # linux or windows
 - `lib/shared/camera.dart`: mutable camera model + conversion to `RuntimeCamera2D`.
 - `lib/shared/utils_level.dart`: reusable level flow/lifecycle helpers
   (navigation, loop ticker bootstrap, viewport bootstrap).
-- `lib/shared/utils_painter.dart`: reusable HUD/text painter helpers.
+- `lib/shared/utils_painter.dart`: reusable HUD/text painter helpers,
+  including shared centered end-state overlays (win/game-over style layers).
 
 ### Menu module
 
@@ -68,7 +69,8 @@ flutter run -d macos # linux or windows
 - `lib/level_0/interaction.dart`: input handling and menu return actions.
 - `lib/level_0/update.dart`: gameplay simulation/update tick logic.
 - `lib/level_0/drawing.dart`: world and sprite rendering.
-- `HUD helpers are defined in lib/level_0/main.dart`.
+- Win flow: collecting all `Arbre` zones triggers a `TU GUANYES` end-state
+  overlay and delayed "press any key" return behavior (aligned with level 1).
 
 ### Level 1 module
 
@@ -78,7 +80,7 @@ flutter run -d macos # linux or windows
 - `lib/level_1/interaction.dart`: input handling and end-state actions.
 - `lib/level_1/update.dart`: platforming physics/combat/gameplay tick logic.
 - `lib/level_1/drawing.dart`: layered world + character rendering.
-- `HUD helpers are defined in lib/level_1/main.dart`.
+- End-state overlays reuse shared painter helpers from `lib/shared/utils_painter.dart`.
 
 ## 4. Game flow
 

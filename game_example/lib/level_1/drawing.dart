@@ -314,11 +314,12 @@ class Level1Painter extends CustomPainter {
     Size viewportSize, {
     required bool showPressAnyKey,
   }) {
-    _drawCenteredOverlay(
-      canvas,
-      viewportSize,
+    drawCenteredEndOverlay(
+      canvas: canvas,
+      viewportSize: viewportSize,
       title: 'GAME OVER',
-      showPressAnyKey: showPressAnyKey,
+      showHint: showPressAnyKey,
+      hintText: 'Press any key to return to menu',
     );
   }
 
@@ -327,64 +328,13 @@ class Level1Painter extends CustomPainter {
     Size viewportSize, {
     required bool showPressAnyKey,
   }) {
-    _drawCenteredOverlay(
-      canvas,
-      viewportSize,
+    drawCenteredEndOverlay(
+      canvas: canvas,
+      viewportSize: viewportSize,
       title: 'YOU WIN',
-      showPressAnyKey: showPressAnyKey,
+      showHint: showPressAnyKey,
+      hintText: 'Press any key to return to menu',
     );
-  }
-
-  void _drawCenteredOverlay(
-    Canvas canvas,
-    Size viewportSize, {
-    required String title,
-    required bool showPressAnyKey,
-  }) {
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
-      Paint()..color = const Color(0xB3000000),
-    );
-    final TextPainter titlePainter = TextPainter(
-      text: TextSpan(
-        text: title,
-        style: TextStyle(
-          color: Color(0xFFFFFFFF),
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.5,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    titlePainter.paint(
-      canvas,
-      Offset(
-        (viewportSize.width - titlePainter.width) / 2,
-        (viewportSize.height - titlePainter.height) / 2 - 12,
-      ),
-    );
-
-    if (showPressAnyKey) {
-      final TextPainter hintPainter = TextPainter(
-        text: const TextSpan(
-          text: 'Press any key to return to menu',
-          style: TextStyle(
-            color: Color(0xFFE0F2FF),
-            fontSize: 8.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      hintPainter.paint(
-        canvas,
-        Offset(
-          (viewportSize.width - hintPainter.width) / 2,
-          (viewportSize.height - hintPainter.height) / 2 + 16,
-        ),
-      );
-    }
   }
 
   @override

@@ -8,6 +8,7 @@ class Level0UpdateState {
     required this.playerWidth,
     required this.playerHeight,
     required this.speedPerSecond,
+    required this.totalArbres,
   });
 
   double playerX;
@@ -19,9 +20,15 @@ class Level0UpdateState {
   bool isOnPont = false;
   bool wasInsideFuturPontGameplayZone = false;
   int arbresRemovedCount = 0;
+  final int totalArbres;
+  bool isWin = false;
+  double endStateElapsedSeconds = 0;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   final double speedPerSecond;
+
+  bool get canExitEndState =>
+      endStateElapsedSeconds >= _level0EndStateInputDelaySeconds;
 }
 
 class Level0RenderState {
@@ -34,6 +41,9 @@ class Level0RenderState {
     required this.isMoving,
     required this.isOnPont,
     required this.arbresRemovedCount,
+    required this.totalArbres,
+    required this.isWin,
+    required this.canExitEndState,
     required this.animationTimeSeconds,
     required this.tickCounter,
   });
@@ -49,6 +59,9 @@ class Level0RenderState {
       isMoving: state.isMoving,
       isOnPont: state.isOnPont,
       arbresRemovedCount: state.arbresRemovedCount,
+      totalArbres: state.totalArbres,
+      isWin: state.isWin,
+      canExitEndState: state.canExitEndState,
       animationTimeSeconds: state.animationTimeSeconds,
       tickCounter: state.tickCounter,
     );
@@ -62,6 +75,9 @@ class Level0RenderState {
   final bool isMoving;
   final bool isOnPont;
   final int arbresRemovedCount;
+  final int totalArbres;
+  final bool isWin;
+  final bool canExitEndState;
   final double animationTimeSeconds;
   final int tickCounter;
 }
