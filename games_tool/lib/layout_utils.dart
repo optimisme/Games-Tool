@@ -159,14 +159,7 @@ class LayoutUtils {
 
   static Offset _depthProjectionImageOffsetForDepth(
       AppData appData, double depth) {
-    final double depthProjection = depthProjectionFactorForDepth(
-      depth,
-      sensitivity: depthSensitivityForSelectedLevel(appData),
-    );
-    return Offset(
-      appData.imageOffset.dx * depthProjection,
-      appData.imageOffset.dy * depthProjection,
-    );
+    return appData.imageOffset;
   }
 
   static double _depthProjectionScaleFactorForDepth(

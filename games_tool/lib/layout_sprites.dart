@@ -672,6 +672,44 @@ class LayoutSpritesState extends State<LayoutSprites> {
     await _autoSaveIfPossible(appData);
   }
 
+  Future<void> _duplicateSprite(int index) async {
+    final AppData appData = Provider.of<AppData>(context, listen: false);
+    if (appData.selectedLevel == -1 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return;
+    }
+
+    await appData.runProjectMutation(
+      debugLabel: 'sprite-duplicate',
+      mutate: () {
+        final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+        _ensureMainSpriteGroup(level);
+        final List<GameSprite> sprites = level.sprites;
+        if (index < 0 || index >= sprites.length) {
+          return;
+        }
+        final GameSprite source = sprites[index];
+        final GameSprite duplicate = GameSprite(
+          name: source.name,
+          gameplayData: source.gameplayData,
+          animationId: source.animationId,
+          x: source.x,
+          y: source.y,
+          spriteWidth: source.spriteWidth,
+          spriteHeight: source.spriteHeight,
+          imageFile: source.imageFile,
+          flipX: source.flipX,
+          flipY: source.flipY,
+          depth: source.depth,
+          groupId: _effectiveSpriteGroupId(level, source),
+        );
+        sprites.insert(index + 1, duplicate);
+        appData.selectedSprite = index + 1;
+        appData.selectedSpriteIndices = <int>{index + 1};
+      },
+    );
+  }
+
   Future<void> _promptAndEditSprite(
     int index,
     GlobalKey anchorKey,
@@ -1220,6 +1258,24 @@ class LayoutSpritesState extends State<LayoutSprites> {
                                       ],
                                     ),
                                   ),
+                                  if (isPrimarySelected)
+                                    MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: CupertinoButton(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                        ),
+                                        minimumSize: const Size(20, 20),
+                                        onPressed: () async {
+                                          await _duplicateSprite(spriteIndex);
+                                        },
+                                        child: Icon(
+                                          CupertinoIcons.doc_on_doc,
+                                          size: 16,
+                                          color: cdkColors.colorText,
+                                        ),
+                                      ),
+                                    ),
                                   if (isPrimarySelected && hasAnimations)
                                     MouseRegion(
                                       cursor: SystemMouseCursors.click,
