@@ -10,10 +10,24 @@ class Level1UpdateState {
     required this.gemsCount,
     required this.totalGems,
     this.lifePercent = _level1InitialLifePercent,
-  });
+  })  : previousPlayerX = playerX,
+        previousPlayerY = playerY,
+        previousCameraX = playerX,
+        previousCameraY = playerY,
+        cameraX = playerX,
+        cameraY = playerY;
 
   double playerX;
   double playerY;
+  // Previous-tick positions used by the painter for render interpolation.
+  // Both player and camera must be lerped together or tiles vibrate relative
+  // to the sprite.
+  double previousPlayerX;
+  double previousPlayerY;
+  double cameraX;
+  double cameraY;
+  double previousCameraX;
+  double previousCameraY;
   double playerWidth;
   double playerHeight;
 
@@ -51,6 +65,8 @@ class Level1RenderState {
   const Level1RenderState({
     required this.playerX,
     required this.playerY,
+    required this.cameraX,
+    required this.cameraY,
     required this.playerWidth,
     required this.playerHeight,
     required this.velocityX,
@@ -70,11 +86,23 @@ class Level1RenderState {
     required this.dragonDeathStartSeconds,
   });
 
-  factory Level1RenderState.from(Level1UpdateState state) {
-    // Snapshot mutable update state into an immutable render payload.
+  factory Level1RenderState.from(Level1UpdateState state, {double alpha = 1.0}) {
+    // Lerp both player and camera between the previous and current physics tick.
+    // They must move together — interpolating only the player causes the sprite
+    // to shift relative to the tiles every frame (visible vibration).
+    final double renderX =
+        state.previousPlayerX + (state.playerX - state.previousPlayerX) * alpha;
+    final double renderY =
+        state.previousPlayerY + (state.playerY - state.previousPlayerY) * alpha;
+    final double renderCamX =
+        state.previousCameraX + (state.cameraX - state.previousCameraX) * alpha;
+    final double renderCamY =
+        state.previousCameraY + (state.cameraY - state.previousCameraY) * alpha;
     return Level1RenderState(
-      playerX: state.playerX,
-      playerY: state.playerY,
+      playerX: renderX,
+      playerY: renderY,
+      cameraX: renderCamX,
+      cameraY: renderCamY,
       playerWidth: state.playerWidth,
       playerHeight: state.playerHeight,
       velocityX: state.velocityX,
@@ -100,6 +128,8 @@ class Level1RenderState {
 
   final double playerX;
   final double playerY;
+  final double cameraX;
+  final double cameraY;
   final double playerWidth;
   final double playerHeight;
   final double velocityX;

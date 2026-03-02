@@ -27,7 +27,13 @@ class Level0Painter extends CustomPainter {
       return;
     }
 
-    final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
+    // Use interpolated camera from renderState, not the raw physics camera,
+    // so tiles and sprite move together at the same lerped position.
+    final RuntimeCamera2D runtimeCamera = RuntimeCamera2D(
+      x: renderState!.cameraX,
+      y: renderState!.cameraY,
+      focal: camera.focal,
+    );
     final double depthSensitivity =
         GamesToolRuntimeRenderer.levelDepthSensitivity(
       gamesTool: appData.gamesTool,

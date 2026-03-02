@@ -93,9 +93,10 @@ Default runtime flow:
 
 Timing model used by gameplay levels:
 
-1. `restartGameLoopTicker(...)` collects real frame delta (`frameDt`) in `onFrame`.
-2. Simulation `update` (`onTick`) runs at fixed step (`1/60`) via accumulator.
-3. HUD/debug FPS can be derived from `frameDt` (not fixed simulation step).
+1. `restartGameLoopTicker(...)` advances simulation (`onTick`) at fixed step (`1/60`) via accumulator.
+2. `onFrame(frameDt, alpha)` runs once per vsync after fixed ticks.
+3. `alpha` is the interpolation factor in `[0, 1]` between previous and current tick state, used by painters for smooth motion.
+4. HUD/debug FPS can be derived from `frameDt` (real frame delta, not fixed simulation step).
 
 ## 5. Key APIs
 

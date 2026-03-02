@@ -103,7 +103,10 @@ Ticker restartGameLoopTicker({
   required Duration? Function() getLastTickTimestamp,
   required void Function(Duration? value) setLastTickTimestamp,
   required void Function(double dt) onTick,
-  void Function(double frameDt)? onFrame,
+  // alpha is the render interpolation factor in [0, 1]: how far the current
+  // frame sits between the last completed physics tick and the next one.
+  // Pass it to the painter so positions can be lerped for smooth rendering.
+  void Function(double frameDt, double alpha)? onFrame,
   double initialDtSeconds = 1 / 60,
   double fixedDtSeconds = 1 / 60,
   double maxDtSeconds = 0.05,
@@ -122,7 +125,6 @@ Ticker restartGameLoopTicker({
         ? initialDtSeconds
         : (elapsed - previous).inMicroseconds / 1000000;
     final double clampedFrameDt = frameDt.clamp(0.0, maxDtSeconds);
-    onFrame?.call(clampedFrameDt);
 
     accumulatorSeconds += clampedFrameDt;
     int substeps = 0;
@@ -136,6 +138,11 @@ Ticker restartGameLoopTicker({
     if (substeps >= safeMaxSubsteps && accumulatorSeconds > safeFixedDt) {
       accumulatorSeconds = safeFixedDt;
     }
+
+    // Notify after ticks so the caller can setState once per vsync with the
+    // correct interpolation alpha, rather than once per substep.
+    final double alpha = (accumulatorSeconds / safeFixedDt).clamp(0.0, 1.0);
+    onFrame?.call(clampedFrameDt, alpha);
   });
   nextTicker.start();
   return nextTicker;

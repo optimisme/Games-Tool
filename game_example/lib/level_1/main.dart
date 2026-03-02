@@ -151,6 +151,8 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _playerSprite;
   int? _playerSpriteIndex;
   Level1UpdateState? _updateState;
+  // Render interpolation alpha for the current vsync frame: [0, 1].
+  double _renderAlpha = 1.0;
   ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
   double _cameraFollowOffsetX = 0;
@@ -177,10 +179,11 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     _startLoop();
   }
 
-  void _refreshLevel1([VoidCallback? update]) {
+  void _refreshLevel1([VoidCallback? update, double alpha = 1.0]) {
     if (!mounted) {
       return;
     }
+    _renderAlpha = alpha;
     setState(update ?? () {});
   }
 
@@ -225,8 +228,9 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                     level: _level,
                     camera: _camera,
                     backIconImage: _backIconImage,
-                    renderState:
-                        state == null ? null : Level1RenderState.from(state),
+                    renderState: state == null
+                        ? null
+                        : Level1RenderState.from(state, alpha: _renderAlpha),
                   ),
                   child: const SizedBox.expand(),
                 ),
