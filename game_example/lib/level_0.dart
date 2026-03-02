@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -5,7 +9,37 @@ import 'package:provider/provider.dart';
 
 import 'app_data.dart';
 import 'camera.dart';
+import 'menu.dart';
 import 'utils_gamestool/utils_gamestool.dart';
+
+const String _level0BackIconAssetPath = 'other/enrrere.png';
+const String _level0BackLabel = 'Tornar';
+const double _level0BackHudX = 20;
+const double _level0BackHudY = 5;
+const double _level0BackIconWidth = 8;
+const double _level0BackIconHeight = 8;
+const double _level0BackIconGap = 3;
+const double _level0BackTextX =
+    _level0BackHudX + _level0BackIconWidth + _level0BackIconGap;
+
+Rect _resolveLevel0HudRectInVirtualViewport({
+  required RuntimeLevelViewport viewport,
+  required Size virtualViewportSize,
+}) {
+  final String adaptation = viewport.adaptation.trim().toLowerCase();
+  if (adaptation != 'expand') {
+    return Rect.fromLTWH(
+        0, 0, virtualViewportSize.width, virtualViewportSize.height);
+  }
+
+  final double baseWidth =
+      viewport.width > 0 ? viewport.width : virtualViewportSize.width;
+  final double baseHeight =
+      viewport.height > 0 ? viewport.height : virtualViewportSize.height;
+  final double left = (virtualViewportSize.width - baseWidth) / 2;
+  final double top = (virtualViewportSize.height - baseHeight) / 2;
+  return Rect.fromLTWH(left, top, baseWidth, baseHeight);
+}
 
 class Level0 extends StatefulWidget {
   const Level0({super.key, required this.levelIndex});
@@ -33,11 +67,14 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   Ticker? _ticker;
   Duration? _lastTickTimestamp;
   bool _initialized = false;
+  Map<String, dynamic>? _runtimeGameData;
   Map<String, dynamic>? _level;
   int? _heroSpriteIndex;
   int? _decoracionsLayerIndex;
   int? _pontAmagatLayerIndex;
   Level0UpdateState? _updateState;
+  ui.Image? _backIconImage;
+  bool _isLeavingLevel = false;
 
   @override
   void didChangeDependencies() {
@@ -58,14 +95,21 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   }
 
   void _initializeLevel(AppData appData) {
-    _level = appData.getLevelByIndex(widget.levelIndex);
-    _runtimeApi.useLoadedGameData(appData.gameData,
-        gamesTool: appData.gamesTool);
+    _runtimeGameData = _cloneGameData(appData.gameData);
+    _level = _runtimeGameData == null
+        ? null
+        : appData.gamesTool
+            .findLevelByIndex(_runtimeGameData!, widget.levelIndex);
+    if (_runtimeGameData != null) {
+      _runtimeApi.useLoadedGameData(_runtimeGameData!,
+          gamesTool: appData.gamesTool);
+    }
     _heroSpriteIndex = _resolveHeroSpriteIndex(_level);
     _decoracionsLayerIndex =
         _resolveLayerIndexByName(_level, _decoracionsLayerName);
     _pontAmagatLayerIndex =
         _resolveLayerIndexByName(_level, _pontAmagatLayerName);
+    unawaited(_ensureBackIconLoaded(appData));
 
     final double levelViewportWidth = _level == null
         ? GamesToolApi.defaultViewportWidth
@@ -105,6 +149,17 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
       ..x = levelViewportCenterX
       ..y = levelViewportCenterY
       ..focal = levelViewportWidth;
+  }
+
+  Map<String, dynamic>? _cloneGameData(Map<String, dynamic> source) {
+    if (source.isEmpty) {
+      return null;
+    }
+    final dynamic clone = jsonDecode(jsonEncode(source));
+    if (clone is Map<String, dynamic>) {
+      return clone;
+    }
+    return null;
   }
 
   void _startLoop() {
@@ -453,12 +508,139 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   }
 
   KeyEventResult _onKeyEvent(KeyEvent event) {
+    final LogicalKeyboardKey key = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.escape) {
+      if (event is KeyDownEvent) {
+        _goBackToMenu();
+      }
+      return KeyEventResult.handled;
+    }
+
     if (event is KeyDownEvent) {
-      _pressedKeys.add(event.logicalKey);
+      _pressedKeys.add(key);
     } else if (event is KeyUpEvent) {
-      _pressedKeys.remove(event.logicalKey);
+      _pressedKeys.remove(key);
     }
     return KeyEventResult.handled;
+  }
+
+  TextStyle get _hudTextStyle => const TextStyle(
+        color: Color(0xFFE0F2FF),
+        fontSize: 6.5,
+        fontWeight: FontWeight.w600,
+      );
+
+  Rect _backLabelScreenRect({
+    required AppData appData,
+    required Size canvasSize,
+  }) {
+    final RuntimeLevelViewport viewport =
+        GamesToolRuntimeRenderer.levelViewport(
+      gamesTool: appData.gamesTool,
+      level: _level,
+    );
+    final RuntimeViewportLayout layout =
+        GamesToolRuntimeRenderer.resolveViewportLayout(
+      painterSize: canvasSize,
+      viewport: viewport,
+    );
+    if (!layout.hasVisibleArea || layout.scaleX == 0 || layout.scaleY == 0) {
+      return Rect.zero;
+    }
+    final Rect hudVirtualRect = _resolveLevel0HudRectInVirtualViewport(
+      viewport: viewport,
+      virtualViewportSize: layout.virtualSize,
+    );
+
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: _level0BackLabel,
+        style: _hudTextStyle,
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final double labelLeft = layout.destinationRect.left +
+        ((hudVirtualRect.left + _level0BackHudX) * layout.scaleX);
+    final double labelTop = layout.destinationRect.top +
+        ((hudVirtualRect.top + _level0BackHudY) * layout.scaleY);
+    final double labelWidth =
+        (_level0BackIconWidth + _level0BackIconGap + painter.width) *
+            layout.scaleX;
+    final double labelHeight = (_level0BackIconHeight > painter.height
+            ? _level0BackIconHeight
+            : painter.height) *
+        layout.scaleY;
+
+    return Rect.fromLTWH(
+      labelLeft - 6,
+      labelTop - 4,
+      labelWidth + 12,
+      labelHeight + 8,
+    );
+  }
+
+  void _clearLevel0RuntimeState() {
+    _pressedKeys.clear();
+    _lastTickTimestamp = null;
+    _runtimeApi.resetFrameState();
+    _runtimeGameData = null;
+    _level = null;
+    _heroSpriteIndex = null;
+    _decoracionsLayerIndex = null;
+    _pontAmagatLayerIndex = null;
+    _updateState = null;
+    _backIconImage = null;
+  }
+
+  Future<void> _ensureBackIconLoaded(AppData appData) async {
+    if (_backIconImage != null) {
+      return;
+    }
+    try {
+      final ui.Image iconImage =
+          await appData.getImage(_level0BackIconAssetPath);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _backIconImage = iconImage;
+      });
+    } catch (_) {
+      // Keep text-only fallback if asset load fails.
+    }
+  }
+
+  void _goBackToMenu() {
+    if (!mounted || _isLeavingLevel) {
+      return;
+    }
+    _isLeavingLevel = true;
+    _ticker?.stop();
+    _clearLevel0RuntimeState();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) => const Menu(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final Animation<Offset> slideAnimation = Tween<Offset>(
+            begin: const Offset(-1, 0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ),
+          );
+          return SlideTransition(
+            position: slideAnimation,
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -475,19 +657,43 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
     return CupertinoPageScaffold(
       child: SafeArea(
-        child: Focus(
-          autofocus: true,
-          focusNode: _focusNode,
-          onKeyEvent: (FocusNode node, KeyEvent event) => _onKeyEvent(event),
-          child: CustomPaint(
-            painter: Level0Painter(
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final Size canvasSize =
+                Size(constraints.maxWidth, constraints.maxHeight);
+            final Rect backLabelRect = _backLabelScreenRect(
               appData: appData,
-              level: _level,
-              camera: _camera,
-              renderState: state == null ? null : Level0RenderState.from(state),
-            ),
-            child: const SizedBox.expand(),
-          ),
+              canvasSize: canvasSize,
+            );
+
+            return Focus(
+              autofocus: true,
+              focusNode: _focusNode,
+              onKeyEvent: (FocusNode node, KeyEvent event) =>
+                  _onKeyEvent(event),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (TapDownDetails details) {
+                  _focusNode.requestFocus();
+                  if (backLabelRect.contains(details.localPosition)) {
+                    _goBackToMenu();
+                  }
+                },
+                child: CustomPaint(
+                  painter: Level0Painter(
+                    appData: appData,
+                    gameData: _runtimeGameData,
+                    level: _level,
+                    camera: _camera,
+                    backIconImage: _backIconImage,
+                    renderState:
+                        state == null ? null : Level0RenderState.from(state),
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -561,14 +767,18 @@ class Level0RenderState {
 class Level0Painter extends CustomPainter {
   const Level0Painter({
     required this.appData,
+    required this.gameData,
     required this.level,
     required this.camera,
+    required this.backIconImage,
     required this.renderState,
   });
 
   final AppData appData;
+  final Map<String, dynamic>? gameData;
   final Map<String, dynamic>? level;
   final Camera camera;
+  final ui.Image? backIconImage;
   final Level0RenderState? renderState;
 
   @override
@@ -603,6 +813,10 @@ class Level0Painter extends CustomPainter {
       viewport: viewport,
       outerBackgroundColor: levelBackground,
       drawInViewport: (Size viewportSize) {
+        final Rect hudRect = _resolveLevel0HudRectInVirtualViewport(
+          viewport: viewport,
+          virtualViewportSize: viewportSize,
+        );
         final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
           x: runtimeCamera.x,
           y: runtimeCamera.y,
@@ -621,21 +835,50 @@ class Level0Painter extends CustomPainter {
 
         _drawAnimatedPlayer(canvas, viewportSize, effectiveCamera);
 
+        _drawBackToMenuHud(canvas, hudRect);
         _drawText(
           canvas,
           'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
-          const Offset(20, 170),
+          Offset(hudRect.left + 20, hudRect.top + 170),
         );
         if (renderState!.isOnPont) {
-          _drawText(canvas, 'Caminant pel pont', const Offset(20, 5));
+          _drawText(
+            canvas,
+            'Caminant pel pont',
+            Offset(hudRect.left + 20, hudRect.top + 20),
+          );
         }
         _drawTopRightText(
           canvas,
-          viewportSize,
+          hudRect,
           'Arbres: ${renderState!.arbresRemovedCount}',
           5,
         );
       },
+    );
+  }
+
+  void _drawBackToMenuHud(Canvas canvas, Rect hudRect) {
+    final ui.Image? iconImage = backIconImage;
+    if (iconImage != null) {
+      final Rect srcRect = Rect.fromLTWH(
+        0,
+        0,
+        iconImage.width.toDouble(),
+        iconImage.height.toDouble(),
+      );
+      final Rect dstRect = Rect.fromLTWH(
+        hudRect.left + _level0BackHudX,
+        hudRect.top + _level0BackHudY,
+        _level0BackIconWidth,
+        _level0BackIconHeight,
+      );
+      canvas.drawImageRect(iconImage, srcRect, dstRect, Paint());
+    }
+    _drawText(
+      canvas,
+      _level0BackLabel,
+      Offset(hudRect.left + _level0BackTextX, hudRect.top + _level0BackHudY),
     );
   }
 
@@ -654,7 +897,7 @@ class Level0Painter extends CustomPainter {
     painter.paint(canvas, offset);
   }
 
-  void _drawTopRightText(Canvas canvas, Size size, String text, double top) {
+  void _drawTopRightText(Canvas canvas, Rect hudRect, String text, double top) {
     final TextPainter painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -666,7 +909,10 @@ class Level0Painter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    painter.paint(canvas, Offset(size.width - painter.width - 20, top));
+    painter.paint(
+      canvas,
+      Offset(hudRect.right - painter.width - 20, hudRect.top + top),
+    );
   }
 
   void _drawAnimatedPlayer(
@@ -697,7 +943,7 @@ class Level0Painter extends CustomPainter {
     final bool drewSprite = GamesToolRuntimeRenderer.drawAnimatedSprite(
       canvas: canvas,
       painterSize: size,
-      gameData: appData.gameData,
+      gameData: gameData ?? appData.gameData,
       gamesTool: appData.gamesTool,
       imagesCache: appData.imagesCache,
       sprite: sprite,
