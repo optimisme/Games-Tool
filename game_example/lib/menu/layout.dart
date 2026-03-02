@@ -1,4 +1,4 @@
-part of '../menu.dart';
+part of 'main.dart';
 
 extension _MenuLayout on _MenuState {
   List<Rect> _buildOptionRects(Size size) {

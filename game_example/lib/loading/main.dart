@@ -3,13 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
-import 'app_data.dart';
-import 'level_0.dart';
-import 'level_1.dart';
+import '../app_data.dart';
+import '../level_0/main.dart';
+import '../level_1.dart';
 
-part 'loading/initialize.dart';
-part 'loading/interaction.dart';
-part 'loading/layout.dart';
+part 'initialize.dart';
+part 'interaction.dart';
+part 'layout.dart';
 
 class Loading extends StatefulWidget {
   const Loading({super.key, required this.levelIndex});

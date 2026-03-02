@@ -1,4 +1,4 @@
-part of '../menu.dart';
+part of 'main.dart';
 
 class _MenuPainter extends CustomPainter {
   _MenuPainter({

@@ -1,4 +1,4 @@
-part of '../level_0.dart';
+part of 'main.dart';
 
 extension _Level0Initialize on _Level0State {
   void _initializeLevel(AppData appData) {

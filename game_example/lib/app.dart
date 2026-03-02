@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'menu.dart';
+import 'menu/main.dart';
 
 class App extends StatelessWidget {
   const App({super.key});

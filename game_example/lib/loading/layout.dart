@@ -1,4 +1,4 @@
-part of '../loading.dart';
+part of 'main.dart';
 
 extension _LoadingLayout on _LoadingState {
   double _buildProgress({
