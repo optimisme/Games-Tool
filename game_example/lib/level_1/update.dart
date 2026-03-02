@@ -35,9 +35,10 @@ extension _Level1Update on _Level1State {
   }
 
   void _updatePhysics(Level1UpdateState state, double dt) {
+    final bool wasStandingOnMovingPlatform = _isStandingOnMovingPlatform(state);
     final Offset movingPlatformDelta = _updateMovingPlatformPath(state, dt);
     if ((movingPlatformDelta.dx != 0 || movingPlatformDelta.dy != 0) &&
-        _isStandingOnMovingPlatform(state)) {
+        wasStandingOnMovingPlatform) {
       state.playerX += movingPlatformDelta.dx;
       state.playerY += movingPlatformDelta.dy;
     }
@@ -82,9 +83,15 @@ extension _Level1Update on _Level1State {
       }
     }
 
+    final double previousPlayerX = state.playerX;
+    final double previousPlayerY = state.playerY;
     state.playerX += state.velocityX * dt;
     state.playerY += state.velocityY * dt;
-    final bool landed = _resolveFloorPenetration(state);
+    final bool landed = _resolveFloorPenetration(
+      state,
+      previousX: previousPlayerX,
+      previousY: previousPlayerY,
+    );
     final bool standingOnFloor = _isStandingOnFloor(state);
     if ((landed || standingOnFloor) && state.velocityY >= 0) {
       state.velocityY = 0;
@@ -517,7 +524,11 @@ extension _Level1Update on _Level1State {
     );
   }
 
-  bool _resolveFloorPenetration(Level1UpdateState state) {
+  bool _resolveFloorPenetration(
+    Level1UpdateState state, {
+    required double previousX,
+    required double previousY,
+  }) {
     if (state.velocityY < 0) {
       return false;
     }
@@ -525,6 +536,40 @@ extension _Level1Update on _Level1State {
     if (floors.isEmpty) {
       return false;
     }
+
+    final int? playerSpriteIndex = _playerSpriteIndex;
+    if (playerSpriteIndex != null) {
+      final SweptRectCollision? sweptCollision =
+          _runtimeApi.firstDownwardSpriteCollisionAgainstRects(
+        levelIndex: widget.levelIndex,
+        spriteIndex: playerSpriteIndex,
+        previousPose: RuntimeSpritePose(
+          levelIndex: widget.levelIndex,
+          spriteIndex: playerSpriteIndex,
+          x: previousX,
+          y: previousY,
+          flipX: !state.facingRight,
+          elapsedSeconds: state.animationTimeSeconds,
+        ),
+        currentPose: RuntimeSpritePose(
+          levelIndex: widget.levelIndex,
+          spriteIndex: playerSpriteIndex,
+          x: state.playerX,
+          y: state.playerY,
+          flipX: !state.facingRight,
+          elapsedSeconds: state.animationTimeSeconds,
+        ),
+        staticRects: floors,
+      );
+
+      if (sweptCollision != null) {
+        final double penetration =
+            sweptCollision.movingRectEnd.bottom - sweptCollision.staticRect.top;
+        state.playerY -= (penetration > 0 ? penetration : 0) + 0.01;
+        return true;
+      }
+    }
+
     double correctedY = state.playerY;
     bool landed = false;
     for (int i = 0; i < 6; i++) {

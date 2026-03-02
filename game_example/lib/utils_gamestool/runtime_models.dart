@@ -152,6 +152,33 @@ class SpriteContact {
   final Rect intersectionRect;
 }
 
+class SweptRectCollision {
+  const SweptRectCollision({
+    required this.time,
+    required this.movingRectStart,
+    required this.movingRectEnd,
+    required this.staticRect,
+    required this.normal,
+  });
+
+  final double time;
+  final Rect movingRectStart;
+  final Rect movingRectEnd;
+  final Rect staticRect;
+  final Offset normal;
+
+  Rect get movingRectAtImpact {
+    final double t = time.clamp(0.0, 1.0);
+    return Rect.fromLTRB(
+      movingRectStart.left + (movingRectEnd.left - movingRectStart.left) * t,
+      movingRectStart.top + (movingRectEnd.top - movingRectStart.top) * t,
+      movingRectStart.right + (movingRectEnd.right - movingRectStart.right) * t,
+      movingRectStart.bottom +
+          (movingRectEnd.bottom - movingRectStart.bottom) * t,
+    );
+  }
+}
+
 class CollisionTransition<T> {
   const CollisionTransition({
     required this.entered,
