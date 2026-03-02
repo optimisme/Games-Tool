@@ -256,11 +256,15 @@ class GamesToolRuntimeRenderer {
     required RuntimeCamera2D camera,
     ui.Color backgroundColor = const ui.Color(0xFF000000),
     double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
+    bool drawBackground = true,
+    double? onlyDepth,
   }) {
-    canvas.drawRect(
-      ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
-      ui.Paint()..color = backgroundColor,
-    );
+    if (drawBackground) {
+      canvas.drawRect(
+        ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
+        ui.Paint()..color = backgroundColor,
+      );
+    }
 
     final double scale = cameraScale(viewportSize: painterSize, camera: camera);
     if (scale == 0) {
@@ -274,6 +278,10 @@ class GamesToolRuntimeRenderer {
     );
 
     for (final Map<String, dynamic> layer in layers) {
+      final double layerDepth = gamesTool.layerDepth(layer);
+      if (onlyDepth != null && (layerDepth - onlyDepth).abs() > 0.000001) {
+        continue;
+      }
       final List<List<dynamic>> tileMap = gamesTool.layerTileMapRows(layer);
       if (tileMap.isEmpty) {
         continue;
@@ -300,7 +308,6 @@ class GamesToolRuntimeRenderer {
         continue;
       }
 
-      final double layerDepth = gamesTool.layerDepth(layer);
       final double depthScale = RuntimeCameraMath.depthScaleForDepth(
         layerDepth,
         sensitivity: depthSensitivity,
@@ -378,6 +385,32 @@ class GamesToolRuntimeRenderer {
         }
       }
     }
+  }
+
+  static List<double> resolveDepthPainterOrder({
+    required GamesToolApi gamesTool,
+    required List<Map<String, dynamic>> layerPainterOrder,
+    required List<Map<String, dynamic>> sprites,
+    bool Function(int spriteIndex, Map<String, dynamic> sprite)? includeSprite,
+  }) {
+    final Set<double> depths = <double>{};
+    for (final Map<String, dynamic> layer in layerPainterOrder) {
+      depths.add(gamesTool.layerDepth(layer));
+    }
+    for (int spriteIndex = 0; spriteIndex < sprites.length; spriteIndex++) {
+      final Map<String, dynamic> sprite = sprites[spriteIndex];
+      if (includeSprite != null && !includeSprite(spriteIndex, sprite)) {
+        continue;
+      }
+      depths.add(gamesTool.spriteDepth(sprite));
+    }
+    final List<double> sorted = depths.toList(growable: false)
+      ..sort((double a, double b) => b.compareTo(a));
+    return sorted;
+  }
+
+  static bool sameDepth(double a, double b, {double epsilon = 0.000001}) {
+    return (a - b).abs() <= epsilon;
   }
 
   static bool drawAnimatedSpriteByType({
