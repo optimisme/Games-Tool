@@ -36,7 +36,7 @@ extension _Level1Interaction on _Level1State {
     final Level1UpdateState? state = _updateState;
 
     if (state != null && (state.isGameOver || state.isWin)) {
-      if (event is KeyDownEvent) {
+      if (event is KeyDownEvent && state.canExitEndState) {
         _goBackToMenu();
       }
       return KeyEventResult.handled;
