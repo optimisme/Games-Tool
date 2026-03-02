@@ -214,8 +214,7 @@ extension _Level1Update on _Level1State {
     if (playerRects.isEmpty) {
       return;
     }
-    final bool foxyIsFallingFromJump =
-        state.isInJumpArc && !state.onGround && state.velocityY > 25;
+    final bool foxyIsFalling = !state.onGround && state.velocityY > 25;
     final List<int> dragons = _dragonSpriteIndices();
     final Set<int> touchingDragonsNow = <int>{};
     for (final int dragonIndex in dragons) {
@@ -230,7 +229,7 @@ extension _Level1Update on _Level1State {
       if (!_rectsOverlapAny(playerRects, dragonRects)) {
         continue;
       }
-      if (foxyIsFallingFromJump) {
+      if (foxyIsFalling) {
         state.dragonDeathStartSeconds[dragonIndex] = state.animationTimeSeconds;
         state.velocityY = -state.jumpImpulsePerSecond * 0.38;
         state.onGround = false;
