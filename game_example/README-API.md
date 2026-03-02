@@ -112,6 +112,8 @@ Notes:
 - `screenToTile` honors camera scale and layer depth projection.
 - `spriteFocusPoint(...)` is anchor-aware and is recommended for camera follow targets.
 - `fpsFromDeltaTime(...)` and `updateSmoothedFps(...)` provide reusable FPS counter math for runtime HUD/debug overlays.
+  - Recommended input is real frame delta (`frameDt`) from your game loop frame callback.
+  - Do not feed fixed simulation step values if you want real renderer FPS.
 
 ## Rendering helpers (Flutter Canvas)
 

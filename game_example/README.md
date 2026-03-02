@@ -41,7 +41,7 @@ flutter run -d macos # linux or windows
 - `lib/app_data.dart`: central loading/cache state for game data and images.
 - `lib/shared/camera.dart`: mutable camera model + conversion to `RuntimeCamera2D`.
 - `lib/shared/utils_level.dart`: reusable level flow/lifecycle helpers
-  (navigation, loop ticker bootstrap, viewport bootstrap).
+  (navigation, fixed-step loop ticker bootstrap with frame callback, viewport bootstrap).
 - `lib/shared/utils_painter.dart`: reusable HUD/text painter helpers,
   including shared centered end-state overlays (win/game-over style layers).
 
@@ -90,6 +90,12 @@ Default runtime flow:
 2. `Loading` ensures data/assets are ready for that level.
 3. Selected level screen starts (`level_0` or `level_1`).
 4. Level can navigate back to `Menu`.
+
+Timing model used by gameplay levels:
+
+1. `restartGameLoopTicker(...)` collects real frame delta (`frameDt`) in `onFrame`.
+2. Simulation `update` (`onTick`) runs at fixed step (`1/60`) via accumulator.
+3. HUD/debug FPS can be derived from `frameDt` (not fixed simulation step).
 
 ## 5. Key APIs
 
