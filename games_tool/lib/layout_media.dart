@@ -1285,27 +1285,59 @@ class _LayoutMediaState extends State<LayoutMedia> {
                                           ),
                                         ),
                                         if (isSelected)
-                                          MouseRegion(
-                                            cursor: SystemMouseCursors.click,
-                                            child: CupertinoButton(
-                                              key: _selectedEditAnchorKey,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 6,
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: CupertinoButton(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 6,
+                                                  ),
+                                                  minimumSize:
+                                                      const Size(20, 20),
+                                                  onPressed: () async {
+                                                    await appData
+                                                        .reloadMediaFile(
+                                                      asset.fileName,
+                                                    );
+                                                  },
+                                                  child: Icon(
+                                                    CupertinoIcons
+                                                        .arrow_clockwise,
+                                                    size: 16,
+                                                    color: cdkColors.colorText,
+                                                  ),
+                                                ),
                                               ),
-                                              minimumSize: const Size(20, 20),
-                                              onPressed: () async {
-                                                await _promptAndEditMedia(
-                                                  assetIndex,
-                                                  _selectedEditAnchorKey,
-                                                );
-                                              },
-                                              child: Icon(
-                                                CupertinoIcons.ellipsis_circle,
-                                                size: 16,
-                                                color: cdkColors.colorText,
+                                              MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: CupertinoButton(
+                                                  key: _selectedEditAnchorKey,
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 6,
+                                                  ),
+                                                  minimumSize:
+                                                      const Size(20, 20),
+                                                  onPressed: () async {
+                                                    await _promptAndEditMedia(
+                                                      assetIndex,
+                                                      _selectedEditAnchorKey,
+                                                    );
+                                                  },
+                                                  child: Icon(
+                                                    CupertinoIcons
+                                                        .ellipsis_circle,
+                                                    size: 16,
+                                                    color: cdkColors.colorText,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ),
                                         ReorderableDragStartListener(
                                           index: index,

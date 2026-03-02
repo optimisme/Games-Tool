@@ -14,6 +14,21 @@
       "id": "__group_1772115389184027_2",
       "name": "Heroi Camina",
       "collapsed": true
+    },
+    {
+      "id": "__group_1772439377723436_0",
+      "name": "Foxy",
+      "collapsed": true
+    },
+    {
+      "id": "__group_1772439591709079_0",
+      "name": "Dragon",
+      "collapsed": true
+    },
+    {
+      "id": "__group_1772440081662537_0",
+      "name": "Gem",
+      "collapsed": true
     }
   ],
   "animations": [
@@ -954,6 +969,547 @@
               "height": 0.8
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439416290292",
+      "name": "Foxy Idle",
+      "mediaFile": "media/FoxySpritesheet.png",
+      "startFrame": 0,
+      "endFrame": 3,
+      "fps": 6.0,
+      "loop": true,
+      "groupId": "__group_1772439377723436_0",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "anchorColor": "red",
+      "hitBoxes": [
+        {
+          "id": "__hb_1772440118854593_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.1875,
+          "y": 0.3125,
+          "width": 0.5625,
+          "height": 0.6875
+        }
+      ],
+      "frameRigs": [
+        {
+          "frame": 0,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440118854593_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 1,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440118854593_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 2,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440118854593_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 3,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440118854593_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439386093608",
+      "name": "Foxy Walk",
+      "mediaFile": "media/FoxySpritesheet.png",
+      "startFrame": 6,
+      "endFrame": 11,
+      "fps": 6.0,
+      "loop": true,
+      "groupId": "__group_1772439377723436_0",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "anchorColor": "red",
+      "hitBoxes": [
+        {
+          "id": "__hb_1772440122332534_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.1875,
+          "y": 0.3125,
+          "width": 0.5625,
+          "height": 0.6875
+        }
+      ],
+      "frameRigs": [
+        {
+          "frame": 6,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 7,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 8,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 9,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 10,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        },
+        {
+          "frame": 11,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440122332534_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.3125,
+              "width": 0.5625,
+              "height": 0.6875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439499126166",
+      "name": "Foxy Attack",
+      "mediaFile": "media/FoxySpritesheet.png",
+      "startFrame": 54,
+      "endFrame": 57,
+      "fps": 6.0,
+      "loop": true,
+      "groupId": "__group_1772439377723436_0",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "anchorColor": "red",
+      "hitBoxes": [
+        {
+          "id": "__hb_1772440125350323_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.25,
+          "y": 0.4375,
+          "width": 0.53125,
+          "height": 0.5625
+        }
+      ],
+      "frameRigs": [
+        {
+          "frame": 54,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440125350323_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.25,
+              "y": 0.4375,
+              "width": 0.53125,
+              "height": 0.5625
+            }
+          ]
+        },
+        {
+          "frame": 55,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440125350323_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.25,
+              "y": 0.4375,
+              "width": 0.53125,
+              "height": 0.5625
+            }
+          ]
+        },
+        {
+          "frame": 56,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440125350323_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.25,
+              "y": 0.4375,
+              "width": 0.53125,
+              "height": 0.5625
+            }
+          ]
+        },
+        {
+          "frame": 57,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440125350323_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.25,
+              "y": 0.4375,
+              "width": 0.53125,
+              "height": 0.5625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439526757672",
+      "name": "Foxy Jump Up",
+      "mediaFile": "media/FoxySpritesheet.png",
+      "startFrame": 30,
+      "endFrame": 30,
+      "fps": 6.0,
+      "loop": false,
+      "groupId": "__group_1772439377723436_0",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "anchorColor": "red",
+      "hitBoxes": [
+        {
+          "id": "__hb_1772440128452915_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.125,
+          "y": 0.28125,
+          "width": 0.71875,
+          "height": 0.65625
+        }
+      ],
+      "frameRigs": [
+        {
+          "frame": 30,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440128452915_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.125,
+              "y": 0.28125,
+              "width": 0.71875,
+              "height": 0.65625
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439553403016",
+      "name": "Foxy Jump Fall",
+      "mediaFile": "media/FoxySpritesheet.png",
+      "startFrame": 31,
+      "endFrame": 31,
+      "fps": 8.0,
+      "loop": false,
+      "groupId": "__group_1772439377723436_0",
+      "anchorX": 0.5,
+      "anchorY": 0.9,
+      "anchorColor": "red",
+      "hitBoxes": [
+        {
+          "id": "__hb_1772440131366726_0",
+          "name": "Hit Box 1",
+          "color": "green",
+          "x": 0.1875,
+          "y": 0.21875,
+          "width": 0.65625,
+          "height": 0.6875
+        }
+      ],
+      "frameRigs": [
+        {
+          "frame": 31,
+          "anchorX": 0.5,
+          "anchorY": 0.9,
+          "anchorColor": "red",
+          "hitBoxes": [
+            {
+              "id": "__hb_1772440131366726_0",
+              "name": "Hit Box 1",
+              "color": "green",
+              "x": 0.1875,
+              "y": 0.21875,
+              "width": 0.65625,
+              "height": 0.6875
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439605687385",
+      "name": "Dragon Fly",
+      "mediaFile": "media/gator-sheet.png",
+      "startFrame": 0,
+      "endFrame": 3,
+      "fps": 8.0,
+      "loop": true,
+      "groupId": "__group_1772439591709079_0",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "anchorColor": "red",
+      "hitBoxes": [],
+      "frameRigs": [
+        {
+          "frame": 0,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 1,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 2,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 3,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        }
+      ]
+    },
+    {
+      "id": "anim_1772439629355555",
+      "name": "Dragon Death",
+      "mediaFile": "media/DragonDeath.png",
+      "startFrame": 0,
+      "endFrame": 3,
+      "fps": 8.0,
+      "loop": false,
+      "groupId": "__group_1772439591709079_0",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "anchorColor": "red",
+      "hitBoxes": [],
+      "frameRigs": [
+        {
+          "frame": 0,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 1,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 2,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 3,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        }
+      ]
+    },
+    {
+      "id": "anim_1772440074459800",
+      "name": "Gem",
+      "mediaFile": "media/gem.png",
+      "startFrame": 0,
+      "endFrame": 4,
+      "fps": 4.0,
+      "loop": true,
+      "groupId": "__group_1772440081662537_0",
+      "anchorX": 0.5,
+      "anchorY": 0.5,
+      "anchorColor": "red",
+      "hitBoxes": [],
+      "frameRigs": [
+        {
+          "frame": 0,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 1,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 2,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 3,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
+        },
+        {
+          "frame": 4,
+          "anchorX": 0.5,
+          "anchorY": 0.5,
+          "anchorColor": "red",
+          "hitBoxes": []
         }
       ]
     }

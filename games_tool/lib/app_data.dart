@@ -19,11 +19,13 @@ class StoredProject {
   final String id;
   final String folderPath;
   String name;
+  String description;
   String updatedAt;
 
   StoredProject({
     required this.id,
     required this.name,
+    this.description = '',
     required this.folderPath,
     required this.updatedAt,
   });
@@ -31,6 +33,7 @@ class StoredProject {
   factory StoredProject.fromPath({
     required String folderPath,
     required String name,
+    String description = '',
     String? updatedAt,
   }) {
     final String normalizedPath = Directory(folderPath).absolute.path;
@@ -38,6 +41,7 @@ class StoredProject {
       id: normalizedPath,
       folderPath: normalizedPath,
       name: name,
+      description: description,
       updatedAt: updatedAt ?? DateTime.now().toUtc().toIso8601String(),
     );
   }
@@ -874,8 +878,9 @@ class AppData extends ChangeNotifier {
         missingPaths.add(folderPath);
         continue;
       }
-      final String inferredName = await _readProjectNameFromDisk(gameFile) ??
-          _lastPathSegment(folderPath);
+      final ({String? name, String description}) summary =
+          await _readProjectSummaryFromDisk(gameFile);
+      final String inferredName = summary.name ?? _lastPathSegment(folderPath);
       nextKnownProjectNames[folderPath] = inferredName;
       String updatedAt = DateTime.now().toUtc().toIso8601String();
       try {
@@ -885,6 +890,7 @@ class AppData extends ChangeNotifier {
         StoredProject.fromPath(
           folderPath: folderPath,
           name: inferredName,
+          description: summary.description,
           updatedAt: updatedAt,
         ),
       );
@@ -914,8 +920,10 @@ class AppData extends ChangeNotifier {
         if (bookmark != null && bookmark.isNotEmpty) {
           _projectBookmarksByPath[normalizedPath] = bookmark;
         }
-        final String inferredName = await _readProjectNameFromDisk(gameFile) ??
-            _lastPathSegment(normalizedPath);
+        final ({String? name, String description}) summary =
+            await _readProjectSummaryFromDisk(gameFile);
+        final String inferredName =
+            summary.name ?? _lastPathSegment(normalizedPath);
         nextKnownProjectNames[normalizedPath] = inferredName;
         String updatedAt = DateTime.now().toUtc().toIso8601String();
         try {
@@ -925,6 +933,7 @@ class AppData extends ChangeNotifier {
           StoredProject.fromPath(
             folderPath: normalizedPath,
             name: inferredName,
+            description: summary.description,
             updatedAt: updatedAt,
           ),
         );
@@ -937,17 +946,27 @@ class AppData extends ChangeNotifier {
     await _saveProjectsIndex();
   }
 
-  Future<String?> _readProjectNameFromDisk(File gameFile) async {
+  Future<({String? name, String description})> _readProjectSummaryFromDisk(
+    File gameFile,
+  ) async {
     try {
       final dynamic decoded = jsonDecode(await gameFile.readAsString());
       if (decoded is Map<String, dynamic>) {
         final dynamic name = decoded['name'];
-        if (name is String && name.trim().isNotEmpty) {
-          return name.trim();
-        }
+        final dynamic description = decoded['description'];
+        return (
+          name: name is String && name.trim().isNotEmpty ? name.trim() : null,
+          description: description is String ? description.trim() : '',
+        );
       }
     } catch (_) {}
-    return null;
+    return (name: null, description: '');
+  }
+
+  Future<String?> _readProjectNameFromDisk(File gameFile) async {
+    final ({String? name, String description}) summary =
+        await _readProjectSummaryFromDisk(gameFile);
+    return summary.name;
   }
 
   String _lastPathSegment(String value) {
@@ -1963,6 +1982,7 @@ class AppData extends ChangeNotifier {
   Future<String> createProject({
     required String workingDirectoryPath,
     String? projectName,
+    String? projectDescription,
   }) async {
     await flushPendingAutosave();
     if (projectsPath == "") {
@@ -1989,10 +2009,12 @@ class AppData extends ChangeNotifier {
     final String defaultName = projectName?.trim().isNotEmpty == true
         ? projectName!.trim()
         : "New Project";
+    final String defaultDescription = projectDescription?.trim() ?? '';
     final String projectPath = normalizedProjectPath;
     final StoredProject newProject = StoredProject.fromPath(
       folderPath: projectPath,
       name: defaultName,
+      description: defaultDescription,
     );
     projects.removeWhere((StoredProject item) => item.id == projectPath);
     projects.add(newProject);
@@ -2006,7 +2028,11 @@ class AppData extends ChangeNotifier {
     missingProjectPaths.remove(projectPath);
     selectedProjectId = newProject.id;
 
-    gameData = GameData(name: defaultName, levels: []);
+    gameData = GameData(
+      name: defaultName,
+      description: defaultDescription,
+      levels: [],
+    );
     selectedLevel = -1;
     selectedLayer = -1;
     selectedLayerIndices = <int>{};
@@ -2195,6 +2221,7 @@ class AppData extends ChangeNotifier {
   Future<bool> updateProjectInfo(
     String projectId, {
     required String newName,
+    String? newDescription,
   }) async {
     final String cleanName = newName.trim();
     if (cleanName.isEmpty) {
@@ -2204,8 +2231,12 @@ class AppData extends ChangeNotifier {
     if (project == null) {
       return false;
     }
+    final String cleanDescription = newDescription == null
+        ? project.description.trim()
+        : newDescription.trim();
 
     project.name = cleanName;
+    project.description = cleanDescription;
     project.updatedAt = DateTime.now().toUtc().toIso8601String();
     _knownProjectNamesByPath[project.folderPath] = cleanName;
 
@@ -2216,6 +2247,7 @@ class AppData extends ChangeNotifier {
       final dynamic decoded = jsonDecode(await file.readAsString());
       if (decoded is Map<String, dynamic>) {
         decoded['name'] = cleanName;
+        decoded['description'] = cleanDescription;
         final String output = await _formatMapAsGameJson(decoded);
         await file.writeAsString(output);
       }
@@ -2224,6 +2256,7 @@ class AppData extends ChangeNotifier {
     if (selectedProjectId == projectId) {
       gameData = GameData(
         name: cleanName,
+        description: cleanDescription,
         levels: gameData.levels,
         levelGroups: gameData.levelGroups,
         mediaAssets: gameData.mediaAssets,
@@ -2496,6 +2529,7 @@ class AppData extends ChangeNotifier {
         project.name = gameData.name.trim();
         _knownProjectNamesByPath[projectPath] = gameData.name.trim();
       }
+      project.description = gameData.description.trim();
       project.updatedAt = DateTime.now().toUtc().toIso8601String();
       await _saveProjectsIndex();
 
@@ -2588,6 +2622,53 @@ class AppData extends ChangeNotifier {
     }
     await flushPendingAutosave();
     await openProject(selectedProjectId);
+  }
+
+  Future<void> reloadMediaFile(String fileName) async {
+    final String raw = fileName.trim();
+    if (raw.isEmpty) {
+      return;
+    }
+
+    final String normalized = _normalizeProjectRelativePath(raw);
+    final bool isAbsolutePath =
+        raw.startsWith('/') || RegExp(r'^[A-Za-z]:[\\/]').hasMatch(raw);
+    final String cacheKey = normalized.isNotEmpty ? normalized : raw;
+
+    final Set<String> cacheKeysToClear = <String>{
+      raw,
+      normalized,
+      cacheKey,
+    }..removeWhere((value) => value.isEmpty);
+    for (final key in cacheKeysToClear) {
+      imagesCache.remove(key);
+    }
+
+    try {
+      final String absolutePath = isAbsolutePath
+          ? raw
+          : _projectAbsolutePathForRelativePath(filePath, cacheKey);
+      final File mediaFile = File(absolutePath);
+      if (!await mediaFile.exists()) {
+        throw Exception('File does not exist: $cacheKey');
+      }
+      final Uint8List bytes = await mediaFile.readAsBytes();
+      if (bytes.isEmpty) {
+        throw Exception('The asset does not exist or has empty data');
+      }
+      final ui.Image image = await decodeImage(bytes);
+      imagesCache[cacheKey] = image;
+      if (raw != cacheKey) {
+        imagesCache[raw] = image;
+      }
+      projectStatusMessage = 'Reloaded "$cacheKey"';
+    } catch (e) {
+      projectStatusMessage = 'Reload failed for "$cacheKey": $e';
+      if (kDebugMode) {
+        print('Error reloading media file "$cacheKey": $e');
+      }
+    }
+    notifyListeners();
   }
 
   Future<void> _copyDirectoryRecursively({

@@ -137,12 +137,14 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
     required String title,
     required String confirmLabel,
     String initialName = '',
+    String initialDescription = '',
     String? projectPath,
     String? editingProjectId,
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
     bool liveEditMode = false,
     Future<void> Function(String value)? onNameAutoSave,
+    Future<void> Function(String value)? onDescriptionAutoSave,
     VoidCallback? onDelete,
     VoidCallback? onChangeFolder,
   }) async {
@@ -160,10 +162,12 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
       title: title,
       confirmLabel: confirmLabel,
       initialName: initialName,
+      initialDescription: initialDescription,
       projectPath: projectPath,
       liveEditMode: liveEditMode,
       existingNames: existingNames,
       onNameAutoSave: onNameAutoSave,
+      onDescriptionAutoSave: onDescriptionAutoSave,
       onConfirm: (value) {
         result = value;
         controller.close();
@@ -241,6 +245,7 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
 
     await appData.createProject(
       projectName: data.name,
+      projectDescription: data.description,
       workingDirectoryPath: workingDirectoryPath,
     );
   }
@@ -250,10 +255,13 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
     GlobalKey anchorKey,
   ) async {
     String currentProjectId = project.id;
+    String currentProjectName = project.name;
+    String currentProjectDescription = project.description;
     await _promptProjectData(
       title: "Edit project",
       confirmLabel: "Save",
       initialName: project.name,
+      initialDescription: project.description,
       projectPath: project.folderPath,
       editingProjectId: project.id,
       anchorKey: anchorKey,
@@ -261,10 +269,25 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
       liveEditMode: true,
       onNameAutoSave: (String value) async {
         final AppData appData = Provider.of<AppData>(context, listen: false);
-        await appData.updateProjectInfo(
+        final bool updated = await appData.updateProjectInfo(
           currentProjectId,
           newName: value,
+          newDescription: currentProjectDescription,
         );
+        if (updated) {
+          currentProjectName = value;
+        }
+      },
+      onDescriptionAutoSave: (String value) async {
+        final AppData appData = Provider.of<AppData>(context, listen: false);
+        final bool updated = await appData.updateProjectInfo(
+          currentProjectId,
+          newName: currentProjectName,
+          newDescription: value,
+        );
+        if (updated) {
+          currentProjectDescription = value;
+        }
       },
       onDelete: () async {
         final _ProjectDeleteAction? deleteAction =
@@ -543,9 +566,11 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
 class _ProjectDialogData {
   const _ProjectDialogData({
     required this.name,
+    required this.description,
   });
 
   final String name;
+  final String description;
 }
 
 class _ProjectFormDialog extends StatefulWidget {
@@ -553,10 +578,12 @@ class _ProjectFormDialog extends StatefulWidget {
     required this.title,
     required this.confirmLabel,
     required this.initialName,
+    this.initialDescription = '',
     this.projectPath,
     this.liveEditMode = false,
     required this.existingNames,
     this.onNameAutoSave,
+    this.onDescriptionAutoSave,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -566,10 +593,12 @@ class _ProjectFormDialog extends StatefulWidget {
   final String title;
   final String confirmLabel;
   final String initialName;
+  final String initialDescription;
   final String? projectPath;
   final bool liveEditMode;
   final Set<String> existingNames;
   final Future<void> Function(String value)? onNameAutoSave;
+  final Future<void> Function(String value)? onDescriptionAutoSave;
   final ValueChanged<_ProjectDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -582,9 +611,14 @@ class _ProjectFormDialog extends StatefulWidget {
 class _ProjectFormDialogState extends State<_ProjectFormDialog> {
   late final TextEditingController _nameController =
       TextEditingController(text: widget.initialName);
+  late final TextEditingController _descriptionController =
+      TextEditingController(text: widget.initialDescription);
   final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _descriptionFocusNode = FocusNode();
   late String _lastSavedName = widget.initialName.trim();
+  late String _lastSavedDescription = widget.initialDescription.trim();
   bool _savingName = false;
+  bool _savingDescription = false;
   String? _errorText;
 
   bool get _isValid {
@@ -615,6 +649,7 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
     widget.onConfirm(
       _ProjectDialogData(
         name: cleaned,
+        description: _descriptionController.text.trim(),
       ),
     );
   }
@@ -641,12 +676,40 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
     });
   }
 
+  Future<void> _saveDescriptionIfNeeded() async {
+    if (!widget.liveEditMode ||
+        widget.onDescriptionAutoSave == null ||
+        _savingDescription) {
+      return;
+    }
+    final String cleaned = _descriptionController.text.trim();
+    if (cleaned == _lastSavedDescription) {
+      return;
+    }
+    setState(() {
+      _savingDescription = true;
+    });
+    await widget.onDescriptionAutoSave!(cleaned);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _lastSavedDescription = cleaned;
+      _savingDescription = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _nameFocusNode.addListener(() {
       if (!_nameFocusNode.hasFocus) {
         _saveNameIfNeeded();
+      }
+    });
+    _descriptionFocusNode.addListener(() {
+      if (!_descriptionFocusNode.hasFocus) {
+        _saveDescriptionIfNeeded();
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -659,7 +722,9 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     _nameFocusNode.dispose();
+    _descriptionFocusNode.dispose();
     super.dispose();
   }
 
@@ -669,7 +734,7 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
     final typography = CDKThemeNotifier.typographyTokensOf(context);
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: widget.liveEditMode ? '' : 'Set project name.',
+      description: widget.liveEditMode ? '' : 'Set project details.',
       confirmLabel: widget.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
@@ -697,7 +762,21 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
               },
             ),
           ),
-          if (widget.liveEditMode && _savingName) ...[
+          SizedBox(height: spacing.sm),
+          EditorLabeledField(
+            label: 'Project description',
+            child: SizedBox(
+              height: 66,
+              child: CDKFieldText(
+                placeholder: 'Project description',
+                controller: _descriptionController,
+                focusNode: _descriptionFocusNode,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+              ),
+            ),
+          ),
+          if (widget.liveEditMode && (_savingName || _savingDescription)) ...[
             SizedBox(height: spacing.xs),
             const CDKText(
               'Saving...',
