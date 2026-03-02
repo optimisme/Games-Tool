@@ -17,10 +17,23 @@ const String _level1PlayerSpriteName = 'Foxy';
 const String _level1FloorZoneName = 'Floor';
 const String _level1DeathZoneName = 'Foxy Death';
 const String _level1GemSpriteName = 'Gem';
+const String _level1DragonSpriteName = 'Dragon';
 const String _level1AnimFoxyIdle = 'Foxy Idle';
 const String _level1AnimFoxyWalk = 'Foxy Walk';
 const String _level1AnimFoxyJumpUp = 'Foxy Jump Up';
 const String _level1AnimFoxyJumpFall = 'Foxy Jump Fall';
+const String _level1AnimDragonDeath = 'Dragon Death';
+const String _level1MovingPlatformLayerName = 'Platform';
+const String _level1MovingPlatformFloorGameplayData = 'Platform Floor';
+const int _level1InitialLifePercent = 100;
+const int _level1DragonDamagePercent = 25;
+const double _level1MovingPlatformLoopSeconds = 5;
+const double _level1MovingPlatformFloorYOffset = 5;
+const List<Offset> _level1MovingPlatformPath = <Offset>[
+  Offset(590, 440),
+  Offset(745, 470),
+  Offset(740, 340),
+];
 const double _level1BackHudX = 20;
 const double _level1BackHudY = 5;
 const double _level1BackIconWidth = 8;
@@ -66,6 +79,14 @@ bool _isLevel1GemSprite(Map<String, dynamic> sprite) {
       spriteType.toLowerCase() == target;
 }
 
+bool _isLevel1DragonSprite(Map<String, dynamic> sprite) {
+  final String target = _level1DragonSpriteName.toLowerCase();
+  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
+  final String spriteType = ((sprite['type'] as String?) ?? '').trim();
+  return spriteName.toLowerCase() == target ||
+      spriteType.toLowerCase() == target;
+}
+
 Map<String, dynamic>? _resolveLevel1PlayerSprite(Map<String, dynamic>? level) {
   if (level == null) {
     return null;
@@ -92,6 +113,49 @@ int? _resolveLevel1PlayerSpriteIndex(Map<String, dynamic>? level) {
           .toList(growable: false);
   for (int i = 0; i < sprites.length; i++) {
     if (_isLevel1PlayerSprite(sprites[i])) {
+      return i;
+    }
+  }
+  return null;
+}
+
+int? _resolveLevel1LayerIndexByName(
+  Map<String, dynamic>? level,
+  String layerName,
+) {
+  if (level == null) {
+    return null;
+  }
+  final List<Map<String, dynamic>> layers =
+      ((level['layers'] as List<dynamic>?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+  final String target = layerName.trim().toLowerCase();
+  for (int i = 0; i < layers.length; i++) {
+    final String name = ((layers[i]['name'] as String?) ?? '').trim();
+    if (name.toLowerCase() == target) {
+      return i;
+    }
+  }
+  return null;
+}
+
+int? _resolveLevel1ZoneIndexByGameplayData(
+  Map<String, dynamic>? level,
+  String gameplayData,
+) {
+  if (level == null) {
+    return null;
+  }
+  final List<Map<String, dynamic>> zones =
+      ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+  final String target = gameplayData.trim().toLowerCase();
+  for (int i = 0; i < zones.length; i++) {
+    final String zoneGameplayData =
+        ((zones[i]['gameplayData'] as String?) ?? '').trim();
+    if (zoneGameplayData.toLowerCase() == target) {
       return i;
     }
   }
@@ -162,6 +226,10 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   Level1UpdateState? _updateState;
   ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
+  double _cameraFollowOffsetX = 0;
+  double _cameraFollowOffsetY = -80;
+  int? _movingPlatformLayerIndex;
+  int? _movingPlatformFloorZoneIndex;
 
   @override
   void didChangeDependencies() {
@@ -189,6 +257,14 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     _level = appData.getLevelByIndex(widget.levelIndex);
     _playerSprite = _resolveLevel1PlayerSprite(_level);
     _playerSpriteIndex = _resolveLevel1PlayerSpriteIndex(_level);
+    _movingPlatformLayerIndex = _resolveLevel1LayerIndexByName(
+      _level,
+      _level1MovingPlatformLayerName,
+    );
+    _movingPlatformFloorZoneIndex = _resolveLevel1ZoneIndexByGameplayData(
+      _level,
+      _level1MovingPlatformFloorGameplayData,
+    );
     unawaited(_ensureBackIconLoaded(appData));
     final Map<String, dynamic>? spawn = _playerSprite;
     final double levelViewportWidth = _level == null
@@ -216,6 +292,8 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
         (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX;
     final double spawnY =
         (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY;
+    _cameraFollowOffsetX = levelViewportCenterX - spawnX;
+    _cameraFollowOffsetY = levelViewportCenterY - spawnY;
 
     _updateState = Level1UpdateState(
       playerX: spawnX,
@@ -229,6 +307,8 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
       ..x = levelViewportCenterX
       ..y = levelViewportCenterY
       ..focal = levelViewportWidth;
+
+    _applyMovingPlatformPose(_level1MovingPlatformPath.first);
   }
 
   void _startLoop() {
@@ -255,14 +335,16 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     if (!state.isGameOver) {
       _updatePhysics(state, dt);
       _camera
-        ..x = state.playerX
-        ..y = state.playerY - 80;
+        ..x = state.playerX + _cameraFollowOffsetX
+        ..y = state.playerY + _cameraFollowOffsetY;
     }
 
     setState(() {});
   }
 
   void _updatePhysics(Level1UpdateState state, double dt) {
+    _updateMovingPlatformPath(state, dt);
+
     final bool moveLeft = _pressedKeys.contains(LogicalKeyboardKey.arrowLeft) ||
         _pressedKeys.contains(LogicalKeyboardKey.keyA);
     final bool moveRight =
@@ -283,6 +365,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     if (hasSupport && state.velocityY >= 0) {
       state.velocityY = 0;
       state.onGround = true;
+      state.isInJumpArc = false;
     } else if (!hasSupport) {
       state.onGround = false;
     }
@@ -290,6 +373,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     if (_jumpQueued && state.onGround) {
       state.velocityY = -state.jumpImpulsePerSecond;
       state.onGround = false;
+      state.isInJumpArc = true;
     }
     _jumpQueued = false;
 
@@ -307,23 +391,211 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     if ((landed || standingOnFloor) && state.velocityY >= 0) {
       state.velocityY = 0;
       state.onGround = true;
+      state.isInJumpArc = false;
     } else {
       state.onGround = false;
     }
     _collectTouchedGems(state);
+    _handleDragonInteractions(state);
 
-    if (_isTouchingDeathZone(state)) {
-      state.isGameOver = true;
-      state.velocityX = 0;
-      state.velocityY = 0;
-      state.onGround = false;
-      _jumpQueued = false;
-      _pressedKeys.clear();
-      _ticker?.stop();
+    if (!state.isGameOver && _isTouchingDeathZone(state)) {
+      _triggerGameOver(state);
     }
 
     state.animationTimeSeconds += dt;
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
+  }
+
+  void _updateMovingPlatformPath(Level1UpdateState state, double dt) {
+    if (_movingPlatformLayerIndex == null ||
+        _movingPlatformFloorZoneIndex == null) {
+      return;
+    }
+    state.platformMotionTimeSeconds += dt;
+    final Offset platformPosition = _movingPlatformPositionAtTime(
+      state.platformMotionTimeSeconds,
+    );
+    _applyMovingPlatformPose(platformPosition);
+  }
+
+  Offset _movingPlatformPositionAtTime(double timeSeconds) {
+    if (_level1MovingPlatformPath.length < 3 ||
+        _level1MovingPlatformLoopSeconds <= 0) {
+      return _level1MovingPlatformPath.first;
+    }
+    final Offset a = _level1MovingPlatformPath[0];
+    final Offset b = _level1MovingPlatformPath[1];
+    final Offset c = _level1MovingPlatformPath[2];
+    final double ab = (b - a).distance;
+    final double bc = (c - b).distance;
+    final double ca = (a - c).distance;
+    final double totalDistance = ab + bc + ca;
+    if (totalDistance <= 0) {
+      return a;
+    }
+
+    final double loopTime = timeSeconds % _level1MovingPlatformLoopSeconds;
+    double travelled =
+        (loopTime / _level1MovingPlatformLoopSeconds) * totalDistance;
+
+    if (travelled <= ab) {
+      return Offset.lerp(a, b, ab == 0 ? 0 : travelled / ab) ?? a;
+    }
+    travelled -= ab;
+    if (travelled <= bc) {
+      return Offset.lerp(b, c, bc == 0 ? 0 : travelled / bc) ?? b;
+    }
+    travelled -= bc;
+    return Offset.lerp(c, a, ca == 0 ? 0 : travelled / ca) ?? c;
+  }
+
+  void _applyMovingPlatformPose(Offset platformPosition) {
+    final int? layerIndex = _movingPlatformLayerIndex;
+    final int? zoneIndex = _movingPlatformFloorZoneIndex;
+    if (layerIndex == null || zoneIndex == null) {
+      return;
+    }
+
+    _runtimeApi.gameDataSet(
+      <Object>['levels', widget.levelIndex, 'layers', layerIndex, 'x'],
+      platformPosition.dx,
+    );
+    _runtimeApi.gameDataSet(
+      <Object>['levels', widget.levelIndex, 'layers', layerIndex, 'y'],
+      platformPosition.dy,
+    );
+    _runtimeApi.gameDataSet(
+      <Object>['levels', widget.levelIndex, 'zones', zoneIndex, 'x'],
+      platformPosition.dx,
+    );
+    _runtimeApi.gameDataSet(
+      <Object>['levels', widget.levelIndex, 'zones', zoneIndex, 'y'],
+      platformPosition.dy + _level1MovingPlatformFloorYOffset,
+    );
+  }
+
+  void _triggerGameOver(Level1UpdateState state) {
+    state.isGameOver = true;
+    state.velocityX = 0;
+    state.velocityY = 0;
+    state.onGround = false;
+    state.isInJumpArc = false;
+    _jumpQueued = false;
+    _pressedKeys.clear();
+    _ticker?.stop();
+  }
+
+  void _handleDragonInteractions(Level1UpdateState state) {
+    _pruneFinishedDragonDeaths(state);
+    if (state.isGameOver) {
+      return;
+    }
+    final List<Rect> playerRects = _playerCollisionRectsForPose(
+      state,
+      y: state.playerY,
+      elapsedSeconds: state.animationTimeSeconds,
+    );
+    if (playerRects.isEmpty) {
+      return;
+    }
+    final bool foxyIsFallingFromJump =
+        state.isInJumpArc && !state.onGround && state.velocityY > 25;
+    final List<int> dragons = _dragonSpriteIndices();
+    final Set<int> touchingDragonsNow = <int>{};
+    for (final int dragonIndex in dragons) {
+      if (state.removedDragonSpriteIndices.contains(dragonIndex) ||
+          state.dragonDeathStartSeconds.containsKey(dragonIndex)) {
+        continue;
+      }
+      final List<Rect> dragonRects = _spriteCollisionRectsForIndex(
+        spriteIndex: dragonIndex,
+        elapsedSeconds: state.animationTimeSeconds,
+      );
+      if (!_rectsOverlapAny(playerRects, dragonRects)) {
+        continue;
+      }
+      if (foxyIsFallingFromJump) {
+        state.dragonDeathStartSeconds[dragonIndex] = state.animationTimeSeconds;
+        state.velocityY = -state.jumpImpulsePerSecond * 0.38;
+        state.onGround = false;
+        continue;
+      }
+      touchingDragonsNow.add(dragonIndex);
+      if (state.touchingDragonSpriteIndices.contains(dragonIndex)) {
+        continue;
+      }
+      _applyDragonDamage(state);
+      if (state.isGameOver) {
+        state.touchingDragonSpriteIndices
+          ..clear()
+          ..addAll(touchingDragonsNow);
+        return;
+      }
+    }
+    state.touchingDragonSpriteIndices
+      ..clear()
+      ..addAll(touchingDragonsNow);
+  }
+
+  void _applyDragonDamage(Level1UpdateState state) {
+    state.lifePercent -= _level1DragonDamagePercent;
+    if (state.lifePercent < 0) {
+      state.lifePercent = 0;
+    }
+    if (state.lifePercent == 0) {
+      _triggerGameOver(state);
+    }
+  }
+
+  void _pruneFinishedDragonDeaths(Level1UpdateState state) {
+    if (state.dragonDeathStartSeconds.isEmpty) {
+      return;
+    }
+    final double deathDuration = _dragonDeathDurationSeconds();
+    final List<int> finished = <int>[];
+    state.dragonDeathStartSeconds.forEach((int spriteIndex, double startTime) {
+      final double elapsed = state.animationTimeSeconds - startTime;
+      if (elapsed >= deathDuration) {
+        finished.add(spriteIndex);
+      }
+    });
+    if (finished.isEmpty) {
+      return;
+    }
+    for (final int spriteIndex in finished) {
+      state.dragonDeathStartSeconds.remove(spriteIndex);
+      state.removedDragonSpriteIndices.add(spriteIndex);
+    }
+  }
+
+  double _dragonDeathDurationSeconds() {
+    final GamesToolApi gamesTool = _runtimeApi.gamesTool;
+    final Map<String, dynamic> gameData = _runtimeApi.gameData;
+    final Map<String, dynamic>? animation = gamesTool.findAnimationByName(
+      gameData,
+      _level1AnimDragonDeath,
+    );
+    if (animation == null) {
+      return 0.7;
+    }
+    final AnimationPlaybackConfig playback =
+        gamesTool.animationPlaybackConfig(animation);
+    final double duration = playback.frameCount / playback.fps;
+    if (!duration.isFinite || duration <= 0) {
+      return 0.7;
+    }
+    return duration;
+  }
+
+  bool _rectsOverlapAny(List<Rect> a, List<Rect> b) {
+    for (final Rect ra in a) {
+      for (final Rect rb in b) {
+        if (ra.overlaps(rb)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   bool _isTouchingDeathZone(Level1UpdateState state) {
@@ -429,6 +701,24 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     final List<int> indices = <int>[];
     for (int i = 0; i < sprites.length; i++) {
       if (_isLevel1GemSprite(sprites[i])) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  List<int> _dragonSpriteIndices() {
+    final Map<String, dynamic>? level = _level;
+    if (level == null) {
+      return const <int>[];
+    }
+    final List<Map<String, dynamic>> sprites =
+        ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    final List<int> indices = <int>[];
+    for (int i = 0; i < sprites.length; i++) {
+      if (_isLevel1DragonSprite(sprites[i])) {
         indices.add(i);
       }
     }
@@ -805,6 +1095,7 @@ class Level1UpdateState {
     required this.playerWidth,
     required this.playerHeight,
     required this.gemsCount,
+    this.lifePercent = _level1InitialLifePercent,
   });
 
   double playerX;
@@ -815,17 +1106,23 @@ class Level1UpdateState {
   double velocityX = 0;
   double velocityY = 0;
   bool onGround = false;
+  bool isInJumpArc = false;
   bool facingRight = true;
   bool isGameOver = false;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
+  double platformMotionTimeSeconds = 0;
   final Set<int> collectedGemSpriteIndices = <int>{};
+  final Set<int> removedDragonSpriteIndices = <int>{};
+  final Map<int, double> dragonDeathStartSeconds = <int, double>{};
 
   int gemsCount;
+  int lifePercent;
   final double gravityPerSecondSq = 2088;
   final double moveSpeedPerSecond = 204;
   final double jumpImpulsePerSecond = 708;
   final double maxFallSpeedPerSecond = 840;
+  final Set<int> touchingDragonSpriteIndices = <int>{};
 }
 
 class Level1RenderState {
@@ -842,7 +1139,10 @@ class Level1RenderState {
     required this.tickCounter,
     required this.animationTimeSeconds,
     required this.gemsCount,
+    required this.lifePercent,
     required this.collectedGemSpriteIndices,
+    required this.removedDragonSpriteIndices,
+    required this.dragonDeathStartSeconds,
   });
 
   factory Level1RenderState.from(Level1UpdateState state) {
@@ -859,7 +1159,13 @@ class Level1RenderState {
       tickCounter: state.tickCounter,
       animationTimeSeconds: state.animationTimeSeconds,
       gemsCount: state.gemsCount,
+      lifePercent: state.lifePercent,
       collectedGemSpriteIndices: Set<int>.from(state.collectedGemSpriteIndices),
+      removedDragonSpriteIndices:
+          Set<int>.from(state.removedDragonSpriteIndices),
+      dragonDeathStartSeconds: Map<int, double>.from(
+        state.dragonDeathStartSeconds,
+      ),
     );
   }
 
@@ -875,7 +1181,10 @@ class Level1RenderState {
   final int tickCounter;
   final double animationTimeSeconds;
   final int gemsCount;
+  final int lifePercent;
   final Set<int> collectedGemSpriteIndices;
+  final Set<int> removedDragonSpriteIndices;
+  final Map<int, double> dragonDeathStartSeconds;
 }
 
 class Level1Painter extends CustomPainter {
@@ -960,6 +1269,16 @@ class Level1Painter extends CustomPainter {
           if (renderState!.collectedGemSpriteIndices.contains(spriteIndex)) {
             continue;
           }
+          if (renderState!.removedDragonSpriteIndices.contains(spriteIndex)) {
+            continue;
+          }
+          final bool dragonDying =
+              renderState!.dragonDeathStartSeconds.containsKey(spriteIndex);
+          final double? dragonDeathStart =
+              renderState!.dragonDeathStartSeconds[spriteIndex];
+          final bool drawDragonDeath = dragonDying &&
+              dragonDeathStart != null &&
+              _isLevel1DragonSprite(sprite);
           GamesToolRuntimeRenderer.drawAnimatedSprite(
             canvas: canvas,
             painterSize: viewportSize,
@@ -968,7 +1287,11 @@ class Level1Painter extends CustomPainter {
             imagesCache: appData.imagesCache,
             sprite: sprite,
             camera: effectiveCamera,
-            elapsedSeconds: renderState!.animationTimeSeconds,
+            animationName: drawDragonDeath ? _level1AnimDragonDeath : null,
+            elapsedSeconds: drawDragonDeath
+                ? (renderState!.animationTimeSeconds - dragonDeathStart)
+                    .clamp(0.0, double.infinity)
+                : renderState!.animationTimeSeconds,
             depthSensitivity: depthSensitivity,
           );
         }
@@ -1006,6 +1329,18 @@ class Level1Painter extends CustomPainter {
           hudRect,
           'Gems: ${renderState!.gemsCount}',
           5,
+        );
+        _drawTopRightText(
+          canvas,
+          hudRect,
+          'Life: ${renderState!.lifePercent}%',
+          13,
+        );
+        _drawTopRightProgressBar(
+          canvas,
+          hudRect,
+          top: 22,
+          progress: renderState!.lifePercent / 100.0,
         );
         if (renderState!.isGameOver) {
           _drawGameOverOverlay(canvas, viewportSize);
@@ -1068,6 +1403,44 @@ class Level1Painter extends CustomPainter {
     painter.paint(
       canvas,
       Offset(hudRect.right - painter.width - 20, hudRect.top + top),
+    );
+  }
+
+  void _drawTopRightProgressBar(
+    Canvas canvas,
+    Rect hudRect, {
+    required double top,
+    required double progress,
+  }) {
+    const double barWidth = 62;
+    const double barHeight = 6;
+    final double clampedProgress = progress.clamp(0.0, 1.0);
+    final double left = hudRect.right - barWidth - 20;
+    final double y = hudRect.top + top;
+    final Rect barRect = Rect.fromLTWH(left, y, barWidth, barHeight);
+    final Rect fillRect = Rect.fromLTWH(
+      left,
+      y,
+      barWidth * clampedProgress,
+      barHeight,
+    );
+    final Color fillColor = Color.lerp(
+          const Color(0xFFD14040),
+          const Color(0xFF3BCB77),
+          clampedProgress,
+        ) ??
+        const Color(0xFF3BCB77);
+
+    canvas.drawRect(barRect, Paint()..color = const Color(0xFF26313B));
+    if (fillRect.width > 0) {
+      canvas.drawRect(fillRect, Paint()..color = fillColor);
+    }
+    canvas.drawRect(
+      barRect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0xFFB9D8E8),
     );
   }
 
@@ -1135,6 +1508,7 @@ class Level1Painter extends CustomPainter {
   bool shouldRepaint(covariant Level1Painter oldDelegate) {
     return oldDelegate.renderState?.tickCounter != renderState?.tickCounter ||
         oldDelegate.renderState?.gemsCount != renderState?.gemsCount ||
+        oldDelegate.renderState?.lifePercent != renderState?.lifePercent ||
         oldDelegate.renderState?.isGameOver != renderState?.isGameOver ||
         oldDelegate.backIconImage != backIconImage ||
         oldDelegate.level != level;
