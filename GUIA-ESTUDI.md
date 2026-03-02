@@ -59,7 +59,7 @@ Aquesta guia esta pensada per a estudiants que volen entendre aquest projecte i 
 - `GamesToolRuntimeRenderer.drawAnimatedSprite(...)`
   - Dibuixa sprites animats amb camera/profunditat.
 
-## 4. Exercicis practics
+## 4. Exercicis practics (no s'entreguen)
 
 1. Afegeix una nova opcio de menu per a un nou nivell.
 2. Duplica `level_0` com a `level_2` i fes un canvi de gameplay.
