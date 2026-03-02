@@ -53,6 +53,7 @@ extension _Level1Initialize on _Level1State {
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 22,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 30,
       gemsCount: 0,
+      totalGems: _gemSpriteIndices().length,
     );
 
     _camera

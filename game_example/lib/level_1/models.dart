@@ -7,6 +7,7 @@ class Level1UpdateState {
     required this.playerWidth,
     required this.playerHeight,
     required this.gemsCount,
+    required this.totalGems,
     this.lifePercent = _level1InitialLifePercent,
   });
 
@@ -21,6 +22,7 @@ class Level1UpdateState {
   bool isInJumpArc = false;
   bool facingRight = true;
   bool isGameOver = false;
+  bool isWin = false;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   double platformMotionTimeSeconds = 0;
@@ -29,6 +31,7 @@ class Level1UpdateState {
   final Map<int, double> dragonDeathStartSeconds = <int, double>{};
 
   int gemsCount;
+  final int totalGems;
   int lifePercent;
   final double gravityPerSecondSq = 2088;
   final double moveSpeedPerSecond = 204;
@@ -47,6 +50,7 @@ class Level1RenderState {
     required this.velocityY,
     required this.onGround,
     required this.isGameOver,
+    required this.isWin,
     required this.facingRight,
     required this.tickCounter,
     required this.animationTimeSeconds,
@@ -67,6 +71,7 @@ class Level1RenderState {
       velocityY: state.velocityY,
       onGround: state.onGround,
       isGameOver: state.isGameOver,
+      isWin: state.isWin,
       facingRight: state.facingRight,
       tickCounter: state.tickCounter,
       animationTimeSeconds: state.animationTimeSeconds,
@@ -89,6 +94,7 @@ class Level1RenderState {
   final double velocityY;
   final bool onGround;
   final bool isGameOver;
+  final bool isWin;
   final bool facingRight;
   final int tickCounter;
   final double animationTimeSeconds;

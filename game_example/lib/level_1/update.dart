@@ -22,7 +22,7 @@ extension _Level1Update on _Level1State {
       return;
     }
 
-    if (!state.isGameOver) {
+    if (!state.isGameOver && !state.isWin) {
       _updatePhysics(state, dt);
       _camera
         ..x = state.playerX + _cameraFollowOffsetX
@@ -91,6 +91,9 @@ extension _Level1Update on _Level1State {
       state.onGround = false;
     }
     _collectTouchedGems(state);
+    if (state.isWin) {
+      return;
+    }
     _handleDragonInteractions(state);
 
     if (!state.isGameOver && _isTouchingDeathZone(state)) {
@@ -175,6 +178,17 @@ extension _Level1Update on _Level1State {
 
   void _triggerGameOver(Level1UpdateState state) {
     state.isGameOver = true;
+    state.velocityX = 0;
+    state.velocityY = 0;
+    state.onGround = false;
+    state.isInJumpArc = false;
+    _jumpQueued = false;
+    _pressedKeys.clear();
+    _ticker?.stop();
+  }
+
+  void _triggerWin(Level1UpdateState state) {
+    state.isWin = true;
     state.velocityX = 0;
     state.velocityY = 0;
     state.onGround = false;
@@ -436,6 +450,9 @@ extension _Level1Update on _Level1State {
     }
     state.collectedGemSpriteIndices.addAll(newlyCollected);
     state.gemsCount += newlyCollected.length;
+    if (state.totalGems > 0 && state.gemsCount >= state.totalGems) {
+      _triggerWin(state);
+    }
   }
 
   List<int> _gemSpriteIndices() {
