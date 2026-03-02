@@ -20,6 +20,32 @@
           "tileMapFile": "tilemaps/level_000_layer_000.json"
         },
         {
+          "name": "Pont Amagat",
+          "gameplayData": "",
+          "x": 656,
+          "y": 384,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": false,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_001.json"
+        },
+        {
+          "name": "Illa llac",
+          "gameplayData": "",
+          "x": 624,
+          "y": 352,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_002.json"
+        },
+        {
           "name": "Terreny",
           "gameplayData": "",
           "x": 0,
@@ -30,7 +56,7 @@
           "tilesHeight": 16,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_000_layer_001.json"
+          "tileMapFile": "tilemaps/level_000_layer_003.json"
         }
       ],
       "layerGroups": [
@@ -69,7 +95,7 @@
       "viewportHeight": 180,
       "viewportX": 280,
       "viewportY": 175,
-      "viewportAdaptation": "expand",
+      "viewportAdaptation": "letterbox",
       "viewportInitialColor": "yellow",
       "viewportPreviewColor": "pink",
       "backgroundColorHex": "#000000",
@@ -164,7 +190,11 @@
   "zoneTypes": [
     {
       "name": "Aigua",
-      "color": "blue"
+      "color": "yellow"
+    },
+    {
+      "name": "Aigua temporal",
+      "color": "amber"
     },
     {
       "name": "Mur",

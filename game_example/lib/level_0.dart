@@ -22,6 +22,8 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     'Aigua',
   };
   static const String _decoracionsLayerName = 'Decoracions';
+  static const String _pontAmagatLayerName = 'Pont Amagat';
+  static const String _futurPontGameplayData = 'Futur Pont';
 
   final FocusNode _focusNode = FocusNode();
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
@@ -34,6 +36,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _level;
   int? _heroSpriteIndex;
   int? _decoracionsLayerIndex;
+  int? _pontAmagatLayerIndex;
   Level0UpdateState? _updateState;
 
   @override
@@ -61,6 +64,8 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     _heroSpriteIndex = _resolveHeroSpriteIndex(_level);
     _decoracionsLayerIndex =
         _resolveLayerIndexByName(_level, _decoracionsLayerName);
+    _pontAmagatLayerIndex =
+        _resolveLayerIndexByName(_level, _pontAmagatLayerName);
 
     final double levelViewportWidth = _level == null
         ? GamesToolApi.defaultViewportWidth
@@ -213,6 +218,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
     state.isMoving = state.playerX != previousX || state.playerY != previousY;
     _clearDecorationTileIfOnArbre(state);
+    _revealPontAmagatLayerIfEnteringFuturPontZone(state);
     state.isOnPont = _isInsidePontZone(state);
     state.animationTimeSeconds += dt;
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
@@ -325,6 +331,85 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     state.arbresRemovedCount += 1;
   }
 
+  bool _isInsideZoneWithGameplayData(
+    Level0UpdateState state,
+    String gameplayDataValue,
+  ) {
+    final int? spriteIndex = _heroSpriteIndex;
+    if (spriteIndex == null) {
+      return false;
+    }
+    final List<ZoneContact> zoneContacts = _runtimeApi.collideSpriteWithZones(
+      levelIndex: widget.levelIndex,
+      spriteIndex: spriteIndex,
+      spritePose: RuntimeSpritePose(
+        levelIndex: widget.levelIndex,
+        spriteIndex: spriteIndex,
+        x: state.playerX,
+        y: state.playerY,
+        elapsedSeconds: state.animationTimeSeconds,
+      ),
+      elapsedSeconds: state.animationTimeSeconds,
+    );
+    final Set<int> checkedZoneIndices = <int>{};
+    final String targetGameplayData = gameplayDataValue.trim();
+    for (final ZoneContact contact in zoneContacts) {
+      if (!checkedZoneIndices.add(contact.zoneIndex)) {
+        continue;
+      }
+      final String zoneGameplayData = (_runtimeApi.gameDataGetAs<String>(
+                <Object>[
+                  'levels',
+                  widget.levelIndex,
+                  'zones',
+                  contact.zoneIndex,
+                  'gameplayData',
+                ],
+              ) ??
+              '')
+          .trim();
+      if (zoneGameplayData == targetGameplayData) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _revealLayerIfHidden(int layerIndex) {
+    final bool isVisible = _runtimeApi.gameDataGetAs<bool>(
+          <Object>[
+            'levels',
+            widget.levelIndex,
+            'layers',
+            layerIndex,
+            'visible'
+          ],
+        ) ??
+        false;
+    if (isVisible) {
+      return;
+    }
+    _runtimeApi.gameDataSet(
+      <Object>['levels', widget.levelIndex, 'layers', layerIndex, 'visible'],
+      true,
+    );
+  }
+
+  void _revealPontAmagatLayerIfEnteringFuturPontZone(Level0UpdateState state) {
+    final int? layerIndex = _pontAmagatLayerIndex;
+    if (layerIndex == null) {
+      return;
+    }
+    final bool isInsideFuturPontZone =
+        _isInsideZoneWithGameplayData(state, _futurPontGameplayData);
+    final bool enteredFuturPontZone =
+        isInsideFuturPontZone && !state.wasInsideFuturPontGameplayZone;
+    if (enteredFuturPontZone) {
+      _revealLayerIfHidden(layerIndex);
+    }
+    state.wasInsideFuturPontGameplayZone = isInsideFuturPontZone;
+  }
+
   int? _resolveHeroSpriteIndex(Map<String, dynamic>? level) {
     if (level == null) {
       return null;
@@ -425,6 +510,7 @@ class Level0UpdateState {
   String direction = 'down';
   bool isMoving = false;
   bool isOnPont = false;
+  bool wasInsideFuturPontGameplayZone = false;
   int arbresRemovedCount = 0;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
