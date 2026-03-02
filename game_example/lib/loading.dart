@@ -7,6 +7,10 @@ import 'app_data.dart';
 import 'level_0.dart';
 import 'level_1.dart';
 
+part 'loading/initialize.dart';
+part 'loading/interaction.dart';
+part 'loading/layout.dart';
+
 class Loading extends StatefulWidget {
   const Loading({super.key, required this.levelIndex});
 
@@ -25,56 +29,21 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      context.read<AppData>().ensureLoadedForLevel(widget.levelIndex);
-    });
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: _minimumLoadingTime,
-    )..addListener(() {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-
-    _controller.forward();
+    _scheduleInitialLoad();
+    _startProgressAnimation();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _disposeProgressAnimation();
     super.dispose();
   }
 
-  void _maybeNavigate(AppData appData) {
-    if (_didNavigate) {
+  void _refreshLoading() {
+    if (!mounted) {
       return;
     }
-    if (!_controller.isCompleted || !appData.isReadyForLevel(widget.levelIndex)) {
-      return;
-    }
-
-    _didNavigate = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).pushReplacement(
-        CupertinoPageRoute<void>(
-          builder: (_) {
-            if (widget.levelIndex == 1) {
-              return const Level1(levelIndex: 1);
-            }
-            return const Level0(levelIndex: 0);
-          },
-        ),
-      );
-    });
+    setState(() {});
   }
 
   @override
@@ -83,25 +52,10 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     _maybeNavigate(appData);
 
     final bool levelReady = appData.isReadyForLevel(widget.levelIndex);
-    final double rawProgress = _controller.value;
-    final double dataProgress =
-        levelReady ? 1 : appData.loadingProgress.clamp(0.0, 0.95);
-    final double progress = levelReady
-        ? rawProgress
-        : math.min(0.95, math.max(rawProgress * 0.35, dataProgress));
-
-    final String label;
-    if (appData.loadingError != null) {
-      label = 'Asset loading failed';
-    } else if (!_controller.isCompleted) {
-      label = 'Preparing level ${widget.levelIndex}...';
-    } else if (appData.isLoadingData) {
-      label = 'Loading assets...';
-    } else if (!levelReady) {
-      label = 'Waiting for assets...';
-    } else {
-      label = 'Launching level ${widget.levelIndex}...';
-    }
+    final double progress =
+        _buildProgress(appData: appData, levelReady: levelReady);
+    final String label =
+        _buildLoadingLabel(appData: appData, levelReady: levelReady);
 
     return CupertinoPageScaffold(
       child: SafeArea(

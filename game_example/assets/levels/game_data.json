@@ -162,15 +162,6 @@
       "groupId": "__main__"
     },
     {
-      "name": "Heroi Salt",
-      "fileName": "media/16x16 Jump-Sheet.png",
-      "mediaType": "spritesheet",
-      "tileWidth": 20,
-      "tileHeight": 20,
-      "selectionColorHex": "#FFCC00",
-      "groupId": "__main__"
-    },
-    {
       "name": "Heroi Camina",
       "fileName": "media/16x16 Walk-Sheet.png",
       "mediaType": "spritesheet",
