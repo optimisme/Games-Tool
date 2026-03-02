@@ -114,6 +114,7 @@ Most-used methods when integrating gameplay:
   collisions.
 - `GameDataRuntimeApi.spriteCollisionRects(...)`: resolve world collision rects
   for a sprite (hitboxes + anchored fallback).
+- `GameDataRuntimeApi.spriteFocusPoint(...)`: stable anchor-aware camera focus target for sprites.
 - `GameDataRuntimeApi.fpsFromDeltaTime(...)`: convert frame delta (`dt`) to FPS.
 - `GameDataRuntimeApi.updateSmoothedFps(...)`: update a stable FPS counter for HUD/debug.
 - `GamesToolApi.findLayerIndexByName(...)`: layer lookup by name in a level.

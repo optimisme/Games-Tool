@@ -98,7 +98,7 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 - `updateSmoothedFps(previousFps, dtSeconds, smoothing?)`
 - `worldToScreen(worldX, worldY, camera, viewportSize, depth?, depthSensitivity?)`
 - `screenToWorld(screenX, screenY, camera, viewportSize, depth?, depthSensitivity?)`
-- `spriteFocusPoint(levelIndex, spriteIndex, pose?, frameIndex?, elapsedSeconds?, normalizedX?, normalizedY?, fallbackX?, fallbackY?)`
+- `spriteFocusPoint(levelIndex, spriteIndex, pose?, frameIndex?, elapsedSeconds?, normalizedX?, normalizedY?, useFrameRigAnchor?, fallbackX?, fallbackY?)`
 - `worldViewportRect(camera, viewportSize, depth?, depthSensitivity?, paddingWorld?)`
 - `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY, depthDisplacement?)`
 - `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize, depthDisplacement?, depthSensitivity?)`
@@ -111,6 +111,8 @@ Notes:
 - You must provide exactly one of `layerIndex` or `layerName`.
 - `screenToTile` honors camera scale and layer depth projection.
 - `spriteFocusPoint(...)` is anchor-aware and is recommended for camera follow targets.
+  - Default mode uses animation-level anchors for stable camera focus.
+  - Set `useFrameRigAnchor: true` only when you intentionally want per-frame rig anchor behavior.
 - `fpsFromDeltaTime(...)` and `updateSmoothedFps(...)` provide reusable FPS counter math for runtime HUD/debug overlays.
   - Recommended input is real frame delta (`frameDt`) from your game loop frame callback.
   - Do not feed fixed simulation step values if you want real renderer FPS.

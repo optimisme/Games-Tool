@@ -148,6 +148,7 @@ extension _Level0Update on _Level0State {
         y: state.playerY,
         elapsedSeconds: state.animationTimeSeconds,
       ),
+      useFrameRigAnchor: false,
       elapsedSeconds: state.animationTimeSeconds,
     );
   }
