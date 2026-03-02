@@ -33,6 +33,7 @@ Rect _resolveLevel0HudRectInVirtualViewport({
   return Rect.fromLTWH(left, top, baseWidth, baseHeight);
 }
 
+/// HUD helpers that map virtual viewport coordinates back to screen space.
 extension _Level0Hud on _Level0State {
   TextStyle get _hudTextStyle => const TextStyle(
         color: Color(0xFFE0F2FF),

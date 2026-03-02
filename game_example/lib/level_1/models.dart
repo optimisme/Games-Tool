@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Mutable simulation state advanced by update.dart every frame.
 class Level1UpdateState {
   Level1UpdateState({
     required this.playerX,
@@ -40,6 +41,7 @@ class Level1UpdateState {
   final double maxFallSpeedPerSecond = 840;
   final Set<int> touchingDragonSpriteIndices = <int>{};
 
+  // Input is ignored during end states until this cooldown has elapsed.
   bool get canExitEndState =>
       endStateElapsedSeconds >= _level1EndStateInputDelaySeconds;
 }
@@ -67,6 +69,7 @@ class Level1RenderState {
   });
 
   factory Level1RenderState.from(Level1UpdateState state) {
+    // Snapshot mutable update state into an immutable render payload.
     return Level1RenderState(
       playerX: state.playerX,
       playerY: state.playerY,

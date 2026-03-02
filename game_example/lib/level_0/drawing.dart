@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Renderer for level 0 world, player animation, and HUD overlays.
 class Level0Painter extends CustomPainter {
   const Level0Painter({
     required this.appData,
@@ -56,6 +57,7 @@ class Level0Painter extends CustomPainter {
         final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
           x: runtimeCamera.x,
           y: runtimeCamera.y,
+          // Rendering works in virtual viewport space, so focal follows viewport width.
           focal: viewportSize.width,
         );
         GamesToolRuntimeRenderer.drawLevelTileLayers(
@@ -265,6 +267,7 @@ class Level0Painter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant Level0Painter oldDelegate) {
+    // Tick counter is the repaint clock; level identity change also invalidates frame.
     return oldDelegate.renderState?.tickCounter != renderState?.tickCounter ||
         oldDelegate.level != level;
   }

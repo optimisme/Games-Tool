@@ -1,5 +1,6 @@
 part of 'main.dart';
 
+/// Per-frame simulation for movement, collisions, and world state mutations.
 extension _Level0Update on _Level0State {
   void _startLoop() {
     _ticker?.dispose();
@@ -12,6 +13,7 @@ extension _Level0Update on _Level0State {
           ? 1 / 60
           : (elapsed - previous).inMicroseconds / 1000000;
 
+      // Clamp frame delta to keep physics stable after stalls/backgrounding.
       _tick(dt.clamp(0.0, 0.05));
     });
     _ticker?.start();
@@ -58,6 +60,7 @@ extension _Level0Update on _Level0State {
     }
 
     if (inputX != 0 && inputY != 0) {
+      // Keep diagonal speed consistent with axis-aligned movement.
       const double diagonalNormalization = 0.70710678118;
       inputX *= diagonalNormalization;
       inputY *= diagonalNormalization;
@@ -248,6 +251,7 @@ extension _Level0Update on _Level0State {
     final Set<int> checkedZoneIndices = <int>{};
     final String targetGameplayData = gameplayDataValue.trim();
     for (final ZoneContact contact in zoneContacts) {
+      // A sprite can intersect multiple hitboxes in one zone; evaluate each zone once.
       if (!checkedZoneIndices.add(contact.zoneIndex)) {
         continue;
       }

@@ -8,13 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../app_data.dart';
-import '../camera.dart';
+import '../shared/camera.dart';
 import '../menu/main.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
 part 'drawing.dart';
 part 'hud.dart';
-part 'initialize.dart';
+part 'lifecycle.dart';
 part 'interaction.dart';
 part 'models.dart';
 part 'update.dart';
@@ -27,6 +27,7 @@ const String _level0DecoracionsLayerName = 'Decoracions';
 const String _level0PontAmagatLayerName = 'Pont Amagat';
 const String _level0FuturPontGameplayData = 'Futur Pont';
 
+/// Top-down exploration level with tile interaction and zone-driven triggers.
 class Level0 extends StatefulWidget {
   const Level0({super.key, required this.levelIndex});
 
@@ -58,6 +59,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // Invariant: initialize once, and only after shared assets are ready.
     if (_initialized) {
       return;
     }
