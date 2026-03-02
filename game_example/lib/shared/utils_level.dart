@@ -97,6 +97,14 @@ T selectByLevelIndex<T>({
   return level0;
 }
 
+void snapshotPreviousPosition2D({
+  required double currentX,
+  required double currentY,
+  required void Function(double previousX, double previousY) setPrevious,
+}) {
+  setPrevious(currentX, currentY);
+}
+
 Ticker restartGameLoopTicker({
   required TickerProvider tickerProvider,
   required Ticker? ticker,

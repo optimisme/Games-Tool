@@ -15,6 +15,8 @@ class GameDataRuntimeApi {
   int _currentFrameId = 0;
   final Map<String, _CollisionFrameState> _previousStateBySpriteKey =
       <String, _CollisionFrameState>{};
+  final Map<String, RuntimeTrackedTransform2D> _transform2DById =
+      <String, RuntimeTrackedTransform2D>{};
 
   GamesToolApi get gamesTool => _gamesTool;
   Map<String, dynamic> get gameData => _gameData;
@@ -1236,9 +1238,90 @@ class GameDataRuntimeApi {
     _currentFrameId = frameId ?? (_currentFrameId + 1);
   }
 
+  /// Advances interpolation history for all tracked transforms.
+  ///
+  /// Call once at the beginning of each fixed simulation tick before mutating
+  /// positions, similar to Unity Rigidbody interpolation behavior.
+  void beginTick() {
+    if (_transform2DById.isEmpty) {
+      return;
+    }
+    _transform2DById.updateAll((String _, RuntimeTrackedTransform2D value) {
+      return value.copyWith(
+        previousX: value.currentX,
+        previousY: value.currentY,
+      );
+    });
+  }
+
+  bool hasTransform2D(String id) => _transform2DById.containsKey(id);
+
+  RuntimeTrackedTransform2D? transform2D(String id) {
+    return _transform2DById[id];
+  }
+
+  /// Registers or updates current transform. New ids are initialized snapped.
+  void setTransform2D({
+    required String id,
+    required double x,
+    required double y,
+  }) {
+    final RuntimeTrackedTransform2D? existing = _transform2DById[id];
+    if (existing == null) {
+      _transform2DById[id] = RuntimeTrackedTransform2D(
+        previousX: x,
+        previousY: y,
+        currentX: x,
+        currentY: y,
+      );
+      return;
+    }
+    _transform2DById[id] = existing.copyWith(
+      currentX: x,
+      currentY: y,
+    );
+  }
+
+  /// Sets previous and current to the same value to avoid interpolation smear.
+  void snapTransform2D({
+    required String id,
+    required double x,
+    required double y,
+  }) {
+    _transform2DById[id] = RuntimeTrackedTransform2D(
+      previousX: x,
+      previousY: y,
+      currentX: x,
+      currentY: y,
+    );
+  }
+
+  void removeTransform2D(String id) {
+    _transform2DById.remove(id);
+  }
+
+  void clearTransform2D() {
+    _transform2DById.clear();
+  }
+
+  /// Returns an interpolated transform sample for rendering.
+  Offset sampleTransform2D(
+    String id, {
+    double alpha = 1.0,
+    double fallbackX = 0,
+    double fallbackY = 0,
+  }) {
+    final RuntimeTrackedTransform2D? tracked = _transform2DById[id];
+    if (tracked == null) {
+      return Offset(fallbackX, fallbackY);
+    }
+    return tracked.sample(alpha: alpha);
+  }
+
   void resetFrameState() {
     _currentFrameId = 0;
     _previousStateBySpriteKey.clear();
+    _transform2DById.clear();
   }
 
   /// Builds per-frame entered/exited/staying collision sets for one sprite.

@@ -45,10 +45,15 @@ extension _Level1Initialize on _Level1State {
     // Camera follow now uses sprite visual-center focus point from runtime API.
     _cameraFollowOffsetX = 0;
     _cameraFollowOffsetY = 0;
+    final Offset initialPlatformPosition = _level1MovingPlatformPath.first;
 
     _updateState = Level1UpdateState(
       playerX: bootstrap.spawnX,
       playerY: bootstrap.spawnY,
+      cameraX: bootstrap.viewportCenterX,
+      cameraY: bootstrap.viewportCenterY,
+      platformX: initialPlatformPosition.dx,
+      platformY: initialPlatformPosition.dy,
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 22,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 30,
       gemsCount: 0,
@@ -59,7 +64,25 @@ extension _Level1Initialize on _Level1State {
       camera: _camera,
       bootstrap: bootstrap,
     );
+    _updateState!
+      ..cameraX = _camera.x
+      ..cameraY = _camera.y;
 
-    _applyMovingPlatformPose(_level1MovingPlatformPath.first);
+    _applyMovingPlatformPose(initialPlatformPosition);
+    _runtimeApi.snapTransform2D(
+      id: _level1PlayerTransformId,
+      x: _updateState!.playerX,
+      y: _updateState!.playerY,
+    );
+    _runtimeApi.snapTransform2D(
+      id: _level1CameraTransformId,
+      x: _updateState!.cameraX,
+      y: _updateState!.cameraY,
+    );
+    _runtimeApi.snapTransform2D(
+      id: _level1MovingPlatformTransformId,
+      x: _updateState!.platformX,
+      y: _updateState!.platformY,
+    );
   }
 }

@@ -12,6 +12,42 @@ class RuntimeCamera2D {
   final double focal;
 }
 
+class RuntimeTrackedTransform2D {
+  const RuntimeTrackedTransform2D({
+    required this.previousX,
+    required this.previousY,
+    required this.currentX,
+    required this.currentY,
+  });
+
+  final double previousX;
+  final double previousY;
+  final double currentX;
+  final double currentY;
+
+  RuntimeTrackedTransform2D copyWith({
+    double? previousX,
+    double? previousY,
+    double? currentX,
+    double? currentY,
+  }) {
+    return RuntimeTrackedTransform2D(
+      previousX: previousX ?? this.previousX,
+      previousY: previousY ?? this.previousY,
+      currentX: currentX ?? this.currentX,
+      currentY: currentY ?? this.currentY,
+    );
+  }
+
+  Offset sample({double alpha = 1.0}) {
+    final double t = alpha.clamp(0.0, 1.0).toDouble();
+    return Offset(
+      previousX + (currentX - previousX) * t,
+      previousY + (currentY - previousY) * t,
+    );
+  }
+}
+
 class RuntimeLevelViewport {
   const RuntimeLevelViewport({
     required this.width,

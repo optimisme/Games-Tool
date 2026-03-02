@@ -29,6 +29,8 @@ const String _level0FuturPontGameplayData = 'Futur Pont';
 const String _level0BackIconAssetPath = 'other/enrrere.png';
 const String _level0BackLabel = 'Tornar';
 const String _level0ArbreZoneName = 'Arbre';
+const String _level0PlayerTransformId = 'level0/player';
+const String _level0CameraTransformId = 'level0/camera';
 const double _level0EndStateInputDelaySeconds = 1.0;
 const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
   hudX: 20 * kHudSpacingScaleX,
@@ -223,7 +225,11 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                     backIconImage: _backIconImage,
                     renderState: state == null
                         ? null
-                        : Level0RenderState.from(state, alpha: _renderAlpha),
+                        : Level0RenderState.from(
+                            state,
+                            runtimeApi: _runtimeApi,
+                            alpha: _renderAlpha,
+                          ),
                   ),
                   child: const SizedBox.expand(),
                 ),

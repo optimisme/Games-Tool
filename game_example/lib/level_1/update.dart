@@ -32,18 +32,23 @@ extension _Level1Update on _Level1State {
     if (!mounted || state == null) {
       return;
     }
+    _runtimeApi.beginTick();
 
     if (!state.isGameOver && !state.isWin) {
-      // Snapshot both player and camera before advancing so the painter can
-      // lerp them together — mismatched interpolation causes tile vibration.
-      state.previousPlayerX = state.playerX;
-      state.previousPlayerY = state.playerY;
-      state.previousCameraX = state.cameraX;
-      state.previousCameraY = state.cameraY;
       _updatePhysics(state, dt);
       final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
       state.cameraX = cameraFocus.dx + _cameraFollowOffsetX;
       state.cameraY = cameraFocus.dy + _cameraFollowOffsetY;
+      _runtimeApi.setTransform2D(
+        id: _level1PlayerTransformId,
+        x: state.playerX,
+        y: state.playerY,
+      );
+      _runtimeApi.setTransform2D(
+        id: _level1CameraTransformId,
+        x: state.cameraX,
+        y: state.cameraY,
+      );
       // Camera follows player with level-configured offsets.
       _camera
         ..x = state.cameraX
@@ -166,6 +171,13 @@ extension _Level1Update on _Level1State {
     state.platformMotionTimeSeconds += dt;
     final Offset platformPosition = _movingPlatformPositionAtTime(
       state.platformMotionTimeSeconds,
+    );
+    state.platformX = platformPosition.dx;
+    state.platformY = platformPosition.dy;
+    _runtimeApi.setTransform2D(
+      id: _level1MovingPlatformTransformId,
+      x: state.platformX,
+      y: state.platformY,
     );
     _applyMovingPlatformPose(platformPosition);
     return platformPosition - previousPosition;

@@ -319,8 +319,10 @@ class Level0Painter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant Level0Painter oldDelegate) {
-    // Tick counter is the repaint clock; level identity change also invalidates frame.
-    return oldDelegate.renderState?.tickCounter != renderState?.tickCounter ||
+    return oldDelegate.renderState?.playerX != renderState?.playerX ||
+        oldDelegate.renderState?.playerY != renderState?.playerY ||
+        oldDelegate.renderState?.cameraX != renderState?.cameraX ||
+        oldDelegate.renderState?.cameraY != renderState?.cameraY ||
         oldDelegate.renderState?.arbresRemovedCount !=
             renderState?.arbresRemovedCount ||
         oldDelegate.renderState?.isWin != renderState?.isWin ||

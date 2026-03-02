@@ -32,18 +32,23 @@ extension _Level0Update on _Level0State {
     if (!mounted || state == null) {
       return;
     }
+    _runtimeApi.beginTick();
 
     if (!state.isWin) {
-      // Snapshot both player and camera before advancing so the painter can
-      // lerp them together — mismatched interpolation causes tile vibration.
-      state.previousPlayerX = state.playerX;
-      state.previousPlayerY = state.playerY;
-      state.previousCameraX = state.cameraX;
-      state.previousCameraY = state.cameraY;
       _updateMovement(state, dt);
       final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
       state.cameraX = cameraFocus.dx;
       state.cameraY = cameraFocus.dy;
+      _runtimeApi.setTransform2D(
+        id: _level0PlayerTransformId,
+        x: state.playerX,
+        y: state.playerY,
+      );
+      _runtimeApi.setTransform2D(
+        id: _level0CameraTransformId,
+        x: state.cameraX,
+        y: state.cameraY,
+      );
       _camera
         ..x = state.cameraX
         ..y = state.cameraY;

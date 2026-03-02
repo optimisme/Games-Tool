@@ -265,6 +265,7 @@ class GamesToolRuntimeRenderer {
     double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
     bool drawBackground = true,
     double? onlyDepth,
+    ui.Offset? Function(Map<String, dynamic> layer)? resolveLayerWorldOffset,
   }) {
     if (drawBackground) {
       _backgroundPaint.color = backgroundColor;
@@ -316,8 +317,9 @@ class GamesToolRuntimeRenderer {
         continue;
       }
 
-      final double layerX = gamesTool.layerX(layer);
-      final double layerY = gamesTool.layerY(layer);
+      final ui.Offset? layerOffset = resolveLayerWorldOffset?.call(layer);
+      final double layerX = layerOffset?.dx ?? gamesTool.layerX(layer);
+      final double layerY = layerOffset?.dy ?? gamesTool.layerY(layer);
       final ui.Rect? viewportWorldRect = RuntimeCameraMath.worldViewportRect(
         camera: camera,
         viewportSize: painterSize,
