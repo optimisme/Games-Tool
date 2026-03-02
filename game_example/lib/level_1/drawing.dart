@@ -41,6 +41,9 @@ class Level1Painter extends CustomPainter {
       level: level,
       fallback: const Color(0xFF0A0D1A),
     );
+    final Rect screenHudRect = resolveScreenHudRect(
+      canvasSize: size,
+    );
 
     GamesToolRuntimeRenderer.withViewport(
       canvas: canvas,
@@ -48,10 +51,6 @@ class Level1Painter extends CustomPainter {
       viewport: viewport,
       outerBackgroundColor: levelBackground,
       drawInViewport: (Size viewportSize) {
-        final Rect hudRect = resolveHudRectInVirtualViewport(
-          viewport: viewport,
-          virtualViewportSize: viewportSize,
-        );
         final RuntimeCamera2D effectiveCamera = RuntimeCamera2D(
           x: runtimeCamera.x,
           y: runtimeCamera.y,
@@ -113,59 +112,67 @@ class Level1Painter extends CustomPainter {
             state: renderState!,
           );
         }
-
-        drawBackToMenuHud(
-          canvas: canvas,
-          hudRect: hudRect,
-          iconImage: backIconImage,
-          label: _level1BackLabel,
-          layout: _level1BackHudLayout,
-        );
-        drawHudText(
-          canvas,
-          'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
-          Offset(hudRect.left + 20, hudRect.bottom - 10),
-          maxWidth: 900,
-        );
-        drawTopRightHudText(
-          canvas: canvas,
-          hudRect: hudRect,
-          text: 'Gems: ${renderState!.gemsCount}',
-          top: 5,
-        );
-        drawTopRightHudText(
-          canvas: canvas,
-          hudRect: hudRect,
-          text: 'Life: ${renderState!.lifePercent}%',
-          top: 13,
-        );
-        _drawTopRightProgressBar(
-          canvas,
-          hudRect,
-          top: 22,
-          progress: renderState!.lifePercent / 100.0,
-        );
-        drawTopRightHudText(
-          canvas: canvas,
-          hudRect: hudRect,
-          text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
-          top: 31,
-        );
-        if (renderState!.isGameOver) {
-          _drawGameOverOverlay(
-            canvas,
-            viewportSize,
-            showPressAnyKey: renderState!.canExitEndState,
-          );
-        } else if (renderState!.isWin) {
-          _drawYouWinOverlay(
-            canvas,
-            viewportSize,
-            showPressAnyKey: renderState!.canExitEndState,
-          );
-        }
       },
     );
+    drawBackToMenuHud(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      iconImage: backIconImage,
+      label: _level1BackLabel,
+      layout: _level1BackHudLayout,
+    );
+    drawHudText(
+      canvas,
+      'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
+      Offset(
+        screenHudRect.left + hudSpacingX(20),
+        screenHudRect.bottom - hudSpacingY(14),
+      ),
+      maxWidth: screenHudRect.width - hudSpacingX(40),
+    );
+    drawTopRightHudText(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      text: 'Gems: ${renderState!.gemsCount}',
+      top: hudSpacingY(5),
+    );
+    final double hudRowTop = hudSpacingY(31);
+    final String lifeText = 'Life: ${renderState!.lifePercent}%';
+    final TextPainter lifePainter = buildTextPainter(lifeText, kHudTextStyle);
+    final double lifeLeft = screenHudRect.left + _level1BackHudLayout.hudX;
+    final double lifeTop = screenHudRect.top + hudRowTop;
+    final double lifeBarLeft = lifeLeft + lifePainter.width + hudSpacingX(10);
+    final double lifeBarTop = lifeTop + (lifePainter.height - hudUnits(6)) / 2;
+    drawHudText(
+      canvas,
+      lifeText,
+      Offset(lifeLeft, lifeTop),
+    );
+    _drawHudProgressBarAt(
+      canvas,
+      left: lifeBarLeft,
+      top: lifeBarTop,
+      progress: renderState!.lifePercent / 100.0,
+    );
+    drawTopRightHudText(
+      canvas: canvas,
+      hudRect: screenHudRect,
+      text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
+      top: hudRowTop,
+    );
+    if (renderState!.isGameOver) {
+      _drawGameOverOverlay(
+        canvas,
+        size,
+        showPressAnyKey: renderState!.canExitEndState,
+      );
+    } else if (renderState!.isWin) {
+      _drawYouWinOverlay(
+        canvas,
+        size,
+        showPressAnyKey: renderState!.canExitEndState,
+      );
+    }
   }
 
   void _drawSpritesAtDepth({
@@ -277,21 +284,19 @@ class Level1Painter extends CustomPainter {
     return _level1AnimFoxyIdle;
   }
 
-  void _drawTopRightProgressBar(
-    Canvas canvas,
-    Rect hudRect, {
+  void _drawHudProgressBarAt(
+    Canvas canvas, {
+    required double left,
     required double top,
     required double progress,
   }) {
-    const double barWidth = 62;
-    const double barHeight = 6;
+    final double barWidth = hudUnits(62);
+    final double barHeight = hudUnits(6);
     final double clampedProgress = progress.clamp(0.0, 1.0);
-    final double left = hudRect.right - barWidth - 20;
-    final double y = hudRect.top + top;
-    final Rect barRect = Rect.fromLTWH(left, y, barWidth, barHeight);
+    final Rect barRect = Rect.fromLTWH(left, top, barWidth, barHeight);
     final Rect fillRect = Rect.fromLTWH(
       left,
-      y,
+      top,
       barWidth * clampedProgress,
       barHeight,
     );
@@ -310,7 +315,7 @@ class Level1Painter extends CustomPainter {
       barRect,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
+        ..strokeWidth = hudUnits(1)
         ..color = const Color(0xFFB9D8E8),
     );
   }
