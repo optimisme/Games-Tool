@@ -210,7 +210,11 @@ extension _Level0Update on _Level0State {
       tileX: tile.x,
       tileY: tile.y,
     );
-    if (tileId < 0) {
+    final String tileKey = _level0TileKey(tile.x, tile.y);
+    if (!state.collectibleArbreTileKeys.contains(tileKey) || tileId < 0) {
+      return;
+    }
+    if (state.collectedArbreTileKeys.contains(tileKey)) {
       return;
     }
 
@@ -226,7 +230,8 @@ extension _Level0Update on _Level0State {
       ],
       -1,
     );
-    state.arbresRemovedCount += 1;
+    state.collectedArbreTileKeys.add(tileKey);
+    state.arbresRemovedCount = state.collectedArbreTileKeys.length;
   }
 
   void _updateWinState(Level0UpdateState state) {

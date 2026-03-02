@@ -38,24 +38,88 @@ const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
   iconGap: 3,
 );
 
-int _countLevel0ArbreZones(Map<String, dynamic>? level) {
-  if (level == null) {
-    return 0;
+String _level0TileKey(int x, int y) => '$x:$y';
+
+Set<String> _collectLevel0ArbreTileKeys({
+  required GamesToolApi gamesTool,
+  required Map<String, dynamic>? level,
+  required int? decoracionsLayerIndex,
+}) {
+  if (level == null || decoracionsLayerIndex == null) {
+    return <String>{};
   }
+
+  final List<Map<String, dynamic>> layers =
+      ((level['layers'] as List<dynamic>?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+  if (decoracionsLayerIndex < 0 || decoracionsLayerIndex >= layers.length) {
+    return <String>{};
+  }
+  final Map<String, dynamic> decoracionsLayer = layers[decoracionsLayerIndex];
+  final List<List<dynamic>> tileRows = gamesTool.layerTileMapRows(
+    decoracionsLayer,
+  );
+  if (tileRows.isEmpty) {
+    return <String>{};
+  }
+
+  final double tileWidth = gamesTool.layerTilesWidth(decoracionsLayer);
+  final double tileHeight = gamesTool.layerTilesHeight(decoracionsLayer);
+  if (tileWidth <= 0 || tileHeight <= 0) {
+    return <String>{};
+  }
+  final double layerX = gamesTool.layerX(decoracionsLayer);
+  final double layerY = gamesTool.layerY(decoracionsLayer);
+
   final List<Map<String, dynamic>> zones =
       ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
-  final String target = _level0ArbreZoneName.toLowerCase();
-  int count = 0;
+  final String arbreTarget = _level0ArbreZoneName.toLowerCase();
+  final List<Rect> arbreZoneRects = <Rect>[];
   for (final Map<String, dynamic> zone in zones) {
     final String zoneType = ((zone['type'] as String?) ?? '').trim();
     final String zoneName = ((zone['name'] as String?) ?? '').trim();
-    if (zoneType.toLowerCase() == target || zoneName.toLowerCase() == target) {
-      count += 1;
+    if (zoneType.toLowerCase() != arbreTarget &&
+        zoneName.toLowerCase() != arbreTarget) {
+      continue;
+    }
+    final double zoneX = (zone['x'] as num?)?.toDouble() ?? 0;
+    final double zoneY = (zone['y'] as num?)?.toDouble() ?? 0;
+    final double zoneWidth = (zone['width'] as num?)?.toDouble() ?? 0;
+    final double zoneHeight = (zone['height'] as num?)?.toDouble() ?? 0;
+    if (zoneWidth <= 0 || zoneHeight <= 0) {
+      continue;
+    }
+    arbreZoneRects.add(Rect.fromLTWH(zoneX, zoneY, zoneWidth, zoneHeight));
+  }
+  if (arbreZoneRects.isEmpty) {
+    return <String>{};
+  }
+
+  final Set<String> collectibleKeys = <String>{};
+  for (int tileY = 0; tileY < tileRows.length; tileY++) {
+    final List<dynamic> row = tileRows[tileY];
+    for (int tileX = 0; tileX < row.length; tileX++) {
+      final int tileId = (row[tileX] as num?)?.toInt() ?? -1;
+      if (tileId < 0) {
+        continue;
+      }
+      final Rect tileRect = Rect.fromLTWH(
+        layerX + tileX * tileWidth,
+        layerY + tileY * tileHeight,
+        tileWidth,
+        tileHeight,
+      );
+      final bool insideAnyArbreZone = arbreZoneRects.any(tileRect.overlaps);
+      if (!insideAnyArbreZone) {
+        continue;
+      }
+      collectibleKeys.add(_level0TileKey(tileX, tileY));
     }
   }
-  return count;
+  return collectibleKeys;
 }
 
 /// Top-down exploration level with tile interaction and zone-driven triggers.

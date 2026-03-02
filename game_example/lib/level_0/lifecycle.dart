@@ -48,6 +48,11 @@ extension _Level0Initialize on _Level0State {
       fallbackCenterX: 100,
       fallbackCenterY: 100,
     );
+    final Set<String> collectibleArbreTileKeys = _collectLevel0ArbreTileKeys(
+      gamesTool: appData.gamesTool,
+      level: _level,
+      decoracionsLayerIndex: _decoracionsLayerIndex,
+    );
 
     _updateState = Level0UpdateState(
       playerX: bootstrap.spawnX,
@@ -55,7 +60,8 @@ extension _Level0Initialize on _Level0State {
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 20,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 20,
       speedPerSecond: 95,
-      totalArbres: _countLevel0ArbreZones(_level),
+      totalArbres: collectibleArbreTileKeys.length,
+      collectibleArbreTileKeys: collectibleArbreTileKeys,
     );
 
     // Camera tracks player world coordinates directly in this level.
