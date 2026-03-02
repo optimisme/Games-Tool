@@ -1,8 +1,9 @@
 {
   "name": "Demo game",
+  "description": "Tileset: https://merchant-shade.itch.io/16x16-puny-world\nCharacter: https://erisesra.itch.io/character-templates-pack\nLevel 1: https://ansimuz.itch.io/sunny-land-pixel-game-art",
   "levels": [
     {
-      "name": "L'era Xampinyó",
+      "name": "El prat xampinyó",
       "description": "",
       "gameplayData": "",
       "layers": [
@@ -103,10 +104,63 @@
       "zonesFile": "zones/level_000_zones.json"
     },
     {
-      "name": "El prat Muu Muu",
+      "name": "Sideworld",
       "description": "",
       "gameplayData": "",
-      "layers": [],
+      "layers": [
+        {
+          "name": "Clouds 0",
+          "gameplayData": "",
+          "x": 224,
+          "y": 350,
+          "depth": 4.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_000.json"
+        },
+        {
+          "name": "Clouds 1",
+          "gameplayData": "",
+          "x": 552,
+          "y": 277,
+          "depth": 4.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_001.json"
+        },
+        {
+          "name": "Clouds 2",
+          "gameplayData": "",
+          "x": 1094,
+          "y": 335,
+          "depth": 4.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_002.json"
+        },
+        {
+          "name": "Sky",
+          "gameplayData": "",
+          "x": 0,
+          "y": 0,
+          "depth": 5.0,
+          "tilesSheetFile": "media/decoration-sky.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_003.json"
+        }
+      ],
       "layerGroups": [
         {
           "id": "__main__",
@@ -169,12 +223,89 @@
       "tileHeight": 20,
       "selectionColorHex": "#FFCC00",
       "groupId": "__main__"
+    },
+    {
+      "name": "Foxy",
+      "fileName": "media/FoxySpritesheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 32,
+      "tileHeight": 32,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Dragon",
+      "fileName": "media/gator-sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 46,
+      "tileHeight": 49,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "DragonDeath",
+      "fileName": "media/DragonDeath.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 28,
+      "tileHeight": 26,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Gem",
+      "fileName": "media/gem.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 15,
+      "tileHeight": 14,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Clouds",
+      "fileName": "media/decoration-clouds.png",
+      "mediaType": "tileset",
+      "tileWidth": 459,
+      "tileHeight": 142,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Sky",
+      "fileName": "media/decoration-sky.png",
+      "mediaType": "tileset",
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Trees",
+      "fileName": "media/decoration-trees.png",
+      "mediaType": "tileset",
+      "tileWidth": 144,
+      "tileHeight": 130,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Plaform Tileset",
+      "fileName": "media/plaform-tileset.png",
+      "mediaType": "tileset",
+      "tileWidth": 384,
+      "tileHeight": 176,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
     }
   ],
   "mediaGroups": [
     {
       "id": "__main__",
       "name": "Main",
+      "collapsed": true
+    },
+    {
+      "id": "__group_1772438434842839_0",
+      "name": "Platform",
       "collapsed": false
     }
   ],

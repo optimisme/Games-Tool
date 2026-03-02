@@ -7,6 +7,7 @@ import 'game_zone_type.dart';
 
 class GameData {
   final String name;
+  final String description;
   final List<GameLevel> levels;
   final List<GameListGroup> levelGroups;
   final List<GameMediaAsset> mediaAssets;
@@ -17,6 +18,7 @@ class GameData {
 
   GameData({
     required this.name,
+    this.description = '',
     required this.levels,
     List<GameListGroup>? levelGroups,
     List<GameMediaAsset>? mediaAssets,
@@ -140,6 +142,7 @@ class GameData {
     );
     return GameData(
       name: json['name'] as String,
+      description: (json['description'] as String?)?.trim() ?? '',
       levels: levels,
       levelGroups: levelGroups,
       mediaAssets: mediaAssets,
@@ -301,6 +304,7 @@ class GameData {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'description': description,
       'levels': levels.map((level) => level.toJson()).toList(),
       'levelGroups': levelGroups.map((group) => group.toJson()).toList(),
       'mediaAssets': mediaAssets.map((asset) => asset.toJson()).toList(),
@@ -314,6 +318,6 @@ class GameData {
 
   @override
   String toString() {
-    return 'Game(name: $name, levels: $levels, levelGroups: $levelGroups, mediaAssets: $mediaAssets, mediaGroups: $mediaGroups, animations: $animations, animationGroups: $animationGroups, zoneTypes: $zoneTypes)';
+    return 'Game(name: $name, description: $description, levels: $levels, levelGroups: $levelGroups, mediaAssets: $mediaAssets, mediaGroups: $mediaGroups, animations: $animations, animationGroups: $animationGroups, zoneTypes: $zoneTypes)';
   }
 }
