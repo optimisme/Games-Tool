@@ -44,7 +44,7 @@ extension _Level1Initialize on _Level1State {
         (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX;
     final double spawnY =
         (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY;
-    _cameraFollowOffsetX = levelViewportCenterX - spawnX;
+    _cameraFollowOffsetX = 0;
     _cameraFollowOffsetY = levelViewportCenterY - spawnY;
 
     _updateState = Level1UpdateState(
