@@ -135,6 +135,19 @@
           "tileMapFile": "tilemaps/level_001_layer_001.json"
         },
         {
+          "name": "Start Platform",
+          "gameplayData": "",
+          "x": 181,
+          "y": 362,
+          "depth": 0.0,
+          "tilesSheetFile": "media/plaform-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_002.json"
+        },
+        {
           "name": "Floor",
           "gameplayData": "",
           "x": 0,
@@ -145,7 +158,7 @@
           "tilesHeight": 16,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_002.json"
+          "tileMapFile": "tilemaps/level_001_layer_003.json"
         },
         {
           "name": "Back Clouds 0",
@@ -158,7 +171,7 @@
           "tilesHeight": 142,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_003.json"
+          "tileMapFile": "tilemaps/level_001_layer_004.json"
         },
         {
           "name": "Back Clouds 1",
@@ -171,7 +184,7 @@
           "tilesHeight": 142,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_004.json"
+          "tileMapFile": "tilemaps/level_001_layer_005.json"
         },
         {
           "name": "Back Clouds 2",
@@ -184,7 +197,7 @@
           "tilesHeight": 142,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_005.json"
+          "tileMapFile": "tilemaps/level_001_layer_006.json"
         },
         {
           "name": "Back Sky",
@@ -197,7 +210,7 @@
           "tilesHeight": 16,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_006.json"
+          "tileMapFile": "tilemaps/level_001_layer_007.json"
         }
       ],
       "layerGroups": [
@@ -213,8 +226,8 @@
           "gameplayData": "",
           "type": "Foxy",
           "animationId": "anim_1772439416290292",
-          "x": 50,
-          "y": 440,
+          "x": 210,
+          "y": 357,
           "width": 32,
           "height": 32,
           "imageFile": "media/FoxySpritesheet.png",
@@ -484,8 +497,8 @@
       "groupId": "__main__",
       "viewportWidth": 320,
       "viewportHeight": 180,
-      "viewportX": 24,
-      "viewportY": 340,
+      "viewportX": 23,
+      "viewportY": 289,
       "viewportAdaptation": "letterbox",
       "viewportInitialColor": "green",
       "viewportPreviewColor": "blue",
