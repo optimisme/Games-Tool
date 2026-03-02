@@ -35,7 +35,7 @@ extension _Level1Interaction on _Level1State {
     final LogicalKeyboardKey key = event.logicalKey;
     final Level1UpdateState? state = _updateState;
 
-    if (state != null && state.isGameOver) {
+    if (state != null && (state.isGameOver || state.isWin)) {
       if (event is KeyDownEvent) {
         _goBackToMenu();
       }

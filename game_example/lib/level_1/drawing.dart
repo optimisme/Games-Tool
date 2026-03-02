@@ -157,6 +157,8 @@ class Level1Painter extends CustomPainter {
         );
         if (renderState!.isGameOver) {
           _drawGameOverOverlay(canvas, viewportSize);
+        } else if (renderState!.isWin) {
+          _drawYouWinOverlay(canvas, viewportSize);
         }
       },
     );
@@ -258,13 +260,33 @@ class Level1Painter extends CustomPainter {
   }
 
   void _drawGameOverOverlay(Canvas canvas, Size viewportSize) {
+    _drawCenteredOverlay(
+      canvas,
+      viewportSize,
+      title: 'GAME OVER',
+    );
+  }
+
+  void _drawYouWinOverlay(Canvas canvas, Size viewportSize) {
+    _drawCenteredOverlay(
+      canvas,
+      viewportSize,
+      title: 'YOU WIN',
+    );
+  }
+
+  void _drawCenteredOverlay(
+    Canvas canvas,
+    Size viewportSize, {
+    required String title,
+  }) {
     canvas.drawRect(
       Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
       Paint()..color = const Color(0xB3000000),
     );
     final TextPainter titlePainter = TextPainter(
-      text: const TextSpan(
-        text: 'GAME OVER',
+      text: TextSpan(
+        text: title,
         style: TextStyle(
           color: Color(0xFFFFFFFF),
           fontSize: 20,
@@ -323,6 +345,7 @@ class Level1Painter extends CustomPainter {
         oldDelegate.renderState?.gemsCount != renderState?.gemsCount ||
         oldDelegate.renderState?.lifePercent != renderState?.lifePercent ||
         oldDelegate.renderState?.isGameOver != renderState?.isGameOver ||
+        oldDelegate.renderState?.isWin != renderState?.isWin ||
         oldDelegate.backIconImage != backIconImage ||
         oldDelegate.level != level;
   }
