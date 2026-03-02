@@ -950,6 +950,10 @@ class LayoutSpritesState extends State<LayoutSprites> {
       fontSize: (typography.body.fontSize ?? 14) + 2,
       fontWeight: FontWeight.w700,
     );
+    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
+      fontSize: typography.body.fontSize,
+      fontWeight: FontWeight.w500,
+    );
 
     final bool hasLevel = appData.selectedLevel >= 0 &&
         appData.selectedLevel < appData.gameData.levels.length;
@@ -1186,6 +1190,9 @@ class LayoutSpritesState extends State<LayoutSprites> {
                   final bool isPrimarySelected =
                       spriteIndex == appData.selectedSprite;
                   final GameSprite sprite = row.item!;
+                  final String spriteGameplayData = sprite.gameplayData
+                      .replaceAll(RegExp(r'\s+'), ' ')
+                      .trim();
                   final String animationName =
                       appData.animationDisplayNameById(sprite.animationId);
                   final GameAnimation? animation =
@@ -1236,12 +1243,37 @@ class LayoutSpritesState extends State<LayoutSprites> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        CDKText(
-                                          sprite.name,
-                                          role: isSelected
-                                              ? CDKTextRole.bodyStrong
-                                              : CDKTextRole.body,
-                                          style: listItemTitleStyle,
+                                        RichText(
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          overflow: TextOverflow.ellipsis,
+                                          strutStyle: StrutStyle.fromTextStyle(
+                                            listItemTitleStyle,
+                                            forceStrutHeight: true,
+                                          ),
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: sprite.name,
+                                                style:
+                                                    listItemTitleStyle.copyWith(
+                                                  color: cdkColors.colorText,
+                                                ),
+                                              ),
+                                              if (spriteGameplayData.isNotEmpty)
+                                                TextSpan(
+                                                  text:
+                                                      '  Gameplay: $spriteGameplayData',
+                                                  style: listItemInlineMetaStyle
+                                                      .copyWith(
+                                                    color: cdkColors.colorText
+                                                        .withValues(
+                                                      alpha: 0.72,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
