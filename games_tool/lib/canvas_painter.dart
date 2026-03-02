@@ -319,14 +319,10 @@ class CanvasPainter extends CustomPainter {
           layer.depth,
           sensitivity: levelDepthSensitivity,
         );
-        final double depthProjectionDx =
-            (vOffset.dx * (depthProjection - 1.0)) / vScale;
-        final double depthProjectionDy =
-            (vOffset.dy * (depthProjection - 1.0)) / vScale;
         final double drawTw = tw * depthProjection;
         final double drawTh = th * depthProjection;
-        final double drawLx = lx * depthProjection + depthProjectionDx;
-        final double drawLy = ly * depthProjection + depthProjectionDy;
+        final double drawLx = lx * depthProjection;
+        final double drawLy = ly * depthProjection;
         final double lw = cols * drawTw;
         final double lh = rows * drawTh;
 
@@ -546,15 +542,9 @@ class CanvasPainter extends CustomPainter {
             sprite,
             frameSize: frameSize,
           );
-          final double spriteDepthProjectionDx =
-              (vOffset.dx * (spriteDepthProjection - 1.0)) / vScale;
-          final double spriteDepthProjectionDy =
-              (vOffset.dy * (spriteDepthProjection - 1.0)) / vScale;
           final Rect projectedSpriteRect = Rect.fromLTWH(
-            spriteRectWorld.left * spriteDepthProjection +
-                spriteDepthProjectionDx,
-            spriteRectWorld.top * spriteDepthProjection +
-                spriteDepthProjectionDy,
+            spriteRectWorld.left * spriteDepthProjection,
+            spriteRectWorld.top * spriteDepthProjection,
             spriteRectWorld.width * spriteDepthProjection,
             spriteRectWorld.height * spriteDepthProjection,
           );

@@ -20,7 +20,7 @@ extension _LoadingInteraction on _LoadingState {
         CupertinoPageRoute<void>(
           builder: (_) {
             if (widget.levelIndex == 1) {
-              return const Level1(levelIndex: 1);
+              return Level1(levelIndex: widget.levelIndex);
             }
             return const Level0(levelIndex: 0);
           },

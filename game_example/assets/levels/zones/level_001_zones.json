@@ -6,5 +6,66 @@
       "collapsed": false
     }
   ],
-  "zones": []
+  "zones": [
+    {
+      "type": "Floor",
+      "gameplayData": "",
+      "x": 1,
+      "y": 445,
+      "width": 286,
+      "height": 50,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Floor",
+      "gameplayData": "",
+      "x": 369,
+      "y": 445,
+      "width": 206,
+      "height": 50,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Floor",
+      "gameplayData": "",
+      "x": 833,
+      "y": 378,
+      "width": 318,
+      "height": 25,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Floor",
+      "gameplayData": "",
+      "x": 833,
+      "y": 475,
+      "width": 318,
+      "height": 25,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Floor",
+      "gameplayData": "",
+      "x": 1136,
+      "y": 409,
+      "width": 15,
+      "height": 65,
+      "color": "purple",
+      "groupId": "__main__"
+    },
+    {
+      "type": "Foxy Death",
+      "gameplayData": "",
+      "x": 0,
+      "y": 520,
+      "width": 1070,
+      "height": 40,
+      "color": "red",
+      "groupId": "__main__"
+    }
+  ]
 }

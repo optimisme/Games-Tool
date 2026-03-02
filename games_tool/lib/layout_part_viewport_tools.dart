@@ -52,6 +52,7 @@ extension _LayoutViewportTools on _LayoutState {
       return;
     }
     final level = appData.gameData.levels[levelIndex];
+    final double levelDepthSensitivity = level.depthSensitivity;
 
     Rect? worldBounds;
     for (final layer in level.layers) {
@@ -63,11 +64,15 @@ extension _LayoutViewportTools on _LayoutState {
           layer.tilesHeight <= 0) {
         continue;
       }
+      final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
+        layer.depth,
+        sensitivity: levelDepthSensitivity,
+      );
       final Rect layerRect = Rect.fromLTWH(
-        layer.x.toDouble(),
-        layer.y.toDouble(),
-        cols * layer.tilesWidth.toDouble(),
-        rows * layer.tilesHeight.toDouble(),
+        layer.x.toDouble() * depthProjection,
+        layer.y.toDouble() * depthProjection,
+        cols * layer.tilesWidth.toDouble() * depthProjection,
+        rows * layer.tilesHeight.toDouble() * depthProjection,
       );
       worldBounds = worldBounds == null
           ? layerRect

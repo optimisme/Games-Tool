@@ -15,14 +15,7 @@ extension _LayoutLayerSelection on _LayoutState {
   }
 
   Offset _depthProjectionImageOffsetForLayer(AppData appData, GameLayer layer) {
-    final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
-      layer.depth,
-      sensitivity: LayoutUtils.depthSensitivityForSelectedLevel(appData),
-    );
-    return Offset(
-      appData.imageOffset.dx * depthProjection,
-      appData.imageOffset.dy * depthProjection,
-    );
+    return appData.imageOffset;
   }
 
   double _depthProjectionScaleForLayer(AppData appData, GameLayer layer) {
