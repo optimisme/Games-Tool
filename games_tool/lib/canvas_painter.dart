@@ -424,6 +424,38 @@ class CanvasPainter extends CustomPainter {
             ..style = PaintingStyle.fill;
           canvas.drawRect(zoneRect, fillPaint);
 
+          final String zoneGameplayData = zone.gameplayData.trim();
+          if (zoneGameplayData.isNotEmpty) {
+            final double safeScale = vScale <= 0 ? 1.0 : vScale;
+            final double paddingWorld = 4.0 / safeScale;
+            final double maxLabelWidth = zoneRect.width - (paddingWorld * 2);
+            final double maxLabelHeight = zoneRect.height - (paddingWorld * 2);
+            if (maxLabelWidth > 2 && maxLabelHeight > 2) {
+              final TextPainter gameplayLabelPainter = TextPainter(
+                text: TextSpan(
+                  text: 'Gameplay data: $zoneGameplayData',
+                  style: TextStyle(
+                    color: zoneColor,
+                    fontSize: 9.0 / safeScale,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                textDirection: TextDirection.ltr,
+                maxLines: 1,
+                ellipsis: '...',
+              )..layout(maxWidth: maxLabelWidth);
+              if (gameplayLabelPainter.height <= maxLabelHeight) {
+                gameplayLabelPainter.paint(
+                  canvas,
+                  Offset(
+                    zoneRect.left + paddingWorld,
+                    zoneRect.top + paddingWorld,
+                  ),
+                );
+              }
+            }
+          }
+
           if (selectedZoneIndices.contains(i)) {
             final Paint selectedPaint = Paint()
               ..color = zoneColor
