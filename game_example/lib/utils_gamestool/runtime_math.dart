@@ -7,18 +7,30 @@ import 'runtime_models.dart';
 class RuntimeCameraMath {
   const RuntimeCameraMath._();
 
-  static const double minParallaxFactor = 0.25;
-  static const double maxParallaxFactor = 4.0;
+  static const double minDepthProjectionFactor = 0.25;
+  static const double maxDepthProjectionFactor = 4.0;
 
-  static double parallaxFactorForDepth(
+  static double depthProjectionFactorForDepth(
     double depth, {
-    double sensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double sensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     final double safeSensitivity = sensitivity.isFinite && sensitivity >= 0
         ? sensitivity
-        : GamesToolApi.defaultParallaxSensitivity;
+        : GamesToolApi.defaultDepthSensitivity;
     final double factor = math.exp(-depth * safeSensitivity);
-    return factor.clamp(minParallaxFactor, maxParallaxFactor).toDouble();
+    return factor
+        .clamp(minDepthProjectionFactor, maxDepthProjectionFactor)
+        .toDouble();
+  }
+
+  static double depthScaleForDepth(
+    double depth, {
+    double sensitivity = GamesToolApi.defaultDepthSensitivity,
+  }) {
+    return depthProjectionFactorForDepth(
+      depth,
+      sensitivity: sensitivity,
+    );
   }
 
   static double cameraScaleForViewport({
@@ -37,22 +49,24 @@ class RuntimeCameraMath {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     final double scale = cameraScaleForViewport(
       viewportSize: viewportSize,
       focal: camera.focal,
     );
-    final double parallax = parallaxFactorForDepth(
+    final double depthProjection = depthProjectionFactorForDepth(
       depth,
-      sensitivity: parallaxSensitivity,
+      sensitivity: depthSensitivity,
     );
-    final double camX = camera.x * parallax;
-    final double camY = camera.y * parallax;
+    final double camX = camera.x * depthProjection;
+    final double camY = camera.y * depthProjection;
+    final double projectedWorldX = worldX * depthProjection;
+    final double projectedWorldY = worldY * depthProjection;
 
     return Offset(
-      (worldX - camX) * scale + viewportSize.width / 2,
-      (worldY - camY) * scale + viewportSize.height / 2,
+      (projectedWorldX - camX) * scale + viewportSize.width / 2,
+      (projectedWorldY - camY) * scale + viewportSize.height / 2,
     );
   }
 
@@ -62,7 +76,7 @@ class RuntimeCameraMath {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     final double scale = cameraScaleForViewport(
       viewportSize: viewportSize,
@@ -71,14 +85,21 @@ class RuntimeCameraMath {
     if (scale == 0) {
       return null;
     }
-    final double parallax = parallaxFactorForDepth(
+    final double depthProjection = depthProjectionFactorForDepth(
       depth,
-      sensitivity: parallaxSensitivity,
+      sensitivity: depthSensitivity,
     );
+    if (depthProjection == 0) {
+      return null;
+    }
 
     return Offset(
-      (screenX - viewportSize.width / 2) / scale + camera.x * parallax,
-      (screenY - viewportSize.height / 2) / scale + camera.y * parallax,
+      ((screenX - viewportSize.width / 2) / scale +
+              camera.x * depthProjection) /
+          depthProjection,
+      ((screenY - viewportSize.height / 2) / scale +
+              camera.y * depthProjection) /
+          depthProjection,
     );
   }
 
@@ -86,7 +107,7 @@ class RuntimeCameraMath {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
     double paddingWorld = 0,
   }) {
     final Offset? topLeft = screenToWorld(
@@ -95,7 +116,7 @@ class RuntimeCameraMath {
       camera: camera,
       viewportSize: viewportSize,
       depth: depth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
     final Offset? bottomRight = screenToWorld(
       screenX: viewportSize.width,
@@ -103,7 +124,7 @@ class RuntimeCameraMath {
       camera: camera,
       viewportSize: viewportSize,
       depth: depth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
     if (topLeft == null || bottomRight == null) {
       return null;

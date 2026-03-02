@@ -27,8 +27,8 @@ class Level0Painter extends CustomPainter {
     }
 
     final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
-    final double parallaxSensitivity =
-        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+    final double depthSensitivity =
+        GamesToolRuntimeRenderer.levelDepthSensitivity(
       gamesTool: appData.gamesTool,
       level: level,
     );
@@ -66,7 +66,7 @@ class Level0Painter extends CustomPainter {
           imagesCache: appData.imagesCache,
           camera: effectiveCamera,
           backgroundColor: levelBackground,
-          parallaxSensitivity: parallaxSensitivity,
+          depthSensitivity: depthSensitivity,
         );
 
         _drawAnimatedPlayer(canvas, viewportSize, effectiveCamera);
@@ -171,8 +171,8 @@ class Level0Painter extends CustomPainter {
       return;
     }
 
-    final double parallaxSensitivity =
-        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+    final double depthSensitivity =
+        GamesToolRuntimeRenderer.levelDepthSensitivity(
       gamesTool: appData.gamesTool,
       level: level,
     );
@@ -191,7 +191,7 @@ class Level0Painter extends CustomPainter {
       flipX: animation.mirrorX,
       drawWidthWorld: state.playerWidth,
       drawHeightWorld: state.playerHeight,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
       fallbackFps: 8,
     );
     if (!drewSprite) {
@@ -209,8 +209,8 @@ class Level0Painter extends CustomPainter {
       viewportSize: size,
       focal: runtimeCamera.focal,
     );
-    final double parallaxSensitivity =
-        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+    final double depthSensitivity =
+        GamesToolRuntimeRenderer.levelDepthSensitivity(
       gamesTool: appData.gamesTool,
       level: level,
     );
@@ -219,7 +219,7 @@ class Level0Painter extends CustomPainter {
       worldY: state.playerY,
       viewportSize: size,
       camera: runtimeCamera,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
     final Rect playerRect = Rect.fromLTWH(
       screenPos.dx,

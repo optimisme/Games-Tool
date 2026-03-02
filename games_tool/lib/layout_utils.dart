@@ -14,8 +14,8 @@ import 'layout_sprites.dart';
 import 'layout_zones.dart';
 
 class LayoutUtils {
-  static const double _minParallaxFactor = 0.25;
-  static const double _maxParallaxFactor = 4.0;
+  static const double _minDepthProjectionFactor = 0.25;
+  static const double _maxDepthProjectionFactor = 4.0;
   static const double _editorTicksPerSecond = 10.0;
 
   static Future<_AnimationGridInfo?> _selectedAnimationGridInfo(
@@ -134,36 +134,76 @@ class LayoutUtils {
     return true;
   }
 
-  /// Maps depth displacement to a parallax factor.
+  /// Maps depth displacement to a depthProjection factor.
   /// Negative depth => closer (moves faster), positive depth => farther (moves slower).
-  static double parallaxFactorForDepth(
+  static double depthProjectionFactorForDepth(
     double depth, {
-    double sensitivity = GameLevel.defaultParallaxSensitivity,
+    double sensitivity = GameLevel.defaultDepthSensitivity,
   }) {
     final double normalizedSensitivity = sensitivity.isFinite
         ? math.max(0.0, sensitivity)
-        : GameLevel.defaultParallaxSensitivity;
+        : GameLevel.defaultDepthSensitivity;
     final double factor = math.exp(-depth * normalizedSensitivity);
-    return factor.clamp(_minParallaxFactor, _maxParallaxFactor).toDouble();
+    return factor
+        .clamp(_minDepthProjectionFactor, _maxDepthProjectionFactor)
+        .toDouble();
   }
 
-  static double parallaxSensitivityForSelectedLevel(AppData appData) {
+  static double depthSensitivityForSelectedLevel(AppData appData) {
     if (appData.selectedLevel < 0 ||
         appData.selectedLevel >= appData.gameData.levels.length) {
-      return GameLevel.defaultParallaxSensitivity;
+      return GameLevel.defaultDepthSensitivity;
     }
-    return appData.gameData.levels[appData.selectedLevel].parallaxSensitivity;
+    return appData.gameData.levels[appData.selectedLevel].depthSensitivity;
   }
 
-  static Offset _parallaxImageOffsetForLayer(AppData appData, GameLayer layer) {
-    final double parallax = parallaxFactorForDepth(
-      layer.depth,
-      sensitivity: parallaxSensitivityForSelectedLevel(appData),
+  static Offset _depthProjectionImageOffsetForDepth(
+      AppData appData, double depth) {
+    final double depthProjection = depthProjectionFactorForDepth(
+      depth,
+      sensitivity: depthSensitivityForSelectedLevel(appData),
     );
     return Offset(
-      appData.imageOffset.dx * parallax,
-      appData.imageOffset.dy * parallax,
+      appData.imageOffset.dx * depthProjection,
+      appData.imageOffset.dy * depthProjection,
     );
+  }
+
+  static double _depthProjectionScaleFactorForDepth(
+      AppData appData, double depth) {
+    final double depthProjection = depthProjectionFactorForDepth(
+      depth,
+      sensitivity: depthSensitivityForSelectedLevel(appData),
+    );
+    final double baseScale =
+        appData.scaleFactor.isFinite && appData.scaleFactor > 0
+            ? appData.scaleFactor
+            : 1.0;
+    return baseScale * depthProjection;
+  }
+
+  static Offset _depthProjectionImageOffsetForLayer(
+      AppData appData, GameLayer layer) {
+    return _depthProjectionImageOffsetForDepth(appData, layer.depth);
+  }
+
+  static double _depthProjectionScaleFactorForLayer(
+      AppData appData, GameLayer layer) {
+    return _depthProjectionScaleFactorForDepth(appData, layer.depth);
+  }
+
+  static Offset _depthProjectionImageOffsetForSprite(
+    AppData appData,
+    GameSprite sprite,
+  ) {
+    return _depthProjectionImageOffsetForDepth(appData, sprite.depth);
+  }
+
+  static double _depthProjectionScaleFactorForSprite(
+    AppData appData,
+    GameSprite sprite,
+  ) {
+    return _depthProjectionScaleFactorForDepth(appData, sprite.depth);
   }
 
   static Future<ui.Image> generateTilemapImage(
@@ -1308,14 +1348,14 @@ class LayoutUtils {
     if (appData.selectedLevel == -1) {
       return -1;
     }
-    final Offset levelCoords = LayoutUtils.translateCoords(
-      localPosition,
-      appData.imageOffset,
-      appData.scaleFactor,
-    );
     final sprites = appData.gameData.levels[appData.selectedLevel].sprites;
     for (int i = sprites.length - 1; i >= 0; i--) {
       final sprite = sprites[i];
+      final Offset levelCoords = LayoutUtils.translateCoords(
+        localPosition,
+        _depthProjectionImageOffsetForSprite(appData, sprite),
+        _depthProjectionScaleFactorForSprite(appData, sprite),
+      );
       final Size frameSize = spriteFrameSize(appData, sprite);
       final Rect rect = spriteWorldRect(
         appData,
@@ -1371,8 +1411,10 @@ class LayoutUtils {
     }
     final Offset levelCoords = LayoutUtils.translateCoords(
       localPosition,
-      appData.imageOffset,
-      appData.scaleFactor,
+      _depthProjectionImageOffsetForSprite(
+          appData, sprites[appData.selectedSprite]),
+      _depthProjectionScaleFactorForSprite(
+          appData, sprites[appData.selectedSprite]),
     );
     final sprite = sprites[appData.selectedSprite];
     appData.pushUndo();
@@ -1382,10 +1424,13 @@ class LayoutUtils {
 
   static void dragSpriteFromCanvas(AppData appData, Offset localPosition) {
     if (appData.selectedLevel == -1 || appData.selectedSprite == -1) return;
-    Offset levelCoords = translateCoords(
-        localPosition, appData.imageOffset, appData.scaleFactor);
-    GameSprite sprite = appData
+    final GameSprite sprite = appData
         .gameData.levels[appData.selectedLevel].sprites[appData.selectedSprite];
+    final Offset levelCoords = translateCoords(
+      localPosition,
+      _depthProjectionImageOffsetForSprite(appData, sprite),
+      _depthProjectionScaleFactorForSprite(appData, sprite),
+    );
     sprite.x = (levelCoords.dx - appData.spriteDragOffset.dx).toInt();
     sprite.y = (levelCoords.dy - appData.spriteDragOffset.dy).toInt();
   }
@@ -1562,8 +1607,8 @@ class LayoutUtils {
       if (layer.tileMap.isEmpty || layer.tileMap.first.isEmpty) continue;
       final Offset worldPos = translateCoords(
         localPosition,
-        _parallaxImageOffsetForLayer(appData, layer),
-        appData.scaleFactor,
+        _depthProjectionImageOffsetForLayer(appData, layer),
+        _depthProjectionScaleFactorForLayer(appData, layer),
       );
       final double w =
           (layer.tileMap.first.length * layer.tilesWidth).toDouble();
@@ -1586,8 +1631,8 @@ class LayoutUtils {
     if (layer.tileMap.isEmpty || layer.tileMap.first.isEmpty) return false;
     final Offset worldPos = translateCoords(
       localPosition,
-      _parallaxImageOffsetForLayer(appData, layer),
-      appData.scaleFactor,
+      _depthProjectionImageOffsetForLayer(appData, layer),
+      _depthProjectionScaleFactorForLayer(appData, layer),
     );
     final double w = (layer.tileMap.first.length * layer.tilesWidth).toDouble();
     final double h = (layer.tileMap.length * layer.tilesHeight).toDouble();
@@ -1604,8 +1649,8 @@ class LayoutUtils {
         .gameData.levels[appData.selectedLevel].layers[appData.selectedLayer];
     final Offset worldPos = translateCoords(
       localPosition,
-      _parallaxImageOffsetForLayer(appData, layer),
-      appData.scaleFactor,
+      _depthProjectionImageOffsetForLayer(appData, layer),
+      _depthProjectionScaleFactorForLayer(appData, layer),
     );
     appData.pushUndo();
     appData.layerDragOffset =
@@ -1619,8 +1664,8 @@ class LayoutUtils {
     final GameLayer old = layers[appData.selectedLayer];
     final Offset worldPos = translateCoords(
       localPosition,
-      _parallaxImageOffsetForLayer(appData, old),
-      appData.scaleFactor,
+      _depthProjectionImageOffsetForLayer(appData, old),
+      _depthProjectionScaleFactorForLayer(appData, old),
     );
     final int newX = (worldPos.dx - appData.layerDragOffset.dx).round();
     final int newY = (worldPos.dy - appData.layerDragOffset.dy).round();
@@ -1657,8 +1702,8 @@ class LayoutUtils {
     if (appData.selectedSection == "tilemap") {
       final Offset worldCoords = translateCoords(
         localPosition,
-        _parallaxImageOffsetForLayer(appData, layer),
-        appData.scaleFactor,
+        _depthProjectionImageOffsetForLayer(appData, layer),
+        _depthProjectionScaleFactorForLayer(appData, layer),
       );
       final double localX = worldCoords.dx - layer.x;
       final double localY = worldCoords.dy - layer.y;

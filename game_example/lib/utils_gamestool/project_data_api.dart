@@ -21,7 +21,7 @@ class AnimationPlaybackConfig {
 
 class GamesToolApi {
   GamesToolApi({this.projectFolder = 'levels'});
-  static const double defaultParallaxSensitivity = 0.08;
+  static const double defaultDepthSensitivity = 0.08;
   static const double defaultAnimationFps = 12.0;
   static const double defaultAnchorX = 0.5;
   static const double defaultAnchorY = 0.5;
@@ -189,11 +189,11 @@ class GamesToolApi {
     return (layer['depth'] as num?)?.toDouble() ?? 0;
   }
 
-  double levelParallaxSensitivity(
+  double levelDepthSensitivity(
     Map<String, dynamic> level, {
-    double fallback = defaultParallaxSensitivity,
+    double fallback = defaultDepthSensitivity,
   }) {
-    final double? raw = (level['parallaxSensitivity'] as num?)?.toDouble();
+    final double? raw = (level['depthSensitivity'] as num?)?.toDouble();
     if (raw == null || !raw.isFinite || raw < 0) {
       return fallback;
     }

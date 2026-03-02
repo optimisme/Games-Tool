@@ -803,7 +803,8 @@ class _ViewportPreviewPainter extends CustomPainter {
     required double viewportH,
     required String adaptation,
   }) {
-    final String normalizedAdaptation = _normalizeViewportAdaptation(adaptation);
+    final String normalizedAdaptation =
+        _normalizeViewportAdaptation(adaptation);
     final double screenAspect = screenRect.width / screenRect.height;
     final double viewportAspect = viewportW / viewportH;
     Rect contentRect = screenRect;
@@ -877,7 +878,7 @@ class _ViewportPreviewPainter extends CustomPainter {
   void _paintScene(Canvas canvas, _PreviewSceneMapping mapping) {
     final double cameraX = mapping.cameraWorldLeft;
     final double cameraY = mapping.cameraWorldTop;
-    final double levelParallaxSensitivity = level.parallaxSensitivity;
+    final double levelDepthSensitivity = level.depthSensitivity;
     final double scaleX = mapping.contentRect.width / mapping.cameraWorldW;
     final double scaleY = mapping.contentRect.height / mapping.cameraWorldH;
     final Paint drawPaint = Paint()..filterQuality = FilterQuality.none;
@@ -899,21 +900,26 @@ class _ViewportPreviewPainter extends CustomPainter {
       final int cols = layer.tileMap.first.length;
       final double layerX = layer.x.toDouble();
       final double layerY = layer.y.toDouble();
-      final double parallax = LayoutUtils.parallaxFactorForDepth(
+      final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
         layer.depth,
-        sensitivity: levelParallaxSensitivity,
+        sensitivity: levelDepthSensitivity,
       );
-      final double cameraPx = cameraX * parallax;
-      final double cameraPy = cameraY * parallax;
+      final double scaledTileW = tw * depthProjection;
+      final double scaledTileH = th * depthProjection;
+      if (scaledTileW <= 0 || scaledTileH <= 0) continue;
+      final double layerXScaled = layerX * depthProjection;
+      final double layerYScaled = layerY * depthProjection;
+      final double cameraPx = cameraX * depthProjection;
+      final double cameraPy = cameraY * depthProjection;
       final double visibleLeft = cameraPx;
       final double visibleTop = cameraPy;
       final double visibleRight = cameraPx + mapping.cameraWorldW;
       final double visibleBottom = cameraPy + mapping.cameraWorldH;
 
-      int startCol = ((visibleLeft - layerX) / tw).floor();
-      int endCol = ((visibleRight - layerX) / tw).ceil();
-      int startRow = ((visibleTop - layerY) / th).floor();
-      int endRow = ((visibleBottom - layerY) / th).ceil();
+      int startCol = ((visibleLeft - layerXScaled) / scaledTileW).floor();
+      int endCol = ((visibleRight - layerXScaled) / scaledTileW).ceil();
+      int startRow = ((visibleTop - layerYScaled) / scaledTileH).floor();
+      int endRow = ((visibleBottom - layerYScaled) / scaledTileH).ceil();
       startCol = math.max(0, math.min(cols - 1, startCol));
       endCol = math.max(0, math.min(cols - 1, endCol));
       startRow = math.max(0, math.min(rows - 1, startRow));
@@ -926,13 +932,13 @@ class _ViewportPreviewPainter extends CustomPainter {
           if (tileIndex < 0) continue;
           final int tileRow = (tileIndex / tsetCols).floor();
           final int tileCol = tileIndex % tsetCols;
-          final double worldX = layerX + col * tw;
-          final double worldY = layerY + row * th;
+          final double worldX = layerXScaled + col * scaledTileW;
+          final double worldY = layerYScaled + row * scaledTileH;
           final Rect dstRect = Rect.fromLTWH(
             mapping.contentRect.left + (worldX - cameraPx) * scaleX,
             mapping.contentRect.top + (worldY - cameraPy) * scaleY,
-            tw * scaleX,
-            th * scaleY,
+            scaledTileW * scaleX,
+            scaledTileH * scaleY,
           );
           canvas.drawImageRect(
             tilesetImg,
@@ -965,22 +971,26 @@ class _ViewportPreviewPainter extends CustomPainter {
       final Rect srcRect =
           Rect.fromLTWH(frameIndex * spriteWidth, 0, spriteWidth, spriteHeight);
 
-      final double parallax = LayoutUtils.parallaxFactorForDepth(
+      final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
         sprite.depth,
-        sensitivity: levelParallaxSensitivity,
+        sensitivity: levelDepthSensitivity,
       );
-      final double cameraPx = cameraX * parallax;
-      final double cameraPy = cameraY * parallax;
+      final double cameraPx = cameraX * depthProjection;
+      final double cameraPy = cameraY * depthProjection;
       final Rect spriteWorldRect = LayoutUtils.spriteWorldRect(
         appData,
         sprite,
         frameSize: frameSize,
       );
+      final double projectedSpriteLeft = spriteWorldRect.left * depthProjection;
+      final double projectedSpriteTop = spriteWorldRect.top * depthProjection;
+      final double projectedSpriteWidth = spriteWidth * depthProjection;
+      final double projectedSpriteHeight = spriteHeight * depthProjection;
       final Rect dstRect = Rect.fromLTWH(
-        mapping.contentRect.left + (spriteWorldRect.left - cameraPx) * scaleX,
-        mapping.contentRect.top + (spriteWorldRect.top - cameraPy) * scaleY,
-        spriteWidth * scaleX,
-        spriteHeight * scaleY,
+        mapping.contentRect.left + (projectedSpriteLeft - cameraPx) * scaleX,
+        mapping.contentRect.top + (projectedSpriteTop - cameraPy) * scaleY,
+        projectedSpriteWidth * scaleX,
+        projectedSpriteHeight * scaleY,
       );
 
       if (sprite.flipX || sprite.flipY) {

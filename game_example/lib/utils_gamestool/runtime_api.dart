@@ -213,11 +213,11 @@ class GameDataRuntimeApi {
     return sprites[spriteIndex];
   }
 
-  double parallaxFactorForDepth(
+  double depthProjectionFactorForDepth(
     double depth, {
-    double sensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double sensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
-    return RuntimeCameraMath.parallaxFactorForDepth(
+    return RuntimeCameraMath.depthProjectionFactorForDepth(
       depth,
       sensitivity: sensitivity,
     );
@@ -239,7 +239,7 @@ class GameDataRuntimeApi {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     return RuntimeCameraMath.worldToScreen(
       worldX: worldX,
@@ -247,7 +247,7 @@ class GameDataRuntimeApi {
       camera: camera,
       viewportSize: viewportSize,
       depth: depth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
   }
 
@@ -257,7 +257,7 @@ class GameDataRuntimeApi {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     return RuntimeCameraMath.screenToWorld(
       screenX: screenX,
@@ -265,7 +265,7 @@ class GameDataRuntimeApi {
       camera: camera,
       viewportSize: viewportSize,
       depth: depth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
   }
 
@@ -325,7 +325,7 @@ class GameDataRuntimeApi {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double? depthDisplacement,
-    double? parallaxSensitivity,
+    double? depthSensitivity,
   }) {
     final Map<String, dynamic>? layer = _resolveLayer(
       levelIndex: levelIndex,
@@ -340,15 +340,15 @@ class GameDataRuntimeApi {
       layer: layer,
       depthDisplacement: depthDisplacement,
     );
-    final double resolvedParallaxSensitivity =
-        parallaxSensitivity ?? _gamesTool.levelParallaxSensitivity(level);
+    final double resolvedDepthSensitivity =
+        depthSensitivity ?? _gamesTool.levelDepthSensitivity(level);
     final Offset? world = screenToWorld(
       screenX: screenX,
       screenY: screenY,
       camera: camera,
       viewportSize: viewportSize,
       depth: resolvedDepth,
-      parallaxSensitivity: resolvedParallaxSensitivity,
+      depthSensitivity: resolvedDepthSensitivity,
     );
     if (world == null) {
       return null;
@@ -429,7 +429,7 @@ class GameDataRuntimeApi {
     required RuntimeCamera2D camera,
     required Size viewportSize,
     double? depthDisplacement,
-    double? parallaxSensitivity,
+    double? depthSensitivity,
   }) {
     final Map<String, dynamic>? layer = _resolveLayer(
       levelIndex: levelIndex,
@@ -456,19 +456,23 @@ class GameDataRuntimeApi {
       layer: layer,
       depthDisplacement: depthDisplacement,
     );
-    final double resolvedParallaxSensitivity =
-        parallaxSensitivity ?? _gamesTool.levelParallaxSensitivity(level);
+    final double resolvedDepthSensitivity =
+        depthSensitivity ?? _gamesTool.levelDepthSensitivity(level);
     final Offset topLeft = worldToScreen(
       worldX: worldRect.left,
       worldY: worldRect.top,
       camera: camera,
       viewportSize: viewportSize,
       depth: resolvedDepth,
-      parallaxSensitivity: resolvedParallaxSensitivity,
+      depthSensitivity: resolvedDepthSensitivity,
     );
     final double scale = cameraScaleForViewport(
       viewportSize: viewportSize,
       camera: camera,
+    );
+    final double depthScale = RuntimeCameraMath.depthScaleForDepth(
+      resolvedDepth,
+      sensitivity: resolvedDepthSensitivity,
     );
     if (scale == 0) {
       return null;
@@ -477,8 +481,8 @@ class GameDataRuntimeApi {
     return Rect.fromLTWH(
       topLeft.dx,
       topLeft.dy,
-      worldRect.width * scale,
-      worldRect.height * scale,
+      worldRect.width * scale * depthScale,
+      worldRect.height * scale * depthScale,
     );
   }
 

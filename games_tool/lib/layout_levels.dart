@@ -320,7 +320,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     required String description,
     required String gameplayData,
     required String backgroundColorHex,
-    required double parallaxSensitivity,
+    required double depthSensitivity,
     required String groupId,
   }) {
     _ensureMainLevelGroup(appData);
@@ -335,7 +335,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       zones: [],
       sprites: [],
       backgroundColorHex: backgroundColorHex,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
       groupId: targetGroupId,
     );
 
@@ -351,7 +351,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     String initialDescription = "",
     String initialGameplayData = "",
     String initialBackgroundColorHex = "#DCDCE1",
-    double initialParallaxSensitivity = GameLevel.defaultParallaxSensitivity,
+    double initialDepthSensitivity = GameLevel.defaultDepthSensitivity,
     String initialGroupId = GameListGroup.mainId,
     int? editingIndex,
     bool showGroupSelector = false,
@@ -386,7 +386,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       initialDescription: initialDescription,
       initialGameplayData: initialGameplayData,
       initialBackgroundColorHex: initialBackgroundColorHex,
-      initialParallaxSensitivity: initialParallaxSensitivity,
+      initialDepthSensitivity: initialDepthSensitivity,
       initialGroupId: initialGroupId,
       groupOptions: _levelGroups(appData),
       showGroupSelector: showGroupSelector,
@@ -469,7 +469,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       description: levelData.description,
       gameplayData: levelData.gameplayData,
       backgroundColorHex: levelData.backgroundColorHex,
-      parallaxSensitivity: levelData.parallaxSensitivity,
+      depthSensitivity: levelData.depthSensitivity,
       groupId: levelData.groupId,
     );
     await _autoSaveIfPossible(appData);
@@ -517,7 +517,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       initialDescription: selected.description,
       initialGameplayData: selected.gameplayData,
       initialBackgroundColorHex: selected.backgroundColorHex,
-      initialParallaxSensitivity: selected.parallaxSensitivity,
+      initialDepthSensitivity: selected.depthSensitivity,
       initialGroupId: _effectiveLevelGroupId(appData, selected),
       editingIndex: index,
       anchorKey: anchorKey,
@@ -535,7 +535,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
               description: value.description,
               gameplayData: value.gameplayData,
               backgroundColorHex: value.backgroundColorHex,
-              parallaxSensitivity: value.parallaxSensitivity,
+              depthSensitivity: value.depthSensitivity,
             );
           },
         );
@@ -551,7 +551,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     required String description,
     required String gameplayData,
     required String backgroundColorHex,
-    required double parallaxSensitivity,
+    required double depthSensitivity,
   }) {
     if (index >= 0 && index < appData.gameData.levels.length) {
       final previous = appData.gameData.levels[index];
@@ -574,7 +574,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
         viewportInitialColor: previous.viewportInitialColor,
         viewportPreviewColor: previous.viewportPreviewColor,
         backgroundColorHex: backgroundColorHex,
-        parallaxSensitivity: parallaxSensitivity,
+        depthSensitivity: depthSensitivity,
       );
       appData.selectedLevel = index;
     }
@@ -1026,7 +1026,7 @@ class _LevelDialogData {
     required this.description,
     required this.gameplayData,
     required this.backgroundColorHex,
-    required this.parallaxSensitivity,
+    required this.depthSensitivity,
     required this.groupId,
   });
 
@@ -1034,7 +1034,7 @@ class _LevelDialogData {
   final String description;
   final String gameplayData;
   final String backgroundColorHex;
-  final double parallaxSensitivity;
+  final double depthSensitivity;
   final String groupId;
 }
 
@@ -1046,7 +1046,7 @@ class _LevelFormDialog extends StatefulWidget {
     required this.initialDescription,
     required this.initialGameplayData,
     required this.initialBackgroundColorHex,
-    required this.initialParallaxSensitivity,
+    required this.initialDepthSensitivity,
     required this.initialGroupId,
     required this.groupOptions,
     required this.showGroupSelector,
@@ -1066,7 +1066,7 @@ class _LevelFormDialog extends StatefulWidget {
   final String initialDescription;
   final String initialGameplayData;
   final String initialBackgroundColorHex;
-  final double initialParallaxSensitivity;
+  final double initialDepthSensitivity;
   final String initialGroupId;
   final List<GameListGroup> groupOptions;
   final bool showGroupSelector;
@@ -1091,9 +1091,9 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
       TextEditingController(text: widget.initialDescription);
   late final TextEditingController _gameplayDataController =
       TextEditingController(text: widget.initialGameplayData);
-  late final TextEditingController _parallaxSensitivityController =
+  late final TextEditingController _depthSensitivityController =
       TextEditingController(
-    text: widget.initialParallaxSensitivity.toString(),
+    text: widget.initialDepthSensitivity.toString(),
   );
   final GlobalKey _backgroundColorAnchorKey = GlobalKey();
   final FocusNode _nameFocusNode = FocusNode();
@@ -1176,21 +1176,21 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
   }
 
   _LevelDialogData _currentData() {
-    final double? parsedParallaxSensitivity = _parseParallaxSensitivity(
-      _parallaxSensitivityController.text,
+    final double? parsedDepthSensitivity = _parseDepthSensitivity(
+      _depthSensitivityController.text,
     );
     return _LevelDialogData(
       name: _nameController.text.trim(),
       description: _descriptionController.text.trim(),
       gameplayData: _gameplayDataController.text,
       backgroundColorHex: _backgroundColorHex,
-      parallaxSensitivity:
-          parsedParallaxSensitivity ?? GameLevel.defaultParallaxSensitivity,
+      depthSensitivity:
+          parsedDepthSensitivity ?? GameLevel.defaultDepthSensitivity,
       groupId: _selectedGroupId,
     );
   }
 
-  double? _parseParallaxSensitivity(String value) {
+  double? _parseDepthSensitivity(String value) {
     final String cleaned = value.trim().replaceAll(',', '.');
     if (cleaned.isEmpty) {
       return null;
@@ -1210,9 +1210,8 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     if (widget.existingNames.contains(cleaned.toLowerCase())) {
       return 'Another level is named like that.';
     }
-    if (_parseParallaxSensitivity(_parallaxSensitivityController.text) ==
-        null) {
-      return 'Parallax sensitivity must be a number >= 0.';
+    if (_parseDepthSensitivity(_depthSensitivityController.text) == null) {
+      return 'Depth sensitivity must be a number >= 0.';
     }
     return null;
   }
@@ -1243,16 +1242,16 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
 
   void _confirm() {
     final String cleanedName = _nameController.text.trim();
-    final double? parsedParallaxSensitivity = _parseParallaxSensitivity(
-      _parallaxSensitivityController.text,
+    final double? parsedDepthSensitivity = _parseDepthSensitivity(
+      _depthSensitivityController.text,
     );
     _validate(cleanedName);
     if (cleanedName.isEmpty ||
         widget.existingNames.contains(cleanedName.toLowerCase()) ||
-        parsedParallaxSensitivity == null) {
-      if (parsedParallaxSensitivity == null) {
+        parsedDepthSensitivity == null) {
+      if (parsedDepthSensitivity == null) {
         setState(() {
-          _errorText = 'Parallax sensitivity must be a number >= 0.';
+          _errorText = 'Depth sensitivity must be a number >= 0.';
         });
       }
       return;
@@ -1263,7 +1262,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
         description: _descriptionController.text.trim(),
         gameplayData: _gameplayDataController.text,
         backgroundColorHex: _backgroundColorHex,
-        parallaxSensitivity: parsedParallaxSensitivity,
+        depthSensitivity: parsedDepthSensitivity,
         groupId: _selectedGroupId,
       ),
     );
@@ -1282,7 +1281,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
             a.description == b.description &&
             a.gameplayData == b.gameplayData &&
             a.backgroundColorHex == b.backgroundColorHex &&
-            a.parallaxSensitivity == b.parallaxSensitivity &&
+            a.depthSensitivity == b.depthSensitivity &&
             a.groupId == b.groupId,
       );
     }
@@ -1302,7 +1301,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     _nameController.dispose();
     _descriptionController.dispose();
     _gameplayDataController.dispose();
-    _parallaxSensitivityController.dispose();
+    _depthSensitivityController.dispose();
     _nameFocusNode.dispose();
     super.dispose();
   }
@@ -1392,10 +1391,10 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
               const SizedBox(width: 12),
               Expanded(
                 child: EditorLabeledField(
-                  label: 'Parallax sensitivity',
+                  label: 'Depth sensitivity',
                   child: CDKFieldText(
                     placeholder: '0.08',
-                    controller: _parallaxSensitivityController,
+                    controller: _depthSensitivityController,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
                       if (widget.liveEdit) {

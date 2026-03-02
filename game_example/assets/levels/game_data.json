@@ -100,7 +100,7 @@
       "viewportInitialColor": "yellow",
       "viewportPreviewColor": "pink",
       "backgroundColorHex": "#000000",
-      "parallaxSensitivity": 0.08,
+      "depthSensitivity": 0.08,
       "zonesFile": "zones/level_000_zones.json"
     },
     {
@@ -109,37 +109,37 @@
       "gameplayData": "",
       "layers": [
         {
-          "name": "Clouds 0",
+          "name": "Front Trees",
           "gameplayData": "",
-          "x": 224,
-          "y": 350,
-          "depth": 4.0,
-          "tilesSheetFile": "media/decoration-clouds.png",
-          "tilesWidth": 459,
-          "tilesHeight": 142,
+          "x": -132,
+          "y": 515,
+          "depth": -0.5,
+          "tilesSheetFile": "media/decoration-trees.png",
+          "tilesWidth": 144,
+          "tilesHeight": 130,
           "visible": true,
           "groupId": "__main__",
           "tileMapFile": "tilemaps/level_001_layer_000.json"
         },
         {
-          "name": "Clouds 1",
+          "name": "Floor",
           "gameplayData": "",
-          "x": 552,
-          "y": 277,
-          "depth": 4.0,
-          "tilesSheetFile": "media/decoration-clouds.png",
-          "tilesWidth": 459,
-          "tilesHeight": 142,
+          "x": 0,
+          "y": 0,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
           "visible": true,
           "groupId": "__main__",
           "tileMapFile": "tilemaps/level_001_layer_001.json"
         },
         {
-          "name": "Clouds 2",
+          "name": "Back Clouds 0",
           "gameplayData": "",
-          "x": 1094,
-          "y": 335,
-          "depth": 4.0,
+          "x": 85,
+          "y": 332,
+          "depth": 1.0,
           "tilesSheetFile": "media/decoration-clouds.png",
           "tilesWidth": 459,
           "tilesHeight": 142,
@@ -148,17 +148,43 @@
           "tileMapFile": "tilemaps/level_001_layer_002.json"
         },
         {
-          "name": "Sky",
+          "name": "Back Clouds 1",
+          "gameplayData": "",
+          "x": 431,
+          "y": 350,
+          "depth": 1.5,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_003.json"
+        },
+        {
+          "name": "Back Clouds 2",
+          "gameplayData": "",
+          "x": 1054,
+          "y": 330,
+          "depth": 1.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_004.json"
+        },
+        {
+          "name": "Back Sky",
           "gameplayData": "",
           "x": 0,
           "y": 0,
-          "depth": 5.0,
+          "depth": 2.0,
           "tilesSheetFile": "media/decoration-sky.png",
           "tilesWidth": 16,
           "tilesHeight": 16,
           "visible": true,
           "groupId": "__main__",
-          "tileMapFile": "tilemaps/level_001_layer_003.json"
+          "tileMapFile": "tilemaps/level_001_layer_005.json"
         }
       ],
       "layerGroups": [
@@ -185,7 +211,7 @@
       "viewportInitialColor": "green",
       "viewportPreviewColor": "blue",
       "backgroundColorHex": "#DCDCE1",
-      "parallaxSensitivity": 0.08,
+      "depthSensitivity": 0.08,
       "zonesFile": "zones/level_001_zones.json"
     }
   ],

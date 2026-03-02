@@ -14,15 +14,27 @@ extension _LayoutLayerSelection on _LayoutState {
         keyboard.isMetaPressed;
   }
 
-  Offset _parallaxImageOffsetForLayer(AppData appData, GameLayer layer) {
-    final double parallax = LayoutUtils.parallaxFactorForDepth(
+  Offset _depthProjectionImageOffsetForLayer(AppData appData, GameLayer layer) {
+    final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
       layer.depth,
-      sensitivity: LayoutUtils.parallaxSensitivityForSelectedLevel(appData),
+      sensitivity: LayoutUtils.depthSensitivityForSelectedLevel(appData),
     );
     return Offset(
-      appData.imageOffset.dx * parallax,
-      appData.imageOffset.dy * parallax,
+      appData.imageOffset.dx * depthProjection,
+      appData.imageOffset.dy * depthProjection,
     );
+  }
+
+  double _depthProjectionScaleForLayer(AppData appData, GameLayer layer) {
+    final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
+      layer.depth,
+      sensitivity: LayoutUtils.depthSensitivityForSelectedLevel(appData),
+    );
+    final double baseScale =
+        appData.scaleFactor.isFinite && appData.scaleFactor > 0
+            ? appData.scaleFactor
+            : 1.0;
+    return baseScale * depthProjection;
   }
 
   int _firstLayerIndexInSelection(Set<int> selection) {
@@ -62,10 +74,11 @@ extension _LayoutLayerSelection on _LayoutState {
     }
     final int rows = layer.tileMap.length;
     final int cols = layer.tileMap.first.length;
-    final Offset parallaxOffset = _parallaxImageOffsetForLayer(appData, layer);
-    final double scale = appData.scaleFactor;
-    final double left = parallaxOffset.dx + layer.x * scale;
-    final double top = parallaxOffset.dy + layer.y * scale;
+    final Offset depthProjectionOffset =
+        _depthProjectionImageOffsetForLayer(appData, layer);
+    final double scale = _depthProjectionScaleForLayer(appData, layer);
+    final double left = depthProjectionOffset.dx + layer.x * scale;
+    final double top = depthProjectionOffset.dy + layer.y * scale;
     final double width = cols * layer.tilesWidth * scale;
     final double height = rows * layer.tilesHeight * scale;
     if (width <= 0 || height <= 0) {
@@ -232,8 +245,8 @@ extension _LayoutLayerSelection on _LayoutState {
       }
       final Offset worldPos = LayoutUtils.translateCoords(
         localPosition,
-        _parallaxImageOffsetForLayer(appData, layer),
-        appData.scaleFactor,
+        _depthProjectionImageOffsetForLayer(appData, layer),
+        _depthProjectionScaleForLayer(appData, layer),
       );
       offsets[layerIndex] =
           worldPos - Offset(layer.x.toDouble(), layer.y.toDouble());
@@ -268,8 +281,8 @@ extension _LayoutLayerSelection on _LayoutState {
       final GameLayer oldLayer = layers[layerIndex];
       final Offset worldPos = LayoutUtils.translateCoords(
         localPosition,
-        _parallaxImageOffsetForLayer(appData, oldLayer),
-        appData.scaleFactor,
+        _depthProjectionImageOffsetForLayer(appData, oldLayer),
+        _depthProjectionScaleForLayer(appData, oldLayer),
       );
       final int newX = (worldPos.dx - entry.value.dx).round();
       final int newY = (worldPos.dy - entry.value.dy).round();
