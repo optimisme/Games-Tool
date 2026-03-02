@@ -9,6 +9,11 @@ This document describes the implemented runtime API in:
 - `game_example/lib/utils_gamestool/runtime_models.dart` (runtime value objects)
 - `game_example/lib/utils_gamestool/runtime_api.dart` (`GameDataRuntimeApi`)
 
+Scope note: this reference is for `utils_gamestool` runtime APIs. Shared
+level/painter helpers under `game_example/lib/shared/` (for example
+`drawCenteredEndOverlay` in `utils_painter.dart`) are intentionally documented
+in `README.md`, not here.
+
 The API is designed for 2D gameplay runtime access:
 
 - strict `get/set` by path,

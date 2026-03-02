@@ -28,6 +28,8 @@ const String _level0PontAmagatLayerName = 'Pont Amagat';
 const String _level0FuturPontGameplayData = 'Futur Pont';
 const String _level0BackIconAssetPath = 'other/enrrere.png';
 const String _level0BackLabel = 'Tornar';
+const String _level0ArbreZoneName = 'Arbre';
+const double _level0EndStateInputDelaySeconds = 1.0;
 const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
   hudX: 20,
   hudY: 5,
@@ -35,6 +37,26 @@ const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
   iconHeight: 8,
   iconGap: 3,
 );
+
+int _countLevel0ArbreZones(Map<String, dynamic>? level) {
+  if (level == null) {
+    return 0;
+  }
+  final List<Map<String, dynamic>> zones =
+      ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+  final String target = _level0ArbreZoneName.toLowerCase();
+  int count = 0;
+  for (final Map<String, dynamic> zone in zones) {
+    final String zoneType = ((zone['type'] as String?) ?? '').trim();
+    final String zoneName = ((zone['name'] as String?) ?? '').trim();
+    if (zoneType.toLowerCase() == target || zoneName.toLowerCase() == target) {
+      count += 1;
+    }
+  }
+  return count;
+}
 
 /// Top-down exploration level with tile interaction and zone-driven triggers.
 class Level0 extends StatefulWidget {

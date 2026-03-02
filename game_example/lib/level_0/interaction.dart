@@ -3,10 +3,13 @@ part of 'main.dart';
 /// Input handling and scene transitions for level 0.
 extension _Level0Interaction on _Level0State {
   KeyEventResult _onKeyEvent(KeyEvent event) {
+    final Level0UpdateState? state = _updateState;
     return handleGameplayKeyEvent(
       event: event,
       pressedKeys: _pressedKeys,
       onBackToMenu: _goBackToMenu,
+      inEndState: state != null && state.isWin,
+      canExitEndState: state?.canExitEndState ?? false,
     );
   }
 

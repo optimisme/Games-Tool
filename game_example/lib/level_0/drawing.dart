@@ -135,9 +135,17 @@ class Level0Painter extends CustomPainter {
         drawTopRightHudText(
           canvas: canvas,
           hudRect: hudRect,
-          text: 'Arbres: ${renderState!.arbresRemovedCount}',
+          text:
+              'Arbres: ${renderState!.arbresRemovedCount}/${renderState!.totalArbres}',
           top: 5,
         );
+        if (renderState!.isWin) {
+          _drawYouWinOverlay(
+            canvas,
+            viewportSize,
+            showPressAnyKey: renderState!.canExitEndState,
+          );
+        }
       },
     );
   }
@@ -271,10 +279,37 @@ class Level0Painter extends CustomPainter {
     }
   }
 
+  void _drawYouWinOverlay(
+    Canvas canvas,
+    Size viewportSize, {
+    required bool showPressAnyKey,
+  }) {
+    drawCenteredEndOverlay(
+      canvas: canvas,
+      viewportSize: viewportSize,
+      title: 'TU GUANYES',
+      showHint: showPressAnyKey,
+      hintText: 'Prem qualsevol tecla',
+      hintStyle: const TextStyle(
+        color: Color(0xFFE8F3FF),
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.8,
+      ),
+      titleCenterYOffset: -20,
+      hintCenterYOffset: 6,
+    );
+  }
+
   @override
   bool shouldRepaint(covariant Level0Painter oldDelegate) {
     // Tick counter is the repaint clock; level identity change also invalidates frame.
     return oldDelegate.renderState?.tickCounter != renderState?.tickCounter ||
+        oldDelegate.renderState?.arbresRemovedCount !=
+            renderState?.arbresRemovedCount ||
+        oldDelegate.renderState?.isWin != renderState?.isWin ||
+        oldDelegate.renderState?.canExitEndState !=
+            renderState?.canExitEndState ||
         oldDelegate.level != level;
   }
 }

@@ -193,3 +193,64 @@ void drawCenteredText({
     ),
   );
 }
+
+void drawCenteredEndOverlay({
+  required Canvas canvas,
+  required Size viewportSize,
+  required String title,
+  required bool showHint,
+  required String hintText,
+  TextStyle titleStyle = const TextStyle(
+    color: Color(0xFFFFFFFF),
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 1.5,
+  ),
+  TextStyle hintStyle = const TextStyle(
+    color: Color(0xFFE0F2FF),
+    fontSize: 8.5,
+    fontWeight: FontWeight.w600,
+  ),
+  double titleCenterYOffset = -12,
+  double hintCenterYOffset = 16,
+  Color scrimColor = const Color(0xB3000000),
+}) {
+  canvas.drawRect(
+    Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
+    Paint()..color = scrimColor,
+  );
+
+  final TextPainter titlePainter = TextPainter(
+    text: TextSpan(
+      text: title,
+      style: titleStyle,
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  titlePainter.paint(
+    canvas,
+    Offset(
+      (viewportSize.width - titlePainter.width) / 2,
+      (viewportSize.height - titlePainter.height) / 2 + titleCenterYOffset,
+    ),
+  );
+
+  if (!showHint) {
+    return;
+  }
+
+  final TextPainter hintPainter = TextPainter(
+    text: TextSpan(
+      text: hintText,
+      style: hintStyle,
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+  hintPainter.paint(
+    canvas,
+    Offset(
+      (viewportSize.width - hintPainter.width) / 2,
+      (viewportSize.height - hintPainter.height) / 2 + hintCenterYOffset,
+    ),
+  );
+}

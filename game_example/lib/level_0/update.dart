@@ -20,10 +20,15 @@ extension _Level0Update on _Level0State {
       return;
     }
 
-    _updateMovement(state, dt);
-    _camera
-      ..x = state.playerX
-      ..y = state.playerY;
+    if (!state.isWin) {
+      _updateMovement(state, dt);
+      _camera
+        ..x = state.playerX
+        ..y = state.playerY;
+    } else if (!state.canExitEndState) {
+      state.endStateElapsedSeconds += dt;
+      state.tickCounter += 1;
+    }
 
     _refreshLevel0();
   }
@@ -110,6 +115,7 @@ extension _Level0Update on _Level0State {
 
     state.isMoving = state.playerX != previousX || state.playerY != previousY;
     _clearDecorationTileIfOnArbre(state);
+    _updateWinState(state);
     _revealPontAmagatLayerIfEnteringFuturPontZone(state);
     state.isOnPont = _isInsidePontZone(state);
     state.animationTimeSeconds += dt;
@@ -221,6 +227,22 @@ extension _Level0Update on _Level0State {
       -1,
     );
     state.arbresRemovedCount += 1;
+  }
+
+  void _updateWinState(Level0UpdateState state) {
+    if (state.isWin || state.totalArbres <= 0) {
+      return;
+    }
+    if (state.arbresRemovedCount >= state.totalArbres) {
+      _triggerWin(state);
+    }
+  }
+
+  void _triggerWin(Level0UpdateState state) {
+    state.isWin = true;
+    state.endStateElapsedSeconds = 0;
+    state.isMoving = false;
+    _pressedKeys.clear();
   }
 
   bool _isInsideZoneWithGameplayData(

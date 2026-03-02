@@ -55,6 +55,7 @@ extension _Level0Initialize on _Level0State {
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 20,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 20,
       speedPerSecond: 95,
+      totalArbres: _countLevel0ArbreZones(_level),
     );
 
     // Camera tracks player world coordinates directly in this level.
