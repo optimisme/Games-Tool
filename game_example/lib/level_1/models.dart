@@ -25,6 +25,7 @@ class Level1UpdateState {
   bool isGameOver = false;
   bool isWin = false;
   double endStateElapsedSeconds = 0;
+  double fps = 60;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   double platformMotionTimeSeconds = 0;
@@ -60,6 +61,7 @@ class Level1RenderState {
     required this.canExitEndState,
     required this.facingRight,
     required this.tickCounter,
+    required this.fps,
     required this.animationTimeSeconds,
     required this.gemsCount,
     required this.lifePercent,
@@ -83,6 +85,7 @@ class Level1RenderState {
       canExitEndState: state.canExitEndState,
       facingRight: state.facingRight,
       tickCounter: state.tickCounter,
+      fps: state.fps,
       animationTimeSeconds: state.animationTimeSeconds,
       gemsCount: state.gemsCount,
       lifePercent: state.lifePercent,
@@ -107,6 +110,7 @@ class Level1RenderState {
   final bool canExitEndState;
   final bool facingRight;
   final int tickCounter;
+  final double fps;
   final double animationTimeSeconds;
   final int gemsCount;
   final int lifePercent;

@@ -19,13 +19,18 @@ extension _Level1Update on _Level1State {
     if (!mounted || state == null) {
       return;
     }
+    state.fps = _runtimeApi.updateSmoothedFps(
+      previousFps: state.fps,
+      dtSeconds: dt,
+    );
 
     if (!state.isGameOver && !state.isWin) {
       _updatePhysics(state, dt);
+      final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
       // Camera follows player with level-configured offsets.
       _camera
-        ..x = state.playerX + _cameraFollowOffsetX
-        ..y = state.playerY + _cameraFollowOffsetY;
+        ..x = cameraFocus.dx + _cameraFollowOffsetX
+        ..y = cameraFocus.dy + _cameraFollowOffsetY;
     } else if (!state.canExitEndState) {
       state.endStateElapsedSeconds += dt;
       state.tickCounter += 1;
@@ -112,6 +117,26 @@ extension _Level1Update on _Level1State {
 
     state.animationTimeSeconds += dt;
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
+  }
+
+  Offset _resolvePlayerCameraFocusPoint(Level1UpdateState state) {
+    final int? playerSpriteIndex = _playerSpriteIndex;
+    if (playerSpriteIndex == null) {
+      return Offset(state.playerX, state.playerY);
+    }
+    return _runtimeApi.spriteFocusPoint(
+      levelIndex: widget.levelIndex,
+      spriteIndex: playerSpriteIndex,
+      pose: RuntimeSpritePose(
+        levelIndex: widget.levelIndex,
+        spriteIndex: playerSpriteIndex,
+        x: state.playerX,
+        y: state.playerY,
+        flipX: !state.facingRight,
+        elapsedSeconds: state.animationTimeSeconds,
+      ),
+      elapsedSeconds: state.animationTimeSeconds,
+    );
   }
 
   Offset _updateMovingPlatformPath(Level1UpdateState state, double dt) {

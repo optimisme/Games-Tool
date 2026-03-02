@@ -334,6 +334,38 @@ class GameDataRuntimeApi {
     );
   }
 
+  /// Converts frame delta time to instantaneous FPS.
+  /// Returns 0 when `dtSeconds` is non-finite or non-positive.
+  double fpsFromDeltaTime(
+    double dtSeconds, {
+    double minDtSeconds = 0.000001,
+  }) {
+    if (!dtSeconds.isFinite || dtSeconds <= 0) {
+      return 0;
+    }
+    final double safeDt = dtSeconds < minDtSeconds ? minDtSeconds : dtSeconds;
+    return 1 / safeDt;
+  }
+
+  /// Exponential moving average FPS counter update.
+  ///
+  /// `smoothing` closer to 1 produces a steadier value.
+  double updateSmoothedFps({
+    required double previousFps,
+    required double dtSeconds,
+    double smoothing = 0.9,
+  }) {
+    final double current = fpsFromDeltaTime(dtSeconds);
+    if (current <= 0) {
+      return previousFps.isFinite ? previousFps : 0;
+    }
+    if (!previousFps.isFinite || previousFps <= 0) {
+      return current;
+    }
+    final double clampedSmoothing = smoothing.clamp(0.0, 0.9999);
+    return previousFps * clampedSmoothing + current * (1 - clampedSmoothing);
+  }
+
   Offset worldToScreen({
     required double worldX,
     required double worldY,
@@ -368,6 +400,49 @@ class GameDataRuntimeApi {
       depth: depth,
       depthSensitivity: depthSensitivity,
     );
+  }
+
+  /// Resolves an anchor-aware focus point inside the sprite world rect.
+  ///
+  /// By default it returns the visual center of the sprite (`0.5, 0.5`) which
+  /// is better for camera following than using the raw anchor position.
+  Offset spriteFocusPoint({
+    required int levelIndex,
+    required int spriteIndex,
+    RuntimeSpritePose? pose,
+    int? frameIndex,
+    double elapsedSeconds = 0,
+    double normalizedX = 0.5,
+    double normalizedY = 0.5,
+    double fallbackX = 0,
+    double fallbackY = 0,
+  }) {
+    final double focusX = normalizedX.clamp(0.0, 1.0);
+    final double focusY = normalizedY.clamp(0.0, 1.0);
+    final Rect? anchoredRect = spriteAnchoredRect(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+      pose: pose,
+      elapsedSeconds: pose?.elapsedSeconds ?? elapsedSeconds,
+    );
+    if (anchoredRect != null &&
+        anchoredRect.width > 0 &&
+        anchoredRect.height > 0) {
+      return Offset(
+        anchoredRect.left + anchoredRect.width * focusX,
+        anchoredRect.top + anchoredRect.height * focusY,
+      );
+    }
+
+    final Map<String, dynamic>? sprite = spriteByIndex(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+    );
+    final double baseX =
+        pose?.x ?? (sprite == null ? fallbackX : _gamesTool.spriteX(sprite));
+    final double baseY =
+        pose?.y ?? (sprite == null ? fallbackY : _gamesTool.spriteY(sprite));
+    return Offset(baseX, baseY);
   }
 
   /// Converts a world position to a tile coordinate in a target layer.

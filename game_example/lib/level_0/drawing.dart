@@ -139,6 +139,12 @@ class Level0Painter extends CustomPainter {
               'Arbres: ${renderState!.arbresRemovedCount}/${renderState!.totalArbres}',
           top: 5,
         );
+        drawTopRightHudText(
+          canvas: canvas,
+          hudRect: hudRect,
+          text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
+          top: 13,
+        );
         if (renderState!.isWin) {
           _drawYouWinOverlay(
             canvas,
