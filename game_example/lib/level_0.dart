@@ -538,16 +538,16 @@ class Level0Painter extends CustomPainter {
         _drawText(
           canvas,
           'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
-          const Offset(20, 20),
+          const Offset(20, 170),
         );
         if (renderState!.isOnPont) {
-          _drawText(canvas, 'Caminant pel pont', const Offset(20, 42));
+          _drawText(canvas, 'Caminant pel pont', const Offset(20, 5));
         }
         _drawTopRightText(
           canvas,
           viewportSize,
           'Arbres: ${renderState!.arbresRemovedCount}',
-          20,
+          5,
         );
       },
     );

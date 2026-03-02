@@ -1201,6 +1201,12 @@ class LayoutZonesState extends State<LayoutZones> {
     final TextStyle listItemTitleStyle = typography.body.copyWith(
       fontSize: (typography.body.fontSize ?? 14) + 2,
       fontWeight: FontWeight.w700,
+      height: 1.0,
+    );
+    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
+      fontSize: typography.body.fontSize ?? 14,
+      fontWeight: FontWeight.w400,
+      height: 1.0,
     );
 
     final bool hasLevel = appData.selectedLevel >= 0 &&
@@ -1438,6 +1444,8 @@ class LayoutZonesState extends State<LayoutZones> {
                       zoneIndex == appData.selectedZone;
                   final GameZone zone = row.zone!;
                   final String zoneColorName = _zoneColorName(appData, zone);
+                  final String zoneGameplayData =
+                      zone.gameplayData.replaceAll(RegExp(r'\s+'), ' ').trim();
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
                     key: ValueKey(zone),
@@ -1486,12 +1494,37 @@ class LayoutZonesState extends State<LayoutZones> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        CDKText(
-                                          zone.type,
-                                          role: isSelected
-                                              ? CDKTextRole.bodyStrong
-                                              : CDKTextRole.body,
-                                          style: listItemTitleStyle,
+                                        RichText(
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          overflow: TextOverflow.ellipsis,
+                                          strutStyle: StrutStyle.fromTextStyle(
+                                            listItemTitleStyle,
+                                            forceStrutHeight: true,
+                                          ),
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: zone.type,
+                                                style:
+                                                    listItemTitleStyle.copyWith(
+                                                  color: cdkColors.colorText,
+                                                ),
+                                              ),
+                                              if (zoneGameplayData.isNotEmpty)
+                                                TextSpan(
+                                                  text:
+                                                      '  Gameplay: $zoneGameplayData',
+                                                  style: listItemInlineMetaStyle
+                                                      .copyWith(
+                                                    color: cdkColors.colorText
+                                                        .withValues(
+                                                      alpha: 0.72,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
@@ -2163,9 +2196,6 @@ class _ZoneTypesPopover extends StatefulWidget {
 class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
   late final List<_ZoneTypeDraft> _drafts =
       widget.initialTypes.map((item) => item.copyWith()).toList(growable: true);
-  final GlobalKey<AnimatedListState> _typesListKey =
-      GlobalKey<AnimatedListState>();
-  static const Duration _rowAnimationDuration = Duration(milliseconds: 220);
   int _selectedIndex = -1;
   int _newKeyCounter = 0;
   late final TextEditingController _nameController = TextEditingController();
@@ -2176,11 +2206,11 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
     required BuildContext context,
     required int index,
     required _ZoneTypeDraft draft,
-    Animation<double>? animation,
   }) {
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     final bool selected = index == _selectedIndex;
-    final Widget row = GestureDetector(
+    return GestureDetector(
+      key: ValueKey(draft.key),
       onTap: () => _selectIndex(index),
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -2208,26 +2238,19 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
                 color: cdkColors.colorText,
               ),
             ),
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  CupertinoIcons.bars,
+                  size: 16,
+                  color: cdkColors.colorText,
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-
-    if (animation == null) {
-      return row;
-    }
-
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    return SizeTransition(
-      sizeFactor: curved,
-      axisAlignment: -1.0,
-      child: FadeTransition(
-        opacity: curved,
-        child: row,
       ),
     );
   }
@@ -2285,17 +2308,12 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
     }
 
     setState(() {
-      final int insertIndex = _drafts.length;
       _drafts.add(
         _ZoneTypeDraft(
           key: '__new_${_newKeyCounter++}',
           name: nextName,
           color: _selectedColor,
         ),
-      );
-      _typesListKey.currentState?.insertItem(
-        insertIndex,
-        duration: _rowAnimationDuration,
       );
       _selectedIndex = -1;
       _nameController.clear();
@@ -2332,25 +2350,44 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
     if (_selectedIndex < 0 || _selectedIndex >= _drafts.length) {
       return;
     }
-    final int removedIndex = _selectedIndex;
-    final _ZoneTypeDraft removedDraft = _drafts[removedIndex];
     setState(() {
-      _drafts.removeAt(removedIndex);
+      _drafts.removeAt(_selectedIndex);
       _selectedIndex = -1;
       _nameController.clear();
       _selectedColor = widget.colorPalette.first;
       _nameError = null;
     });
-    _typesListKey.currentState?.removeItem(
-      removedIndex,
-      (context, animation) => _buildDraftRow(
-        context: context,
-        index: removedIndex,
-        draft: removedDraft,
-        animation: animation,
-      ),
-      duration: _rowAnimationDuration,
-    );
+    _emitChanged();
+  }
+
+  void _reorderDrafts(int oldIndex, int newIndex) {
+    if (oldIndex < 0 ||
+        oldIndex >= _drafts.length ||
+        newIndex < 0 ||
+        newIndex > _drafts.length) {
+      return;
+    }
+    int insertIndex = newIndex;
+    if (oldIndex < newIndex) {
+      insertIndex -= 1;
+    }
+    if (insertIndex == oldIndex) {
+      return;
+    }
+
+    final String? selectedKey =
+        (_selectedIndex >= 0 && _selectedIndex < _drafts.length)
+            ? _drafts[_selectedIndex].key
+            : null;
+
+    setState(() {
+      final _ZoneTypeDraft moved = _drafts.removeAt(oldIndex);
+      _drafts.insert(insertIndex, moved);
+      if (selectedKey != null) {
+        _selectedIndex =
+            _drafts.indexWhere((draft) => draft.key == selectedKey);
+      }
+    });
     _emitChanged();
   }
 
@@ -2393,19 +2430,27 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
                 ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 180),
-                child: AnimatedList(
-                  key: _typesListKey,
-                  shrinkWrap: true,
-                  initialItemCount: _drafts.length,
-                  itemBuilder: (context, index, animation) {
-                    final _ZoneTypeDraft draft = _drafts[index];
-                    return _buildDraftRow(
-                      context: context,
-                      index: index,
-                      draft: draft,
-                      animation: animation,
-                    );
-                  },
+                child: Localizations.override(
+                  context: context,
+                  delegates: const [
+                    DefaultMaterialLocalizations.delegate,
+                    DefaultWidgetsLocalizations.delegate,
+                  ],
+                  child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: _drafts.length,
+                    onReorder: _reorderDrafts,
+                    itemBuilder: (context, index) {
+                      final _ZoneTypeDraft draft = _drafts[index];
+                      return _buildDraftRow(
+                        context: context,
+                        index: index,
+                        draft: draft,
+                      );
+                    },
+                  ),
                 ),
               ),
               SizedBox(height: spacing.md),

@@ -1270,6 +1270,7 @@ class _AnimationRigEditorPopoverState
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     final bool selected = index == _selectedIndex;
     return GestureDetector(
+      key: ValueKey(draft.id),
       onTap: () {
         if (selected) {
           _setSelectedIndex(-1, notifyParent: true);
@@ -1300,10 +1301,54 @@ class _AnimationRigEditorPopoverState
                 color: cdkColors.colorText,
               ),
             ),
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  CupertinoIcons.bars,
+                  size: 16,
+                  color: cdkColors.colorText,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _reorderHitBoxes(int oldIndex, int newIndex) {
+    if (oldIndex < 0 ||
+        oldIndex >= _drafts.length ||
+        newIndex < 0 ||
+        newIndex > _drafts.length) {
+      return;
+    }
+    int insertIndex = newIndex;
+    if (oldIndex < newIndex) {
+      insertIndex -= 1;
+    }
+    if (insertIndex == oldIndex) {
+      return;
+    }
+
+    final String? selectedId =
+        (_selectedIndex >= 0 && _selectedIndex < _drafts.length)
+            ? _drafts[_selectedIndex].id
+            : null;
+
+    setState(() {
+      final _HitBoxDraft moved = _drafts.removeAt(oldIndex);
+      _drafts.insert(insertIndex, moved);
+      if (selectedId != null) {
+        _selectedIndex = _drafts.indexWhere((item) => item.id == selectedId);
+      }
+      _refreshHitBoxControllers();
+    });
+
+    widget.onSelectedHitBoxChanged(_selectedIndex);
+    _emitChanged();
   }
 
   @override
@@ -1392,12 +1437,22 @@ class _AnimationRigEditorPopoverState
           ),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 170),
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _drafts.length,
-            itemBuilder: (context, index) {
-              return _buildHitBoxListRow(context, index, _drafts[index]);
-            },
+          child: Localizations.override(
+            context: context,
+            delegates: const [
+              DefaultMaterialLocalizations.delegate,
+              DefaultWidgetsLocalizations.delegate,
+            ],
+            child: ReorderableListView.builder(
+              buildDefaultDragHandles: false,
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              itemCount: _drafts.length,
+              onReorder: _reorderHitBoxes,
+              itemBuilder: (context, index) {
+                return _buildHitBoxListRow(context, index, _drafts[index]);
+              },
+            ),
           ),
         ),
         SizedBox(height: spacing.sm),
