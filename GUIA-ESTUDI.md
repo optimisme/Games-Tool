@@ -65,8 +65,6 @@ Aquesta guia esta pensada per a estudiants que volen entendre aquest projecte i 
 2. Duplica `level_0` com a `level_2` i fes un canvi de gameplay.
 3. Afegeix un tipus de zona nou i activa comportament a `update.dart`.
 4. Afegeix un comptador HUD que canvii segons col.lisions.
-5. Modifica el comportament de camera (offset de seguiment o focal) i observa
-   l'impacte al render.
 
 ## 5. Consells per entendre el codi mes rapid
 
