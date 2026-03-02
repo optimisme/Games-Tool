@@ -7,17 +7,17 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import 'app_data.dart';
-import 'camera.dart';
-import 'menu.dart';
-import 'utils_gamestool/utils_gamestool.dart';
+import '../app_data.dart';
+import '../camera.dart';
+import '../menu/main.dart';
+import '../utils_gamestool/utils_gamestool.dart';
 
-part 'level_0/drawing.dart';
-part 'level_0/hud.dart';
-part 'level_0/initialize.dart';
-part 'level_0/interaction.dart';
-part 'level_0/models.dart';
-part 'level_0/update.dart';
+part 'drawing.dart';
+part 'hud.dart';
+part 'initialize.dart';
+part 'interaction.dart';
+part 'models.dart';
+part 'update.dart';
 
 const Set<String> _level0BlockedZoneTypes = <String>{
   'Mur',

@@ -1,4 +1,4 @@
-part of '../level_0.dart';
+part of 'main.dart';
 
 const String _level0BackIconAssetPath = 'other/enrrere.png';
 const String _level0BackLabel = 'Tornar';

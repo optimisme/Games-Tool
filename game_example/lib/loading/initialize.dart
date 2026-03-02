@@ -1,4 +1,4 @@
-part of '../loading.dart';
+part of 'main.dart';
 
 extension _LoadingInitialize on _LoadingState {
   void _scheduleInitialLoad() {

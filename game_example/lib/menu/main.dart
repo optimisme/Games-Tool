@@ -5,13 +5,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import 'app_data.dart';
-import 'loading.dart';
+import '../app_data.dart';
+import '../loading/main.dart';
 
-part 'menu/drawing.dart';
-part 'menu/initialize.dart';
-part 'menu/interaction.dart';
-part 'menu/layout.dart';
+part 'drawing.dart';
+part 'initialize.dart';
+part 'interaction.dart';
+part 'layout.dart';
 
 const List<String> _menuOptions = <String>['LEVEL 0', 'LEVEL 1'];
 

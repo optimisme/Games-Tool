@@ -1,4 +1,4 @@
-part of '../level_0.dart';
+part of 'main.dart';
 
 class Level0UpdateState {
   Level0UpdateState({

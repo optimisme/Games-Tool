@@ -1,4 +1,4 @@
-part of '../menu.dart';
+part of 'main.dart';
 
 extension _MenuInitialize on _MenuState {
   void _startCursorBlinkTimer() {

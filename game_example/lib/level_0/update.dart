@@ -1,4 +1,4 @@
-part of '../level_0.dart';
+part of 'main.dart';
 
 extension _Level0Update on _Level0State {
   void _startLoop() {
