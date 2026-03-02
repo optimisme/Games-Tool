@@ -20,7 +20,20 @@ extension _Level0Initialize on _Level0State {
         _resolveLayerIndexByName(_level, _level0DecoracionsLayerName);
     _pontAmagatLayerIndex =
         _resolveLayerIndexByName(_level, _level0PontAmagatLayerName);
-    unawaited(_ensureBackIconLoaded(appData));
+    unawaited(
+      ensureStateImageLoaded(
+        appData: appData,
+        assetPath: _level0BackIconAssetPath,
+        currentImage: _backIconImage,
+        isMounted: () => mounted,
+        refresh: (VoidCallback update) {
+          _refreshLevel0(update);
+        },
+        assignImage: (ui.Image image) {
+          _backIconImage = image;
+        },
+      ),
+    );
 
     final double levelViewportWidth = _level == null
         ? GamesToolApi.defaultViewportWidth

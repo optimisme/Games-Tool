@@ -23,7 +23,7 @@ class Level0Painter extends CustomPainter {
     if (level == null || renderState == null) {
       final Paint background = Paint()..color = const Color(0xFF0B1014);
       canvas.drawRect(Offset.zero & size, background);
-      _drawText(canvas, 'Loading level 0...', const Offset(20, 20));
+      drawHudText(canvas, 'Loading level 0...', const Offset(20, 20));
       return;
     }
 
@@ -50,7 +50,7 @@ class Level0Painter extends CustomPainter {
       viewport: viewport,
       outerBackgroundColor: levelBackground,
       drawInViewport: (Size viewportSize) {
-        final Rect hudRect = _resolveLevel0HudRectInVirtualViewport(
+        final Rect hudRect = resolveHudRectInVirtualViewport(
           viewport: viewport,
           virtualViewportSize: viewportSize,
         );
@@ -60,131 +60,137 @@ class Level0Painter extends CustomPainter {
           // Rendering works in virtual viewport space, so focal follows viewport width.
           focal: viewportSize.width,
         );
-        GamesToolRuntimeRenderer.drawLevelTileLayers(
-          canvas: canvas,
-          painterSize: viewportSize,
-          level: level!,
+        final List<Map<String, dynamic>> layerPainterOrder =
+            appData.gamesTool.listLevelLayers(
+          level!,
+          visibleOnly: true,
+          painterOrder: true,
+        );
+        final List<Map<String, dynamic>> levelSprites =
+            ((level!['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+                .whereType<Map<String, dynamic>>()
+                .toList(growable: false);
+        final Map<String, dynamic>? playerSprite =
+            appData.gamesTool.findSpriteByType(level!, 'Heroi') ??
+                appData.gamesTool.findFirstSprite(level!);
+        final List<double> depthOrder =
+            GamesToolRuntimeRenderer.resolveDepthPainterOrder(
           gamesTool: appData.gamesTool,
-          imagesCache: appData.imagesCache,
-          camera: effectiveCamera,
-          backgroundColor: levelBackground,
-          depthSensitivity: depthSensitivity,
+          layerPainterOrder: layerPainterOrder,
+          sprites: levelSprites,
+          includeSprite: (int _, Map<String, dynamic> sprite) {
+            return playerSprite != null && identical(sprite, playerSprite);
+          },
         );
 
-        _drawAnimatedPlayer(canvas, viewportSize, effectiveCamera);
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
+          Paint()..color = levelBackground,
+        );
+        for (final double depth in depthOrder) {
+          GamesToolRuntimeRenderer.drawLevelTileLayers(
+            canvas: canvas,
+            painterSize: viewportSize,
+            level: level!,
+            gamesTool: appData.gamesTool,
+            imagesCache: appData.imagesCache,
+            camera: effectiveCamera,
+            backgroundColor: levelBackground,
+            depthSensitivity: depthSensitivity,
+            drawBackground: false,
+            onlyDepth: depth,
+          );
+          _drawSpritesAtDepth(
+            canvas: canvas,
+            size: viewportSize,
+            runtimeCamera: effectiveCamera,
+            depthSensitivity: depthSensitivity,
+            depth: depth,
+            playerSprite: playerSprite,
+          );
+        }
+        if (playerSprite == null) {
+          _drawFallbackPlayer(canvas, viewportSize, effectiveCamera);
+        }
 
-        _drawBackToMenuHud(canvas, hudRect);
-        _drawText(
+        drawBackToMenuHud(
+          canvas: canvas,
+          hudRect: hudRect,
+          iconImage: backIconImage,
+          label: _level0BackLabel,
+          layout: _level0BackHudLayout,
+        );
+        drawHudText(
           canvas,
           'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
           Offset(hudRect.left + 20, hudRect.top + 170),
         );
         if (renderState!.isOnPont) {
-          _drawText(
+          drawHudText(
             canvas,
             'Caminant pel pont',
             Offset(hudRect.left + 20, hudRect.top + 20),
           );
         }
-        _drawTopRightText(
-          canvas,
-          hudRect,
-          'Arbres: ${renderState!.arbresRemovedCount}',
-          5,
+        drawTopRightHudText(
+          canvas: canvas,
+          hudRect: hudRect,
+          text: 'Arbres: ${renderState!.arbresRemovedCount}',
+          top: 5,
         );
       },
     );
   }
 
-  void _drawBackToMenuHud(Canvas canvas, Rect hudRect) {
-    final ui.Image? iconImage = backIconImage;
-    if (iconImage != null) {
-      final Rect srcRect = Rect.fromLTWH(
-        0,
-        0,
-        iconImage.width.toDouble(),
-        iconImage.height.toDouble(),
-      );
-      final Rect dstRect = Rect.fromLTWH(
-        hudRect.left + _level0BackHudX,
-        hudRect.top + _level0BackHudY,
-        _level0BackIconWidth,
-        _level0BackIconHeight,
-      );
-      canvas.drawImageRect(iconImage, srcRect, dstRect, Paint());
+  void _drawSpritesAtDepth({
+    required Canvas canvas,
+    required Size size,
+    required RuntimeCamera2D runtimeCamera,
+    required double depthSensitivity,
+    required double depth,
+    required Map<String, dynamic>? playerSprite,
+  }) {
+    if (playerSprite == null) {
+      return;
     }
-    _drawText(
+    final double playerDepth = appData.gamesTool.spriteDepth(playerSprite);
+    if (!GamesToolRuntimeRenderer.sameDepth(playerDepth, depth)) {
+      return;
+    }
+    _drawAnimatedPlayer(
       canvas,
-      _level0BackLabel,
-      Offset(hudRect.left + _level0BackTextX, hudRect.top + _level0BackHudY),
-    );
-  }
-
-  void _drawText(Canvas canvas, String text, Offset offset) {
-    final TextPainter painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(
-          color: Color(0xFFE0F2FF),
-          fontSize: 6.5,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(canvas, offset);
-  }
-
-  void _drawTopRightText(Canvas canvas, Rect hudRect, String text, double top) {
-    final TextPainter painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(
-          color: Color(0xFFE0F2FF),
-          fontSize: 6.5,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(
-      canvas,
-      Offset(hudRect.right - painter.width - 20, hudRect.top + top),
+      size,
+      runtimeCamera,
+      playerSprite: playerSprite,
+      depthSensitivity: depthSensitivity,
     );
   }
 
   void _drawAnimatedPlayer(
     Canvas canvas,
     Size size,
-    RuntimeCamera2D runtimeCamera,
-  ) {
+    RuntimeCamera2D runtimeCamera, {
+    required Map<String, dynamic>? playerSprite,
+    required double depthSensitivity,
+  }) {
     final Level0RenderState state = renderState!;
     if (level == null) {
       _drawFallbackPlayer(canvas, size, runtimeCamera);
       return;
     }
 
-    final Map<String, dynamic>? sprite =
-        appData.gamesTool.findSpriteByType(level!, 'Heroi') ??
-            appData.gamesTool.findFirstSprite(level!);
     final _AnimationSelection animation = _resolveAnimationFor(state);
-    if (sprite == null) {
+    if (playerSprite == null) {
       _drawFallbackPlayer(canvas, size, runtimeCamera);
       return;
     }
-
-    final double depthSensitivity =
-        GamesToolRuntimeRenderer.levelDepthSensitivity(
-      gamesTool: appData.gamesTool,
-      level: level,
-    );
     final bool drewSprite = GamesToolRuntimeRenderer.drawAnimatedSprite(
       canvas: canvas,
       painterSize: size,
       gameData: gameData ?? appData.gameData,
       gamesTool: appData.gamesTool,
       imagesCache: appData.imagesCache,
-      sprite: sprite,
+      sprite: playerSprite,
       camera: runtimeCamera,
       elapsedSeconds: state.animationTimeSeconds,
       animationName: animation.animationName,

@@ -3,65 +3,28 @@ part of 'main.dart';
 /// Input and navigation rules for active gameplay and end states.
 extension _Level1Interaction on _Level1State {
   void _goBackToMenu() {
-    if (!mounted || _isLeavingLevel) {
-      return;
-    }
-    _isLeavingLevel = true;
-    _ticker?.stop();
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, secondaryAnimation) => const Menu(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final Animation<Offset> slideAnimation = Tween<Offset>(
-            begin: const Offset(-1, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-          return SlideTransition(
-            position: slideAnimation,
-            child: child,
-          );
-        },
-      ),
+    goBackToMenu(
+      context: context,
+      isMounted: mounted,
+      isLeavingLevel: _isLeavingLevel,
+      setIsLeavingLevel: (bool value) {
+        _isLeavingLevel = value;
+      },
+      ticker: _ticker,
     );
   }
 
   KeyEventResult _onKeyEvent(KeyEvent event) {
-    final LogicalKeyboardKey key = event.logicalKey;
     final Level1UpdateState? state = _updateState;
-
-    if (state != null && (state.isGameOver || state.isWin)) {
-      if (event is KeyDownEvent && state.canExitEndState) {
-        _goBackToMenu();
-      }
-      return KeyEventResult.handled;
-    }
-
-    if (key == LogicalKeyboardKey.escape) {
-      if (event is KeyDownEvent) {
-        _goBackToMenu();
-      }
-      return KeyEventResult.handled;
-    }
-
-    if (event is KeyDownEvent) {
-      _pressedKeys.add(key);
-      // Jump is edge-triggered; update loop consumes this flag once per tick.
-      if (key == LogicalKeyboardKey.space ||
-          key == LogicalKeyboardKey.arrowUp ||
-          key == LogicalKeyboardKey.keyW) {
+    return handleGameplayKeyEvent(
+      event: event,
+      pressedKeys: _pressedKeys,
+      onBackToMenu: _goBackToMenu,
+      inEndState: state != null && (state.isGameOver || state.isWin),
+      canExitEndState: state?.canExitEndState ?? false,
+      onJumpQueued: () {
         _jumpQueued = true;
-      }
-    } else if (event is KeyUpEvent) {
-      _pressedKeys.remove(key);
-    }
-
-    return KeyEventResult.handled;
+      },
+    );
   }
 }

@@ -2,10 +2,9 @@ part of 'main.dart';
 
 extension _MenuInteraction on _MenuState {
   void _startLevel(BuildContext context, AppData appData, int levelIndex) {
-    Navigator.of(context).pushReplacement(
-      CupertinoPageRoute<void>(
-        builder: (_) => Loading(levelIndex: levelIndex),
-      ),
+    pushReplacementCupertinoPage(
+      context: context,
+      builder: (_) => Loading(levelIndex: levelIndex),
     );
   }
 

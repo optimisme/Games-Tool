@@ -33,26 +33,32 @@ class _MenuPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
 
-    _drawCenteredText(
+    drawCenteredText(
       canvas: canvas,
       canvasWidth: size.width,
       text: 'Game Example',
       y: size.height * 0.18,
-      color: _primary,
-      fontSize: math.min(52, size.width * 0.11),
-      weight: FontWeight.w900,
-      letterSpacing: 4,
+      style: TextStyle(
+        color: _primary,
+        fontSize: math.min(52, size.width * 0.11),
+        fontWeight: FontWeight.w900,
+        fontFamily: 'monospace',
+        letterSpacing: 4,
+      ),
     );
 
-    _drawCenteredText(
+    drawCenteredText(
       canvas: canvas,
       canvasWidth: size.width,
       text: 'SELECT LEVEL',
       y: size.height * 0.30,
-      color: _dim,
-      fontSize: math.min(26, size.width * 0.056),
-      weight: FontWeight.w700,
-      letterSpacing: 3,
+      style: TextStyle(
+        color: _dim,
+        fontSize: math.min(26, size.width * 0.056),
+        fontWeight: FontWeight.w700,
+        fontFamily: 'monospace',
+        letterSpacing: 3,
+      ),
     );
 
     for (int i = 0; i < optionRects.length; i++) {
@@ -71,64 +77,34 @@ class _MenuPainter extends CustomPainter {
       canvas.drawRect(rect, paint);
 
       final String prefix = selected && cursorVisible ? '> ' : '  ';
-      _drawCenteredText(
+      drawCenteredText(
         canvas: canvas,
         canvasWidth: size.width,
         text: '$prefix${optionLabels[i]}',
         y: rect.center.dy - 12,
-        color: selected ? _primary : const Color(0xFF23AA54),
-        fontSize: 28,
-        weight: FontWeight.w700,
-        letterSpacing: 2,
+        style: TextStyle(
+          color: selected ? _primary : const Color(0xFF23AA54),
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'monospace',
+          letterSpacing: 2,
+        ),
       );
     }
 
     const String footer = 'ARROWS/W,S: MOVE   ENTER/SPACE: PLAY   MOUSE: CLICK';
 
-    _drawCenteredText(
+    drawCenteredText(
       canvas: canvas,
       canvasWidth: size.width,
       text: footer,
       y: size.height - 40,
-      color: const Color(0xFF21964A),
-      fontSize: math.min(18, size.width * 0.032),
-      weight: FontWeight.w600,
-      letterSpacing: 1.4,
-    );
-  }
-
-  void _drawCenteredText({
-    required Canvas canvas,
-    required double canvasWidth,
-    required String text,
-    required double y,
-    required Color color,
-    required double fontSize,
-    required FontWeight weight,
-    double letterSpacing = 0,
-  }) {
-    final TextSpan span = TextSpan(
-      text: text,
       style: TextStyle(
-        color: color,
-        fontSize: fontSize,
-        fontWeight: weight,
+        color: const Color(0xFF21964A),
+        fontSize: math.min(18, size.width * 0.032),
+        fontWeight: FontWeight.w600,
         fontFamily: 'monospace',
-        letterSpacing: letterSpacing,
-      ),
-    );
-
-    final TextPainter painter = TextPainter(
-      text: span,
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    )..layout();
-
-    painter.paint(
-      canvas,
-      Offset(
-        (canvasWidth - painter.width) / 2,
-        y,
+        letterSpacing: 1.4,
       ),
     );
   }

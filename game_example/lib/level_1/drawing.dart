@@ -21,7 +21,7 @@ class Level1Painter extends CustomPainter {
     if (level == null || renderState == null) {
       final Paint background = Paint()..color = const Color(0xFF0A0D1A);
       canvas.drawRect(Offset.zero & size, background);
-      _drawText(canvas, 'Loading level 1...', const Offset(20, 20));
+      drawHudText(canvas, 'Loading level 1...', const Offset(20, 20));
       return;
     }
 
@@ -48,7 +48,7 @@ class Level1Painter extends CustomPainter {
       viewport: viewport,
       outerBackgroundColor: levelBackground,
       drawInViewport: (Size viewportSize) {
-        final Rect hudRect = _resolveLevel1HudRectInVirtualViewport(
+        final Rect hudRect = resolveHudRectInVirtualViewport(
           viewport: viewport,
           virtualViewportSize: viewportSize,
         );
@@ -58,15 +58,11 @@ class Level1Painter extends CustomPainter {
           // Rendering works in virtual viewport space, so focal follows viewport width.
           focal: viewportSize.width,
         );
-        GamesToolRuntimeRenderer.drawLevelTileLayers(
-          canvas: canvas,
-          painterSize: viewportSize,
-          level: level!,
-          gamesTool: appData.gamesTool,
-          imagesCache: appData.imagesCache,
-          camera: effectiveCamera,
-          backgroundColor: levelBackground,
-          depthSensitivity: depthSensitivity,
+        final List<Map<String, dynamic>> layerPainterOrder =
+            appData.gamesTool.listLevelLayers(
+          level!,
+          visibleOnly: true,
+          painterOrder: true,
         );
         final List<Map<String, dynamic>> levelSprites =
             ((level!['sprites'] as List<dynamic>?) ?? const <dynamic>[])
@@ -74,82 +70,74 @@ class Level1Painter extends CustomPainter {
                 .toList(growable: false);
         final Map<String, dynamic>? playerSprite =
             _resolveLevel1PlayerSprite(level);
-        for (int spriteIndex = 0;
-            spriteIndex < levelSprites.length;
-            spriteIndex++) {
-          final Map<String, dynamic> sprite = levelSprites[spriteIndex];
-          if (playerSprite != null && identical(sprite, playerSprite)) {
-            continue;
-          }
-          if (renderState!.collectedGemSpriteIndices.contains(spriteIndex)) {
-            continue;
-          }
-          if (renderState!.removedDragonSpriteIndices.contains(spriteIndex)) {
-            continue;
-          }
-          final bool dragonDying =
-              renderState!.dragonDeathStartSeconds.containsKey(spriteIndex);
-          final double? dragonDeathStart =
-              renderState!.dragonDeathStartSeconds[spriteIndex];
-          final bool drawDragonDeath = dragonDying &&
-              dragonDeathStart != null &&
-              _isLevel1DragonSprite(sprite);
-          GamesToolRuntimeRenderer.drawAnimatedSprite(
+        final List<double> depthOrder =
+            GamesToolRuntimeRenderer.resolveDepthPainterOrder(
+          gamesTool: appData.gamesTool,
+          layerPainterOrder: layerPainterOrder,
+          sprites: levelSprites,
+          includeSprite: (int spriteIndex, Map<String, dynamic> sprite) {
+            return !_shouldSkipSprite(
+              spriteIndex: spriteIndex,
+              sprite: sprite,
+              playerSprite: playerSprite,
+              state: renderState!,
+            );
+          },
+        );
+
+        canvas.drawRect(
+          Rect.fromLTWH(0, 0, viewportSize.width, viewportSize.height),
+          Paint()..color = levelBackground,
+        );
+        for (final double depth in depthOrder) {
+          GamesToolRuntimeRenderer.drawLevelTileLayers(
             canvas: canvas,
             painterSize: viewportSize,
-            gameData: appData.gameData,
+            level: level!,
             gamesTool: appData.gamesTool,
             imagesCache: appData.imagesCache,
-            sprite: sprite,
             camera: effectiveCamera,
-            animationName: drawDragonDeath ? _level1AnimDragonDeath : null,
-            elapsedSeconds: drawDragonDeath
-                ? (renderState!.animationTimeSeconds - dragonDeathStart)
-                    .clamp(0.0, double.infinity)
-                : renderState!.animationTimeSeconds,
+            backgroundColor: levelBackground,
             depthSensitivity: depthSensitivity,
+            drawBackground: false,
+            onlyDepth: depth,
+          );
+          _drawSpritesAtDepth(
+            canvas: canvas,
+            viewportSize: viewportSize,
+            camera: effectiveCamera,
+            depthSensitivity: depthSensitivity,
+            depth: depth,
+            sprites: levelSprites,
+            playerSprite: playerSprite,
+            state: renderState!,
           );
         }
 
-        if (playerSprite != null) {
-          final String playerAnimationName =
-              _resolvePlayerAnimationName(renderState!);
-          GamesToolRuntimeRenderer.drawAnimatedSprite(
-            canvas: canvas,
-            painterSize: viewportSize,
-            gameData: appData.gameData,
-            gamesTool: appData.gamesTool,
-            imagesCache: appData.imagesCache,
-            sprite: playerSprite,
-            camera: effectiveCamera,
-            animationName: playerAnimationName,
-            elapsedSeconds: renderState!.animationTimeSeconds,
-            worldX: renderState!.playerX,
-            worldY: renderState!.playerY,
-            drawWidthWorld: renderState!.playerWidth,
-            drawHeightWorld: renderState!.playerHeight,
-            flipX: !renderState!.facingRight,
-            depthSensitivity: depthSensitivity,
-          );
-        }
-
-        _drawBackToMenuHud(canvas, hudRect);
-        _drawText(
+        drawBackToMenuHud(
+          canvas: canvas,
+          hudRect: hudRect,
+          iconImage: backIconImage,
+          label: _level1BackLabel,
+          layout: _level1BackHudLayout,
+        );
+        drawHudText(
           canvas,
           'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
           Offset(hudRect.left + 20, hudRect.bottom - 10),
+          maxWidth: 900,
         );
-        _drawTopRightText(
-          canvas,
-          hudRect,
-          'Gems: ${renderState!.gemsCount}',
-          5,
+        drawTopRightHudText(
+          canvas: canvas,
+          hudRect: hudRect,
+          text: 'Gems: ${renderState!.gemsCount}',
+          top: 5,
         );
-        _drawTopRightText(
-          canvas,
-          hudRect,
-          'Life: ${renderState!.lifePercent}%',
-          13,
+        drawTopRightHudText(
+          canvas: canvas,
+          hudRect: hudRect,
+          text: 'Life: ${renderState!.lifePercent}%',
+          top: 13,
         );
         _drawTopRightProgressBar(
           canvas,
@@ -174,6 +162,100 @@ class Level1Painter extends CustomPainter {
     );
   }
 
+  void _drawSpritesAtDepth({
+    required Canvas canvas,
+    required Size viewportSize,
+    required RuntimeCamera2D camera,
+    required double depthSensitivity,
+    required double depth,
+    required List<Map<String, dynamic>> sprites,
+    required Map<String, dynamic>? playerSprite,
+    required Level1RenderState state,
+  }) {
+    for (int spriteIndex = 0; spriteIndex < sprites.length; spriteIndex++) {
+      final Map<String, dynamic> sprite = sprites[spriteIndex];
+      if (_shouldSkipSprite(
+        spriteIndex: spriteIndex,
+        sprite: sprite,
+        playerSprite: playerSprite,
+        state: state,
+      )) {
+        continue;
+      }
+      final double spriteDepth = appData.gamesTool.spriteDepth(sprite);
+      if (!GamesToolRuntimeRenderer.sameDepth(spriteDepth, depth)) {
+        continue;
+      }
+
+      final bool isPlayer =
+          playerSprite != null && identical(sprite, playerSprite);
+      if (isPlayer) {
+        final String playerAnimationName = _resolvePlayerAnimationName(state);
+        GamesToolRuntimeRenderer.drawAnimatedSprite(
+          canvas: canvas,
+          painterSize: viewportSize,
+          gameData: appData.gameData,
+          gamesTool: appData.gamesTool,
+          imagesCache: appData.imagesCache,
+          sprite: sprite,
+          camera: camera,
+          animationName: playerAnimationName,
+          elapsedSeconds: state.animationTimeSeconds,
+          worldX: state.playerX,
+          worldY: state.playerY,
+          drawWidthWorld: state.playerWidth,
+          drawHeightWorld: state.playerHeight,
+          flipX: !state.facingRight,
+          depthSensitivity: depthSensitivity,
+        );
+        continue;
+      }
+
+      final bool dragonDying =
+          state.dragonDeathStartSeconds.containsKey(spriteIndex);
+      final double? dragonDeathStart =
+          state.dragonDeathStartSeconds[spriteIndex];
+      final bool drawDragonDeath = dragonDying &&
+          dragonDeathStart != null &&
+          _isLevel1DragonSprite(sprite);
+      GamesToolRuntimeRenderer.drawAnimatedSprite(
+        canvas: canvas,
+        painterSize: viewportSize,
+        gameData: appData.gameData,
+        gamesTool: appData.gamesTool,
+        imagesCache: appData.imagesCache,
+        sprite: sprite,
+        camera: camera,
+        animationName: drawDragonDeath ? _level1AnimDragonDeath : null,
+        elapsedSeconds: drawDragonDeath
+            ? (state.animationTimeSeconds - dragonDeathStart)
+                .clamp(0.0, double.infinity)
+            : state.animationTimeSeconds,
+        depthSensitivity: depthSensitivity,
+      );
+    }
+  }
+
+  bool _shouldSkipSprite({
+    required int spriteIndex,
+    required Map<String, dynamic> sprite,
+    required Map<String, dynamic>? playerSprite,
+    required Level1RenderState state,
+  }) {
+    final bool isPlayer =
+        playerSprite != null && identical(sprite, playerSprite);
+    if (isPlayer) {
+      return false;
+    }
+    if (state.collectedGemSpriteIndices.contains(spriteIndex)) {
+      return true;
+    }
+    if (state.removedDragonSpriteIndices.contains(spriteIndex)) {
+      return true;
+    }
+    return false;
+  }
+
   String _resolvePlayerAnimationName(Level1RenderState state) {
     const double verticalThreshold = 5.0;
     const double moveThreshold = 2.0;
@@ -187,48 +269,6 @@ class Level1Painter extends CustomPainter {
       return _level1AnimFoxyWalk;
     }
     return _level1AnimFoxyIdle;
-  }
-
-  void _drawBackToMenuHud(Canvas canvas, Rect hudRect) {
-    final ui.Image? iconImage = backIconImage;
-    if (iconImage != null) {
-      final Rect srcRect = Rect.fromLTWH(
-        0,
-        0,
-        iconImage.width.toDouble(),
-        iconImage.height.toDouble(),
-      );
-      final Rect dstRect = Rect.fromLTWH(
-        hudRect.left + _level1BackHudX,
-        hudRect.top + _level1BackHudY,
-        _level1BackIconWidth,
-        _level1BackIconHeight,
-      );
-      canvas.drawImageRect(iconImage, srcRect, dstRect, Paint());
-    }
-    _drawText(
-      canvas,
-      _level1BackLabel,
-      Offset(hudRect.left + _level1BackTextX, hudRect.top + _level1BackHudY),
-    );
-  }
-
-  void _drawTopRightText(Canvas canvas, Rect hudRect, String text, double top) {
-    final TextPainter painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(
-          color: Color(0xFFE0F2FF),
-          fontSize: 6.5,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(
-      canvas,
-      Offset(hudRect.right - painter.width - 20, hudRect.top + top),
-    );
   }
 
   void _drawTopRightProgressBar(
@@ -345,21 +385,6 @@ class Level1Painter extends CustomPainter {
         ),
       );
     }
-  }
-
-  void _drawText(Canvas canvas, String text, Offset offset) {
-    final TextPainter painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(
-          color: Color(0xFFE0F2FF),
-          fontSize: 6.5,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: 900);
-    painter.paint(canvas, offset);
   }
 
   @override

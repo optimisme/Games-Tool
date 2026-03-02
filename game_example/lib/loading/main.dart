@@ -6,10 +6,13 @@ import 'package:provider/provider.dart';
 import '../app_data.dart';
 import '../level_0/main.dart';
 import '../level_1/main.dart';
+import '../shared/utils_level.dart';
+import '../shared/utils_painter.dart';
 
 part 'lifecycle.dart';
 part 'interaction.dart';
 part 'layout.dart';
+part 'drawing.dart';
 
 /// Transitional screen that waits for both data readiness and minimum UX timing.
 class Loading extends StatefulWidget {
@@ -62,67 +65,13 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
 
     return CupertinoPageScaffold(
       child: SafeArea(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final double barWidth = math.min(constraints.maxWidth * 0.7, 420);
-
-            return Container(
-              color: const Color(0xFF040404),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'LEVEL ${widget.levelIndex}',
-                      style: const TextStyle(
-                        color: Color(0xFF35FF74),
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    Container(
-                      width: barWidth,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF35FF74),
-                          width: 2,
-                        ),
-                        color: const Color(0xFF0B0B0B),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          width: barWidth * progress,
-                          color: const Color(0xFF35FF74),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      '${(progress * 100).toInt()}%',
-                      style: const TextStyle(
-                        color: Color(0xFFB9F9CA),
-                        fontSize: 16,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: Color(0xFFB9F9CA),
-                        fontSize: 14,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        child: CustomPaint(
+          painter: _LoadingPainter(
+            levelIndex: widget.levelIndex,
+            progress: progress,
+            label: label,
+          ),
+          child: const SizedBox.expand(),
         ),
       ),
     );

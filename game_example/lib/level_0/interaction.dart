@@ -3,22 +3,11 @@ part of 'main.dart';
 /// Input handling and scene transitions for level 0.
 extension _Level0Interaction on _Level0State {
   KeyEventResult _onKeyEvent(KeyEvent event) {
-    final LogicalKeyboardKey key = event.logicalKey;
-
-    if (key == LogicalKeyboardKey.escape) {
-      if (event is KeyDownEvent) {
-        _goBackToMenu();
-      }
-      return KeyEventResult.handled;
-    }
-
-    if (event is KeyDownEvent) {
-      // Keep pressed keys as the single source of truth for movement polling.
-      _pressedKeys.add(key);
-    } else if (event is KeyUpEvent) {
-      _pressedKeys.remove(key);
-    }
-    return KeyEventResult.handled;
+    return handleGameplayKeyEvent(
+      event: event,
+      pressedKeys: _pressedKeys,
+      onBackToMenu: _goBackToMenu,
+    );
   }
 
   void _clearLevel0RuntimeState() {
@@ -34,53 +23,16 @@ extension _Level0Interaction on _Level0State {
     _backIconImage = null;
   }
 
-  Future<void> _ensureBackIconLoaded(AppData appData) async {
-    if (_backIconImage != null) {
-      return;
-    }
-    try {
-      final ui.Image iconImage =
-          await appData.getImage(_level0BackIconAssetPath);
-      if (!mounted) {
-        return;
-      }
-      _refreshLevel0(() {
-        _backIconImage = iconImage;
-      });
-    } catch (_) {
-      // Keep text-only fallback if asset load fails.
-    }
-  }
-
   void _goBackToMenu() {
-    // One-way guard to avoid duplicate pushReplacement transitions.
-    if (!mounted || _isLeavingLevel) {
-      return;
-    }
-    _isLeavingLevel = true;
-    _ticker?.stop();
-    _clearLevel0RuntimeState();
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (context, animation, secondaryAnimation) => const Menu(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final Animation<Offset> slideAnimation = Tween<Offset>(
-            begin: const Offset(-1, 0),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-          return SlideTransition(
-            position: slideAnimation,
-            child: child,
-          );
-        },
-      ),
+    goBackToMenu(
+      context: context,
+      isMounted: mounted,
+      isLeavingLevel: _isLeavingLevel,
+      setIsLeavingLevel: (bool value) {
+        _isLeavingLevel = value;
+      },
+      ticker: _ticker,
+      beforeNavigate: _clearLevel0RuntimeState,
     );
   }
 }
