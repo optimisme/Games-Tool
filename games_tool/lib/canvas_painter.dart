@@ -304,7 +304,7 @@ class CanvasPainter extends CustomPainter {
     // Draw each layer directly in world space from the image cache
     if (appData.selectedLevel != -1) {
       final level = appData.gameData.levels[appData.selectedLevel];
-      final double levelParallaxSensitivity = level.parallaxSensitivity;
+      final double levelDepthSensitivity = level.depthSensitivity;
 
       for (int li = level.layers.length - 1; li >= 0; li--) {
         final layer = level.layers[li];
@@ -314,16 +314,21 @@ class CanvasPainter extends CustomPainter {
         final int cols = layer.tileMap.isNotEmpty ? layer.tileMap[0].length : 0;
         final double lx = layer.x.toDouble();
         final double ly = layer.y.toDouble();
-        final double parallax = LayoutUtils.parallaxFactorForDepth(
+        final double depthProjection =
+            LayoutUtils.depthProjectionFactorForDepth(
           layer.depth,
-          sensitivity: levelParallaxSensitivity,
+          sensitivity: levelDepthSensitivity,
         );
-        final double parallaxDx = (vOffset.dx * (parallax - 1.0)) / vScale;
-        final double parallaxDy = (vOffset.dy * (parallax - 1.0)) / vScale;
-        final double drawLx = lx + parallaxDx;
-        final double drawLy = ly + parallaxDy;
-        final double lw = cols * tw;
-        final double lh = rows * th;
+        final double depthProjectionDx =
+            (vOffset.dx * (depthProjection - 1.0)) / vScale;
+        final double depthProjectionDy =
+            (vOffset.dy * (depthProjection - 1.0)) / vScale;
+        final double drawTw = tw * depthProjection;
+        final double drawTh = th * depthProjection;
+        final double drawLx = lx * depthProjection + depthProjectionDx;
+        final double drawLy = ly * depthProjection + depthProjectionDy;
+        final double lw = cols * drawTw;
+        final double lh = rows * drawTh;
 
         final bool isSelectedInLayersView = renderingLayersPreview &&
             appData.selectedSection == 'layers' &&
@@ -363,10 +368,10 @@ class CanvasPainter extends CustomPainter {
                 tilesetImg,
                 Rect.fromLTWH(tileCol * tw, tileRow * th, tw, th),
                 Rect.fromLTWH(
-                  drawLx + col * tw,
-                  drawLy + row * th,
-                  tw,
-                  th,
+                  drawLx + col * drawTw,
+                  drawLy + row * drawTh,
+                  drawTw,
+                  drawTh,
                 ),
                 tilePaint,
               );
@@ -381,15 +386,15 @@ class CanvasPainter extends CustomPainter {
             ..style = PaintingStyle.stroke;
           for (int r = 0; r <= rows; r++) {
             canvas.drawLine(
-              Offset(drawLx, drawLy + r * th),
-              Offset(drawLx + lw, drawLy + r * th),
+              Offset(drawLx, drawLy + r * drawTh),
+              Offset(drawLx + lw, drawLy + r * drawTh),
               gridPaint,
             );
           }
           for (int c = 0; c <= cols; c++) {
             canvas.drawLine(
-              Offset(drawLx + c * tw, drawLy),
-              Offset(drawLx + c * tw, drawLy + lh),
+              Offset(drawLx + c * drawTw, drawLy),
+              Offset(drawLx + c * drawTw, drawLy + lh),
               gridPaint,
             );
           }
@@ -531,27 +536,37 @@ class CanvasPainter extends CustomPainter {
             totalFrames: frames,
           );
           final double spriteFrameX = frameIndex * spriteWidth;
-          final double spriteParallax = LayoutUtils.parallaxFactorForDepth(
+          final double spriteDepthProjection =
+              LayoutUtils.depthProjectionFactorForDepth(
             sprite.depth,
-            sensitivity: levelParallaxSensitivity,
+            sensitivity: levelDepthSensitivity,
           );
           final Rect spriteRectWorld = LayoutUtils.spriteWorldRect(
             appData,
             sprite,
             frameSize: frameSize,
-          ).shift(
-            Offset(
-              (vOffset.dx * (spriteParallax - 1.0)) / vScale,
-              (vOffset.dy * (spriteParallax - 1.0)) / vScale,
-            ),
           );
-          final double spriteX = spriteRectWorld.left;
-          final double spriteY = spriteRectWorld.top;
+          final double spriteDepthProjectionDx =
+              (vOffset.dx * (spriteDepthProjection - 1.0)) / vScale;
+          final double spriteDepthProjectionDy =
+              (vOffset.dy * (spriteDepthProjection - 1.0)) / vScale;
+          final Rect projectedSpriteRect = Rect.fromLTWH(
+            spriteRectWorld.left * spriteDepthProjection +
+                spriteDepthProjectionDx,
+            spriteRectWorld.top * spriteDepthProjection +
+                spriteDepthProjectionDy,
+            spriteRectWorld.width * spriteDepthProjection,
+            spriteRectWorld.height * spriteDepthProjection,
+          );
+          final double spriteX = projectedSpriteRect.left;
+          final double spriteY = projectedSpriteRect.top;
+          final double spriteDrawWidth = projectedSpriteRect.width;
+          final double spriteDrawHeight = projectedSpriteRect.height;
 
           final Rect srcRect =
               Rect.fromLTWH(spriteFrameX, 0, spriteWidth, spriteHeight);
-          final Rect dstRect =
-              Rect.fromLTWH(spriteX, spriteY, spriteWidth, spriteHeight);
+          final Rect dstRect = Rect.fromLTWH(
+              spriteX, spriteY, spriteDrawWidth, spriteDrawHeight);
           if (sprite.flipX || sprite.flipY) {
             final double centerX = dstRect.center.dx;
             final double centerY = dstRect.center.dy;
@@ -571,8 +586,8 @@ class CanvasPainter extends CustomPainter {
               vScale: vScale,
               drawLx: spriteX - 1,
               drawLy: spriteY - 1,
-              layerWidth: spriteWidth + 2,
-              layerHeight: spriteHeight + 2,
+              layerWidth: spriteDrawWidth + 2,
+              layerHeight: spriteDrawHeight + 2,
               selectedColor: const Color(0xFF2196F3),
               includeWhiteOutline: true,
             );

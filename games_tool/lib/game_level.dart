@@ -6,7 +6,7 @@ import 'game_sprite.dart';
 
 class GameLevel {
   static const String defaultGroupId = '__main__';
-  static const double defaultParallaxSensitivity = 0.08;
+  static const double defaultDepthSensitivity = 0.08;
   static const List<String> viewportColorPalette = <String>[
     'red',
     'deepOrange',
@@ -48,7 +48,7 @@ class GameLevel {
   String viewportPreviewColor;
   // Hex color for preview/runtime background (for example "#DCDCE1").
   String backgroundColorHex;
-  double parallaxSensitivity;
+  double depthSensitivity;
 
   GameLevel({
     required this.name,
@@ -68,14 +68,14 @@ class GameLevel {
     String viewportInitialColor = defaultViewportInitialColor,
     String viewportPreviewColor = defaultViewportPreviewColor,
     this.backgroundColorHex = '#DCDCE1',
-    double parallaxSensitivity = defaultParallaxSensitivity,
+    double depthSensitivity = defaultDepthSensitivity,
     String? groupId,
   })  : layerGroups = layerGroups ?? <GameListGroup>[GameListGroup.main()],
         zoneGroups = zoneGroups ?? <GameZoneGroup>[GameZoneGroup.main()],
         spriteGroups = spriteGroups ?? <GameListGroup>[GameListGroup.main()],
         groupId = _normalizeGroupId(groupId),
-        parallaxSensitivity = _normalizeParallaxSensitivity(
-          parallaxSensitivity,
+        depthSensitivity = _normalizeDepthSensitivity(
+          depthSensitivity,
         ),
         viewportInitialColor = _normalizeViewportColor(
           viewportInitialColor,
@@ -230,8 +230,8 @@ class GameLevel {
         defaultViewportPreviewColor,
       ),
       backgroundColorHex: (json['backgroundColorHex'] as String?) ?? '#DCDCE1',
-      parallaxSensitivity: (json['parallaxSensitivity'] as num?)?.toDouble() ??
-          defaultParallaxSensitivity,
+      depthSensitivity: (json['depthSensitivity'] as num?)?.toDouble() ??
+          defaultDepthSensitivity,
     );
   }
 
@@ -262,15 +262,15 @@ class GameLevel {
         defaultViewportPreviewColor,
       ),
       'backgroundColorHex': backgroundColorHex,
-      'parallaxSensitivity': _normalizeParallaxSensitivity(
-        parallaxSensitivity,
+      'depthSensitivity': _normalizeDepthSensitivity(
+        depthSensitivity,
       ),
     };
   }
 
   @override
   String toString() {
-    return 'GameLevel(name: $name, description: $description, gameplayData: $gameplayData, layers: $layers, layerGroups: $layerGroups, zones: $zones, zoneGroups: $zoneGroups, sprites: $sprites, spriteGroups: $spriteGroups, groupId: $groupId, viewport: ${viewportWidth}x$viewportHeight at ($viewportX,$viewportY) [$viewportAdaptation], background: $backgroundColorHex, parallaxSensitivity: $parallaxSensitivity)';
+    return 'GameLevel(name: $name, description: $description, gameplayData: $gameplayData, layers: $layers, layerGroups: $layerGroups, zones: $zones, zoneGroups: $zoneGroups, sprites: $sprites, spriteGroups: $spriteGroups, groupId: $groupId, viewport: ${viewportWidth}x$viewportHeight at ($viewportX,$viewportY) [$viewportAdaptation], background: $backgroundColorHex, depthSensitivity: $depthSensitivity)';
   }
 
   static String _normalizeGroupId(String? rawGroupId) {
@@ -289,9 +289,9 @@ class GameLevel {
     return fallback;
   }
 
-  static double _normalizeParallaxSensitivity(double raw) {
+  static double _normalizeDepthSensitivity(double raw) {
     if (!raw.isFinite) {
-      return defaultParallaxSensitivity;
+      return defaultDepthSensitivity;
     }
     if (raw < 0) {
       return 0;

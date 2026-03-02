@@ -293,8 +293,8 @@ class Level1Painter extends CustomPainter {
     }
 
     final RuntimeCamera2D runtimeCamera = camera.toRuntimeCamera2D();
-    final double parallaxSensitivity =
-        GamesToolRuntimeRenderer.levelParallaxSensitivity(
+    final double depthSensitivity =
+        GamesToolRuntimeRenderer.levelDepthSensitivity(
       gamesTool: appData.gamesTool,
       level: level,
     );
@@ -328,7 +328,7 @@ class Level1Painter extends CustomPainter {
           imagesCache: appData.imagesCache,
           camera: effectiveCamera,
           backgroundColor: levelBackground,
-          parallaxSensitivity: parallaxSensitivity,
+          depthSensitivity: depthSensitivity,
         );
 
         final Offset groundStart = RuntimeCameraMath.worldToScreen(
@@ -336,14 +336,14 @@ class Level1Painter extends CustomPainter {
           worldY: renderState!.groundY + renderState!.playerHeight,
           viewportSize: viewportSize,
           camera: effectiveCamera,
-          parallaxSensitivity: parallaxSensitivity,
+          depthSensitivity: depthSensitivity,
         );
         final Offset groundEnd = RuntimeCameraMath.worldToScreen(
           worldX: renderState!.playerX + 1200,
           worldY: renderState!.groundY + renderState!.playerHeight,
           viewportSize: viewportSize,
           camera: effectiveCamera,
-          parallaxSensitivity: parallaxSensitivity,
+          depthSensitivity: depthSensitivity,
         );
         final Paint groundPaint = Paint()
           ..color = const Color(0xFF32C96C)
@@ -359,7 +359,7 @@ class Level1Painter extends CustomPainter {
           worldY: renderState!.playerY,
           viewportSize: viewportSize,
           camera: effectiveCamera,
-          parallaxSensitivity: parallaxSensitivity,
+          depthSensitivity: depthSensitivity,
         );
 
         final Rect playerRect = Rect.fromLTWH(

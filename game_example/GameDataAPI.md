@@ -81,27 +81,27 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 
 ## Tile/coordinate helpers
 
-- `parallaxFactorForDepth(depth, sensitivity?)`
+- `depthProjectionFactorForDepth(depth, sensitivity?)`
 - `cameraScaleForViewport(viewportSize, camera)`
-- `worldToScreen(worldX, worldY, camera, viewportSize, depth?, parallaxSensitivity?)`
-- `screenToWorld(screenX, screenY, camera, viewportSize, depth?, parallaxSensitivity?)`
-- `worldViewportRect(camera, viewportSize, depth?, parallaxSensitivity?, paddingWorld?)`
+- `worldToScreen(worldX, worldY, camera, viewportSize, depth?, depthSensitivity?)`
+- `screenToWorld(screenX, screenY, camera, viewportSize, depth?, depthSensitivity?)`
+- `worldViewportRect(camera, viewportSize, depth?, depthSensitivity?, paddingWorld?)`
 - `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY, depthDisplacement?)`
-- `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize, depthDisplacement?, parallaxSensitivity?)`
+- `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize, depthDisplacement?, depthSensitivity?)`
 - `tileAt(levelIndex, layerIndex?|layerName?, tileX, tileY)` returns `-1` if invalid/empty
 - `tileWorldRect(levelIndex, layerIndex?|layerName?, tileX, tileY, depthDisplacement?)`
-- `tileScreenRect(levelIndex, layerIndex?|layerName?, tileX, tileY, camera, viewportSize, depthDisplacement?, parallaxSensitivity?)`
+- `tileScreenRect(levelIndex, layerIndex?|layerName?, tileX, tileY, camera, viewportSize, depthDisplacement?, depthSensitivity?)`
 
 Notes:
 
 - You must provide exactly one of `layerIndex` or `layerName`.
-- `screenToTile` honors camera scale and layer parallax.
+- `screenToTile` honors camera scale and layer depth projection.
 
 ## Rendering helpers (Flutter Canvas)
 
 `GamesToolRuntimeRenderer` includes reusable helpers for games that share this data model:
 
-- `levelParallaxSensitivity(gamesTool, level?)`
+- `levelDepthSensitivity(gamesTool, level?)`
 - `cameraScale(viewportSize, camera)`
 - `worldToScreen(...)`
 - `levelViewport(gamesTool, level, ...)`
@@ -206,6 +206,6 @@ Call pattern:
 - Collision math is AABB-based with world-space rectangles.
 - Sprite/world position uses anchor semantics (`x/y` are anchor world coordinates).
 - Layer tile math uses `layer.x`, `layer.y`, `tilesWidth`, `tilesHeight`.
-- Parallax in `screenToTile` uses:
+- Depth projection in `screenToTile` uses:
   - `factor = exp(-depth * sensitivity)`
   - clamped to `[0.25, 4.0]`.

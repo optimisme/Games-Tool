@@ -8,15 +8,15 @@ import 'runtime_models.dart';
 class GamesToolRuntimeRenderer {
   const GamesToolRuntimeRenderer._();
 
-  static double levelParallaxSensitivity({
+  static double levelDepthSensitivity({
     required GamesToolApi gamesTool,
     Map<String, dynamic>? level,
-    double fallback = GamesToolApi.defaultParallaxSensitivity,
+    double fallback = GamesToolApi.defaultDepthSensitivity,
   }) {
     if (level == null) {
       return fallback;
     }
-    return gamesTool.levelParallaxSensitivity(level, fallback: fallback);
+    return gamesTool.levelDepthSensitivity(level, fallback: fallback);
   }
 
   static double cameraScale({
@@ -35,7 +35,7 @@ class GamesToolRuntimeRenderer {
     required ui.Size viewportSize,
     required RuntimeCamera2D camera,
     double depth = 0,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     return RuntimeCameraMath.worldToScreen(
       worldX: worldX,
@@ -43,7 +43,7 @@ class GamesToolRuntimeRenderer {
       camera: camera,
       viewportSize: viewportSize,
       depth: depth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
   }
 
@@ -254,7 +254,7 @@ class GamesToolRuntimeRenderer {
     required Map<String, ui.Image> imagesCache,
     required RuntimeCamera2D camera,
     ui.Color backgroundColor = const ui.Color(0xFF000000),
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
   }) {
     canvas.drawRect(
       ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
@@ -300,19 +300,17 @@ class GamesToolRuntimeRenderer {
       }
 
       final double layerDepth = gamesTool.layerDepth(layer);
-      final double parallax = RuntimeCameraMath.parallaxFactorForDepth(
+      final double depthScale = RuntimeCameraMath.depthScaleForDepth(
         layerDepth,
-        sensitivity: parallaxSensitivity,
+        sensitivity: depthSensitivity,
       );
-      final double camX = camera.x * parallax;
-      final double camY = camera.y * parallax;
       final double layerX = gamesTool.layerX(layer);
       final double layerY = gamesTool.layerY(layer);
       final ui.Rect? viewportWorldRect = RuntimeCameraMath.worldViewportRect(
         camera: camera,
         viewportSize: painterSize,
         depth: layerDepth,
-        parallaxSensitivity: parallaxSensitivity,
+        depthSensitivity: depthSensitivity,
         paddingWorld: math.max(tileW, tileH),
       );
       if (viewportWorldRect == null) {
@@ -349,12 +347,16 @@ class GamesToolRuntimeRenderer {
 
           final double worldX = layerX + col * tileW;
           final double worldY = layerY + row * tileH;
-          final double screenX =
-              (worldX - camX) * scale + painterSize.width / 2;
-          final double screenY =
-              (worldY - camY) * scale + painterSize.height / 2;
-          final double destWidth = tileW * scale;
-          final double destHeight = tileH * scale;
+          final ui.Offset screenPos = RuntimeCameraMath.worldToScreen(
+            worldX: worldX,
+            worldY: worldY,
+            camera: camera,
+            viewportSize: painterSize,
+            depth: layerDepth,
+            depthSensitivity: depthSensitivity,
+          );
+          final double destWidth = tileW * scale * depthScale;
+          final double destHeight = tileH * scale * depthScale;
 
           final int srcCol = tileIndex % tileSheetCols;
           final int srcRow = tileIndex ~/ tileSheetCols;
@@ -365,8 +367,8 @@ class GamesToolRuntimeRenderer {
             tileSheet,
             ui.Rect.fromLTWH(srcX, srcY, tileW, tileH),
             ui.Rect.fromLTWH(
-              screenX - 1,
-              screenY - 1,
+              screenPos.dx - 1,
+              screenPos.dy - 1,
               destWidth + 1,
               destHeight + 1,
             ),
@@ -388,7 +390,7 @@ class GamesToolRuntimeRenderer {
     required String spriteType,
     required double elapsedSeconds,
     double? depth,
-    double? parallaxSensitivity,
+    double? depthSensitivity,
     bool cullWhenOffscreen = true,
     int? frameIndex,
     double fallbackFps = GamesToolApi.defaultAnimationFps,
@@ -400,10 +402,10 @@ class GamesToolRuntimeRenderer {
     if (sprite == null) {
       return false;
     }
-    final double resolvedParallaxSensitivity = parallaxSensitivity ??
-        gamesTool.levelParallaxSensitivity(
+    final double resolvedDepthSensitivity = depthSensitivity ??
+        gamesTool.levelDepthSensitivity(
           level,
-          fallback: GamesToolApi.defaultParallaxSensitivity,
+          fallback: GamesToolApi.defaultDepthSensitivity,
         );
     return drawAnimatedSprite(
       canvas: canvas,
@@ -415,7 +417,7 @@ class GamesToolRuntimeRenderer {
       camera: camera,
       elapsedSeconds: elapsedSeconds,
       depth: depth,
-      parallaxSensitivity: resolvedParallaxSensitivity,
+      depthSensitivity: resolvedDepthSensitivity,
       cullWhenOffscreen: cullWhenOffscreen,
       frameIndex: frameIndex,
       fallbackFps: fallbackFps,
@@ -439,7 +441,7 @@ class GamesToolRuntimeRenderer {
     double? drawWidthWorld,
     double? drawHeightWorld,
     double? depth,
-    double parallaxSensitivity = GamesToolApi.defaultParallaxSensitivity,
+    double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
     bool cullWhenOffscreen = true,
     int? frameIndex,
     double fallbackFps = GamesToolApi.defaultAnimationFps,
@@ -539,7 +541,7 @@ class GamesToolRuntimeRenderer {
         camera: camera,
         viewportSize: painterSize,
         depth: resolvedDepth,
-        parallaxSensitivity: parallaxSensitivity,
+        depthSensitivity: depthSensitivity,
         paddingWorld: math.max(
           resolvedDrawWidthWorld,
           resolvedDrawHeightWorld,
@@ -565,14 +567,18 @@ class GamesToolRuntimeRenderer {
       viewportSize: painterSize,
       camera: camera,
       depth: resolvedDepth,
-      parallaxSensitivity: parallaxSensitivity,
+      depthSensitivity: depthSensitivity,
     );
     final double scale = cameraScale(viewportSize: painterSize, camera: camera);
     if (scale == 0) {
       return false;
     }
-    final double destWidth = resolvedDrawWidthWorld * scale;
-    final double destHeight = resolvedDrawHeightWorld * scale;
+    final double depthScale = RuntimeCameraMath.depthScaleForDepth(
+      resolvedDepth,
+      sensitivity: depthSensitivity,
+    );
+    final double destWidth = resolvedDrawWidthWorld * scale * depthScale;
+    final double destHeight = resolvedDrawHeightWorld * scale * depthScale;
 
     canvas.save();
     canvas.translate(screenPos.dx, screenPos.dy);
