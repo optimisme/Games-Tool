@@ -9,7 +9,8 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../shared/camera.dart';
-import '../menu/main.dart';
+import '../shared/utils_level.dart';
+import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
 part 'drawing.dart';
@@ -26,6 +27,15 @@ const Set<String> _level0BlockedZoneTypes = <String>{
 const String _level0DecoracionsLayerName = 'Decoracions';
 const String _level0PontAmagatLayerName = 'Pont Amagat';
 const String _level0FuturPontGameplayData = 'Futur Pont';
+const String _level0BackIconAssetPath = 'other/enrrere.png';
+const String _level0BackLabel = 'Tornar';
+const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
+  hudX: 20,
+  hudY: 5,
+  iconWidth: 8,
+  iconHeight: 8,
+  iconGap: 3,
+);
 
 /// Top-down exploration level with tile interaction and zone-driven triggers.
 class Level0 extends StatefulWidget {

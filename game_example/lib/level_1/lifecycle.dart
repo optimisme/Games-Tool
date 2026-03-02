@@ -18,7 +18,20 @@ extension _Level1Initialize on _Level1State {
       _level,
       _level1MovingPlatformFloorGameplayData,
     );
-    unawaited(_ensureBackIconLoaded(appData));
+    unawaited(
+      ensureStateImageLoaded(
+        appData: appData,
+        assetPath: _level1BackIconAssetPath,
+        currentImage: _backIconImage,
+        isMounted: () => mounted,
+        refresh: (VoidCallback update) {
+          _refreshLevel1(update);
+        },
+        assignImage: (ui.Image image) {
+          _backIconImage = image;
+        },
+      ),
+    );
     final Map<String, dynamic>? spawn = _playerSprite;
     final double levelViewportWidth = _level == null
         ? GamesToolApi.defaultViewportWidth
@@ -64,23 +77,5 @@ extension _Level1Initialize on _Level1State {
       ..focal = levelViewportWidth;
 
     _applyMovingPlatformPose(_level1MovingPlatformPath.first);
-  }
-
-  Future<void> _ensureBackIconLoaded(AppData appData) async {
-    if (_backIconImage != null) {
-      return;
-    }
-    try {
-      final ui.Image iconImage =
-          await appData.getImage(_level1BackIconAssetPath);
-      if (!mounted) {
-        return;
-      }
-      _refreshLevel1(() {
-        _backIconImage = iconImage;
-      });
-    } catch (_) {
-      // Keep text-only fallback if asset load fails.
-    }
   }
 }

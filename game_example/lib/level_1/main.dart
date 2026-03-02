@@ -8,7 +8,8 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../shared/camera.dart';
-import '../menu/main.dart';
+import '../shared/utils_level.dart';
+import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
 part 'drawing.dart';
@@ -42,36 +43,13 @@ const List<Offset> _level1MovingPlatformPath = <Offset>[
   Offset(745, 470),
   Offset(740, 340),
 ];
-const double _level1BackHudX = 20;
-const double _level1BackHudY = 5;
-const double _level1BackIconWidth = 8;
-const double _level1BackIconHeight = 8;
-const double _level1BackIconGap = 3;
-const double _level1BackTextX =
-    _level1BackHudX + _level1BackIconWidth + _level1BackIconGap;
-
-Rect _resolveLevel1HudRectInVirtualViewport({
-  required RuntimeLevelViewport viewport,
-  required Size virtualViewportSize,
-}) {
-  final String adaptation = viewport.adaptation.trim().toLowerCase();
-  if (adaptation != 'expand') {
-    return Rect.fromLTWH(
-      0,
-      0,
-      virtualViewportSize.width,
-      virtualViewportSize.height,
-    );
-  }
-
-  final double baseWidth =
-      viewport.width > 0 ? viewport.width : virtualViewportSize.width;
-  final double baseHeight =
-      viewport.height > 0 ? viewport.height : virtualViewportSize.height;
-  final double left = (virtualViewportSize.width - baseWidth) / 2;
-  final double top = (virtualViewportSize.height - baseHeight) / 2;
-  return Rect.fromLTWH(left, top, baseWidth, baseHeight);
-}
+const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
+  hudX: 20,
+  hudY: 5,
+  iconWidth: 8,
+  iconHeight: 8,
+  iconGap: 3,
+);
 
 bool _isLevel1PlayerSprite(Map<String, dynamic> sprite) {
   final String target = _level1PlayerSpriteName.toLowerCase();

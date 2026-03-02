@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../loading/main.dart';
+import '../shared/utils_level.dart';
+import '../shared/utils_painter.dart';
 
 part 'drawing.dart';
 part 'lifecycle.dart';

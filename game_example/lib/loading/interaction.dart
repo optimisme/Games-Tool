@@ -13,21 +13,15 @@ extension _LoadingInteraction on _LoadingState {
     }
 
     _didNavigate = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).pushReplacement(
-        CupertinoPageRoute<void>(
-          builder: (_) {
-            if (widget.levelIndex == 1) {
-              return Level1(levelIndex: widget.levelIndex);
-            }
-            return const Level0(levelIndex: 0);
-          },
-        ),
-      );
-    });
+    pushReplacementCupertinoPage(
+      context: context,
+      postFrame: true,
+      isMounted: () => mounted,
+      builder: (_) => selectByLevelIndex<Widget>(
+        levelIndex: widget.levelIndex,
+        level0: const Level0(levelIndex: 0),
+        level1: Level1(levelIndex: widget.levelIndex),
+      ),
+    );
   }
 }
