@@ -8,6 +8,12 @@ import 'runtime_models.dart';
 class GamesToolRuntimeRenderer {
   const GamesToolRuntimeRenderer._();
 
+  // Reusable Paint instances — never allocate Paint inside a draw loop.
+  static final ui.Paint _backgroundPaint = ui.Paint();
+  static final ui.Paint _tilePaint = ui.Paint();
+  static final ui.Paint _spritePaint = ui.Paint()
+    ..filterQuality = ui.FilterQuality.none;
+
   static double levelDepthSensitivity({
     required GamesToolApi gamesTool,
     Map<String, dynamic>? level,
@@ -154,9 +160,10 @@ class GamesToolRuntimeRenderer {
       viewport: viewport,
     );
     if (clearOuterBackground) {
+      _backgroundPaint.color = outerBackgroundColor;
       canvas.drawRect(
         ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
-        ui.Paint()..color = outerBackgroundColor,
+        _backgroundPaint,
       );
     }
     if (!layout.hasVisibleArea || layout.scaleX == 0 || layout.scaleY == 0) {
@@ -260,9 +267,10 @@ class GamesToolRuntimeRenderer {
     double? onlyDepth,
   }) {
     if (drawBackground) {
+      _backgroundPaint.color = backgroundColor;
       canvas.drawRect(
         ui.Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
-        ui.Paint()..color = backgroundColor,
+        _backgroundPaint,
       );
     }
 
@@ -308,10 +316,6 @@ class GamesToolRuntimeRenderer {
         continue;
       }
 
-      final double depthScale = RuntimeCameraMath.depthScaleForDepth(
-        layerDepth,
-        sensitivity: depthSensitivity,
-      );
       final double layerX = gamesTool.layerX(layer);
       final double layerY = gamesTool.layerY(layer);
       final ui.Rect? viewportWorldRect = RuntimeCameraMath.worldViewportRect(
@@ -337,6 +341,20 @@ class GamesToolRuntimeRenderer {
           ((viewportWorldRect.left - layerX) / tileW).floor() - 1;
       final int rawColEnd = ((viewportWorldRect.right - layerX) / tileW).ceil();
 
+      // Factor all per-layer constants out of the tile loop.
+      // worldToScreen expands to:
+      //   screenX = worldX * depthProjection * scale - camera.x * depthProjection * scale + halfW
+      // which is:  worldX * tileK + tileOriginX   (linear in worldX, constant coefficients)
+      final double depthProjection = RuntimeCameraMath.depthProjectionFactorForDepth(
+        layerDepth,
+        sensitivity: depthSensitivity,
+      );
+      final double tileK = depthProjection * scale;
+      final double tileOriginX = -camera.x * tileK + painterSize.width / 2;
+      final double tileOriginY = -camera.y * tileK + painterSize.height / 2;
+      final double destWidth = tileW * tileK;
+      final double destHeight = tileH * tileK;
+
       for (int row = rowStart; row <= rowEnd; row++) {
         final List<dynamic> rowData = tileMap[row];
         if (rowData.isEmpty) {
@@ -347,24 +365,15 @@ class GamesToolRuntimeRenderer {
         if (colEnd < colStart) {
           continue;
         }
+        // screenY is constant for the whole row — factor it out.
+        final double screenY = (layerY + row * tileH) * tileK + tileOriginY;
         for (int col = colStart; col <= colEnd; col++) {
           final int tileIndex = (rowData[col] as num?)?.toInt() ?? -1;
           if (tileIndex < 0) {
             continue;
           }
 
-          final double worldX = layerX + col * tileW;
-          final double worldY = layerY + row * tileH;
-          final ui.Offset screenPos = RuntimeCameraMath.worldToScreen(
-            worldX: worldX,
-            worldY: worldY,
-            camera: camera,
-            viewportSize: painterSize,
-            depth: layerDepth,
-            depthSensitivity: depthSensitivity,
-          );
-          final double destWidth = tileW * scale * depthScale;
-          final double destHeight = tileH * scale * depthScale;
+          final double screenX = (layerX + col * tileW) * tileK + tileOriginX;
 
           final int srcCol = tileIndex % tileSheetCols;
           final int srcRow = tileIndex ~/ tileSheetCols;
@@ -375,12 +384,12 @@ class GamesToolRuntimeRenderer {
             tileSheet,
             ui.Rect.fromLTWH(srcX, srcY, tileW, tileH),
             ui.Rect.fromLTWH(
-              screenPos.dx - 1,
-              screenPos.dy - 1,
+              screenX - 1,
+              screenY - 1,
               destWidth + 1,
               destHeight + 1,
             ),
-            ui.Paint(),
+            _tilePaint,
           );
         }
       }
@@ -627,7 +636,7 @@ class GamesToolRuntimeRenderer {
         destWidth,
         destHeight,
       ),
-      ui.Paint()..filterQuality = ui.FilterQuality.none,
+      _spritePaint,
     );
     canvas.restore();
     return true;

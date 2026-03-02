@@ -10,7 +10,7 @@ extension _Level0Update on _Level0State {
       setLastTickTimestamp: (Duration? value) {
         _lastTickTimestamp = value;
       },
-      onFrame: (double frameDt) {
+      onFrame: (double frameDt, double alpha) {
         final Level0UpdateState? state = _updateState;
         if (state == null) {
           return;
@@ -19,6 +19,9 @@ extension _Level0Update on _Level0State {
           previousFps: state.fps,
           dtSeconds: frameDt,
         );
+        // setState fires exactly once per vsync here, not once per substep.
+        // The alpha is forwarded so the painter can lerp the render position.
+        _refreshLevel0(null, alpha);
       },
       onTick: _tick,
     );
@@ -31,17 +34,23 @@ extension _Level0Update on _Level0State {
     }
 
     if (!state.isWin) {
+      // Snapshot both player and camera before advancing so the painter can
+      // lerp them together — mismatched interpolation causes tile vibration.
+      state.previousPlayerX = state.playerX;
+      state.previousPlayerY = state.playerY;
+      state.previousCameraX = state.cameraX;
+      state.previousCameraY = state.cameraY;
       _updateMovement(state, dt);
       final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
+      state.cameraX = cameraFocus.dx;
+      state.cameraY = cameraFocus.dy;
       _camera
-        ..x = cameraFocus.dx
-        ..y = cameraFocus.dy;
+        ..x = state.cameraX
+        ..y = state.cameraY;
     } else if (!state.canExitEndState) {
       state.endStateElapsedSeconds += dt;
       state.tickCounter += 1;
     }
-
-    _refreshLevel0();
   }
 
   void _updateMovement(Level0UpdateState state, double dt) {

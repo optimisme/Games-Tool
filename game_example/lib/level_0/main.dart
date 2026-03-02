@@ -147,6 +147,8 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   int? _decoracionsLayerIndex;
   int? _pontAmagatLayerIndex;
   Level0UpdateState? _updateState;
+  // Render interpolation alpha for the current vsync frame: [0, 1].
+  double _renderAlpha = 1.0;
   ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
 
@@ -176,10 +178,11 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  void _refreshLevel0([VoidCallback? update]) {
+  void _refreshLevel0([VoidCallback? update, double alpha = 1.0]) {
     if (!mounted) {
       return;
     }
+    _renderAlpha = alpha;
     setState(update ?? () {});
   }
 
@@ -218,8 +221,9 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                     level: _level,
                     camera: _camera,
                     backIconImage: _backIconImage,
-                    renderState:
-                        state == null ? null : Level0RenderState.from(state),
+                    renderState: state == null
+                        ? null
+                        : Level0RenderState.from(state, alpha: _renderAlpha),
                   ),
                   child: const SizedBox.expand(),
                 ),

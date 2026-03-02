@@ -114,7 +114,8 @@ Notes:
   - Default mode uses animation-level anchors for stable camera focus.
   - Set `useFrameRigAnchor: true` only when you intentionally want per-frame rig anchor behavior.
 - `fpsFromDeltaTime(...)` and `updateSmoothedFps(...)` provide reusable FPS counter math for runtime HUD/debug overlays.
-  - Recommended input is real frame delta (`frameDt`) from your game loop frame callback.
+  - Recommended input is real frame delta (`frameDt`) from your game loop frame callback (`onFrame(frameDt, alpha)`).
+  - `alpha` from that callback is the render interpolation factor in `[0, 1]` between fixed simulation ticks.
   - Do not feed fixed simulation step values if you want real renderer FPS.
 
 ## Rendering helpers (Flutter Canvas)
