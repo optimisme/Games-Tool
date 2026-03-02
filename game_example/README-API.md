@@ -78,6 +78,11 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 - `layerByIndex(levelIndex, layerIndex)`
 - `layerByName(levelIndex, layerName)`
 - `spriteByIndex(levelIndex, spriteIndex)`
+- `listLevelSprites(level)` (`GamesToolApi`)
+- `findLayerIndexByName(level, layerName, caseInsensitive?)` (`GamesToolApi`)
+- `findZoneIndexByGameplayData(level, gameplayData, caseInsensitive?)` (`GamesToolApi`)
+- `findSpriteIndexByTypeOrName(level, value, caseInsensitive?)` (`GamesToolApi`)
+- `firstSpriteIndex(level)` (`GamesToolApi`)
 
 ## Tile/coordinate helpers
 
@@ -123,6 +128,8 @@ Runtime culling now included:
 ### Hitbox resolution
 
 - `spriteHitBoxes(levelIndex, spriteIndex, pose?, frameIndex?, elapsedSeconds)`
+- `spriteCollisionRects(levelIndex, spriteIndex, pose?, frameIndex?, elapsedSeconds)`
+- `spriteAnchoredRect(levelIndex, spriteIndex, pose?, elapsedSeconds)`
 
 Behavior:
 
@@ -134,6 +141,11 @@ Behavior:
 6. Converts hitboxes to world-space `Rect`.
 
 If an animation/frame has no hitboxes, `spriteHitBoxes` returns an empty list and no hitbox-based collisions are detected for that sprite in that frame.
+
+`spriteCollisionRects(...)` is the recommended high-level helper:
+
+1. Returns world hitbox rects when hitboxes exist.
+2. Falls back to one anchored sprite rect when hitboxes are missing.
 
 ### Zone collisions
 

@@ -5,7 +5,25 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../app_data.dart';
+import '../shared/camera.dart';
 import '../menu/main.dart';
+import '../utils_gamestool/utils_gamestool.dart';
+
+class LevelViewportBootstrap {
+  const LevelViewportBootstrap({
+    required this.viewportWidth,
+    required this.viewportCenterX,
+    required this.viewportCenterY,
+    required this.spawnX,
+    required this.spawnY,
+  });
+
+  final double viewportWidth;
+  final double viewportCenterX;
+  final double viewportCenterY;
+  final double spawnX;
+  final double spawnY;
+}
 
 void syncPressedKeys({
   required Set<LogicalKeyboardKey> pressedKeys,
@@ -77,6 +95,75 @@ T selectByLevelIndex<T>({
     return level1;
   }
   return level0;
+}
+
+Ticker restartGameLoopTicker({
+  required TickerProvider tickerProvider,
+  required Ticker? ticker,
+  required Duration? Function() getLastTickTimestamp,
+  required void Function(Duration? value) setLastTickTimestamp,
+  required void Function(double dt) onTick,
+  double initialDtSeconds = 1 / 60,
+  double maxDtSeconds = 0.05,
+}) {
+  ticker?.dispose();
+  setLastTickTimestamp(null);
+  final Ticker nextTicker = tickerProvider.createTicker((Duration elapsed) {
+    final Duration? previous = getLastTickTimestamp();
+    setLastTickTimestamp(elapsed);
+    final double dt = previous == null
+        ? initialDtSeconds
+        : (elapsed - previous).inMicroseconds / 1000000;
+    onTick(dt.clamp(0.0, maxDtSeconds));
+  });
+  nextTicker.start();
+  return nextTicker;
+}
+
+LevelViewportBootstrap buildLevelViewportBootstrap({
+  required GamesToolApi gamesTool,
+  required Map<String, dynamic>? level,
+  required Map<String, dynamic>? spawn,
+  double fallbackCenterX = 100,
+  double fallbackCenterY = 100,
+}) {
+  final double viewportWidth = level == null
+      ? GamesToolApi.defaultViewportWidth
+      : gamesTool.levelViewportWidth(
+          level,
+          fallback: GamesToolApi.defaultViewportWidth,
+        );
+  final double viewportCenterX = level == null
+      ? fallbackCenterX
+      : gamesTool.levelViewportCenterX(
+          level,
+          fallbackWidth: GamesToolApi.defaultViewportWidth,
+          fallbackX: 0,
+        );
+  final double viewportCenterY = level == null
+      ? fallbackCenterY
+      : gamesTool.levelViewportCenterY(
+          level,
+          fallbackHeight: GamesToolApi.defaultViewportHeight,
+          fallbackY: 0,
+        );
+  return LevelViewportBootstrap(
+    viewportWidth: viewportWidth,
+    viewportCenterX: viewportCenterX,
+    viewportCenterY: viewportCenterY,
+    spawnX: (spawn?['x'] as num?)?.toDouble() ?? viewportCenterX,
+    spawnY: (spawn?['y'] as num?)?.toDouble() ?? viewportCenterY,
+  );
+}
+
+void applyBootstrapCamera({
+  required Camera camera,
+  required LevelViewportBootstrap bootstrap,
+}) {
+  camera
+    ..x = bootstrap.viewportCenterX
+    ..y = bootstrap.viewportCenterY
+    ..focal = bootstrap.viewportWidth;
 }
 
 Future<void> ensureImageLoaded({

@@ -3,19 +3,15 @@ part of 'main.dart';
 /// Per-frame simulation for platforming physics, combat, and win/lose state.
 extension _Level1Update on _Level1State {
   void _startLoop() {
-    _ticker?.dispose();
-    _lastTickTimestamp = null;
-    _ticker = createTicker((Duration elapsed) {
-      final Duration? previous = _lastTickTimestamp;
-      _lastTickTimestamp = elapsed;
-
-      final double dt = previous == null
-          ? 1 / 60
-          : (elapsed - previous).inMicroseconds / 1000000;
-      // Clamp frame delta to keep physics stable after stalls/backgrounding.
-      _tick(dt.clamp(0.0, 0.05));
-    });
-    _ticker?.start();
+    _ticker = restartGameLoopTicker(
+      tickerProvider: this,
+      ticker: _ticker,
+      getLastTickTimestamp: () => _lastTickTimestamp,
+      setLastTickTimestamp: (Duration? value) {
+        _lastTickTimestamp = value;
+      },
+      onTick: _tick,
+    );
   }
 
   void _tick(double dt) {
@@ -227,7 +223,8 @@ extension _Level1Update on _Level1State {
           state.dragonDeathStartSeconds.containsKey(dragonIndex)) {
         continue;
       }
-      final List<Rect> dragonRects = _spriteCollisionRectsForIndex(
+      final List<Rect> dragonRects = _runtimeApi.spriteCollisionRects(
+        levelIndex: widget.levelIndex,
         spriteIndex: dragonIndex,
         elapsedSeconds: state.animationTimeSeconds,
       );
@@ -433,7 +430,8 @@ extension _Level1Update on _Level1State {
 
     final List<int> newlyCollected = <int>[];
     for (final int gemIndex in candidateGemIndices) {
-      final List<Rect> gemRects = _spriteCollisionRectsForIndex(
+      final List<Rect> gemRects = _runtimeApi.spriteCollisionRects(
+        levelIndex: widget.levelIndex,
         spriteIndex: gemIndex,
         elapsedSeconds: state.animationTimeSeconds,
       );
@@ -469,9 +467,7 @@ extension _Level1Update on _Level1State {
       return const <int>[];
     }
     final List<Map<String, dynamic>> sprites =
-        ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .toList(growable: false);
+        _runtimeApi.gamesTool.listLevelSprites(level);
     final List<int> indices = <int>[];
     for (int i = 0; i < sprites.length; i++) {
       if (_isLevel1GemSprite(sprites[i])) {
@@ -487,9 +483,7 @@ extension _Level1Update on _Level1State {
       return const <int>[];
     }
     final List<Map<String, dynamic>> sprites =
-        ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .toList(growable: false);
+        _runtimeApi.gamesTool.listLevelSprites(level);
     final List<int> indices = <int>[];
     for (int i = 0; i < sprites.length; i++) {
       if (_isLevel1DragonSprite(sprites[i])) {
@@ -508,10 +502,10 @@ extension _Level1Update on _Level1State {
     if (playerSpriteIndex == null || !_runtimeApi.isReady || _level == null) {
       return const <Rect>[];
     }
-    return _spriteCollisionRectsForIndex(
+    return _runtimeApi.spriteCollisionRects(
+      levelIndex: widget.levelIndex,
       spriteIndex: playerSpriteIndex,
       elapsedSeconds: elapsedSeconds,
-      levelIndex: widget.levelIndex,
       pose: RuntimeSpritePose(
         levelIndex: widget.levelIndex,
         spriteIndex: playerSpriteIndex,
@@ -521,102 +515,6 @@ extension _Level1Update on _Level1State {
         elapsedSeconds: elapsedSeconds,
       ),
     );
-  }
-
-  List<Rect> _spriteCollisionRectsForIndex({
-    required int spriteIndex,
-    required double elapsedSeconds,
-    int? levelIndex,
-    RuntimeSpritePose? pose,
-  }) {
-    final int resolvedLevelIndex = levelIndex ?? widget.levelIndex;
-    if (!_runtimeApi.isReady || _level == null) {
-      return const <Rect>[];
-    }
-    final List<WorldHitBox> hitBoxes = _runtimeApi.spriteHitBoxes(
-      levelIndex: resolvedLevelIndex,
-      spriteIndex: spriteIndex,
-      pose: pose,
-      elapsedSeconds: elapsedSeconds,
-    );
-    if (hitBoxes.isNotEmpty) {
-      return hitBoxes.map((hitBox) => hitBox.rectWorld).toList(growable: false);
-    }
-    final Rect? anchoredRect = _spriteAnchoredRectForIndex(
-      spriteIndex: spriteIndex,
-      elapsedSeconds: elapsedSeconds,
-      levelIndex: resolvedLevelIndex,
-      pose: pose,
-    );
-    if (anchoredRect == null) {
-      return const <Rect>[];
-    }
-    return <Rect>[anchoredRect];
-  }
-
-  Rect? _spriteAnchoredRectForIndex({
-    required int spriteIndex,
-    required double elapsedSeconds,
-    int? levelIndex,
-    RuntimeSpritePose? pose,
-  }) {
-    final int resolvedLevelIndex = levelIndex ?? widget.levelIndex;
-    final Map<String, dynamic>? sprite = _runtimeApi.spriteByIndex(
-      levelIndex: resolvedLevelIndex,
-      spriteIndex: spriteIndex,
-    );
-    if (sprite == null) {
-      return null;
-    }
-    final GamesToolApi gamesTool = _runtimeApi.gamesTool;
-    final Map<String, dynamic> gameData = _runtimeApi.gameData;
-    final Map<String, dynamic>? animation =
-        gamesTool.findAnimationForSprite(gameData, sprite);
-    final String? spriteImageFile = gamesTool.spriteImageFile(sprite);
-    final String? animationMediaFile = animation?['mediaFile'] as String?;
-    final String effectiveFile =
-        (animationMediaFile != null && animationMediaFile.isNotEmpty)
-            ? animationMediaFile
-            : (spriteImageFile ?? '');
-    final Map<String, dynamic>? mediaAsset = effectiveFile.isEmpty
-        ? null
-        : gamesTool.findMediaAssetByFile(gameData, effectiveFile);
-    final double frameWidth = mediaAsset == null
-        ? gamesTool.spriteWidth(sprite)
-        : gamesTool.mediaTileWidth(mediaAsset,
-            fallback: gamesTool.spriteWidth(sprite));
-    final double frameHeight = mediaAsset == null
-        ? gamesTool.spriteHeight(sprite)
-        : gamesTool.mediaTileHeight(mediaAsset,
-            fallback: gamesTool.spriteHeight(sprite));
-    if (frameWidth <= 0 || frameHeight <= 0) {
-      return null;
-    }
-
-    double anchorX = GamesToolApi.defaultAnchorX;
-    double anchorY = GamesToolApi.defaultAnchorY;
-    if (animation != null) {
-      final AnimationPlaybackConfig playback =
-          gamesTool.animationPlaybackConfig(animation);
-      final int frameIndex = gamesTool.animationFrameIndexAtTime(
-        playback: playback,
-        elapsedSeconds: elapsedSeconds,
-      );
-      anchorX = gamesTool.animationAnchorXForFrame(
-        animation,
-        frameIndex: frameIndex,
-      );
-      anchorY = gamesTool.animationAnchorYForFrame(
-        animation,
-        frameIndex: frameIndex,
-      );
-    }
-
-    final double worldX = pose?.x ?? gamesTool.spriteX(sprite);
-    final double worldY = pose?.y ?? gamesTool.spriteY(sprite);
-    final double left = worldX - frameWidth * anchorX;
-    final double top = worldY - frameHeight * anchorY;
-    return Rect.fromLTWH(left, top, frameWidth, frameHeight);
   }
 
   bool _resolveFloorPenetration(Level1UpdateState state) {

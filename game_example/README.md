@@ -40,6 +40,9 @@ flutter run -d macos # linux or windows
 - `lib/app.dart`: initial route to `Menu`.
 - `lib/app_data.dart`: central loading/cache state for game data and images.
 - `lib/shared/camera.dart`: mutable camera model + conversion to `RuntimeCamera2D`.
+- `lib/shared/utils_level.dart`: reusable level flow/lifecycle helpers
+  (navigation, loop ticker bootstrap, viewport bootstrap).
+- `lib/shared/utils_painter.dart`: reusable HUD/text painter helpers.
 
 ### Menu module
 
@@ -55,6 +58,7 @@ flutter run -d macos # linux or windows
 - `lib/loading/lifecycle.dart`: loading startup and animation lifecycle.
 - `lib/loading/layout.dart`: progress/label composition helpers.
 - `lib/loading/interaction.dart`: level routing decision logic.
+- `lib/loading/drawing.dart`: loading painter.
 
 ### Level 0 module
 
@@ -64,7 +68,7 @@ flutter run -d macos # linux or windows
 - `lib/level_0/interaction.dart`: input handling and menu return actions.
 - `lib/level_0/update.dart`: gameplay simulation/update tick logic.
 - `lib/level_0/drawing.dart`: world and sprite rendering.
-- `lib/level_0/hud.dart`: HUD hit areas and overlay helpers.
+- `HUD helpers are defined in lib/level_0/main.dart`.
 
 ### Level 1 module
 
@@ -74,7 +78,7 @@ flutter run -d macos # linux or windows
 - `lib/level_1/interaction.dart`: input handling and end-state actions.
 - `lib/level_1/update.dart`: platforming physics/combat/gameplay tick logic.
 - `lib/level_1/drawing.dart`: layered world + character rendering.
-- `lib/level_1/hud.dart`: HUD hit areas and overlay helpers.
+- `HUD helpers are defined in lib/level_1/main.dart`.
 
 ## 4. Game flow
 
@@ -100,6 +104,11 @@ Most-used methods when integrating gameplay:
 - `GameDataRuntimeApi.collideSpriteWithZones(...)`: sprite vs zone collisions.
 - `GameDataRuntimeApi.collideSpriteWithSprites(...)`: sprite vs sprite
   collisions.
+- `GameDataRuntimeApi.spriteCollisionRects(...)`: resolve world collision rects
+  for a sprite (hitboxes + anchored fallback).
+- `GamesToolApi.findLayerIndexByName(...)`: layer lookup by name in a level.
+- `GamesToolApi.findZoneIndexByGameplayData(...)`: zone lookup by gameplayData.
+- `GamesToolApi.findSpriteIndexByTypeOrName(...)`: sprite index lookup helper.
 - `GamesToolRuntimeRenderer.drawLevelTileLayers(...)`: draw visible tile layers.
 - `GamesToolRuntimeRenderer.drawAnimatedSprite(...)`: draw animated sprites
   with camera/depth support.

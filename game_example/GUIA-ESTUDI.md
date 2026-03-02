@@ -12,7 +12,8 @@ Aquesta guia esta pensada per a estudiants que volen entendre aquest projecte i 
   - `interaction.dart`: entrades i accions de l'usuari.
   - `update.dart`: pas de simulacio de gameplay.
   - `drawing.dart`: renderitzat.
-  - `hud.dart`: overlays i arees interactives de la UI.
+  - `lib/shared/` conte helpers reutilitzables de nivell i de painter
+    (`utils_level.dart`, `utils_painter.dart`).
 
 ## 2. Ordre de lectura recomanat
 
@@ -47,6 +48,12 @@ Aquesta guia esta pensada per a estudiants que volen entendre aquest projecte i 
   - Comprovacions d'interaccio personatge/enemic.
 - `GameDataRuntimeApi.updateFrameDeltaForSprite(...)`
   - Detecta col.lisions entrades/sortides/estables per frame.
+- `GamesToolApi.findLayerIndexByName(...)`
+  - Busca index de capa per nom en un nivell.
+- `GamesToolApi.findZoneIndexByGameplayData(...)`
+  - Busca index de zona per camp `gameplayData`.
+- `GameDataRuntimeApi.spriteCollisionRects(...)`
+  - Obte els rectangles de col.lisio en mon (hitboxes o fallback ancorat).
 - `GamesToolRuntimeRenderer.drawLevelTileLayers(...)`
   - Dibuixa tilemaps de manera eficient.
 - `GamesToolRuntimeRenderer.drawAnimatedSprite(...)`
