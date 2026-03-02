@@ -141,6 +141,7 @@ extension _Level1Update on _Level1State {
         flipX: !state.facingRight,
         elapsedSeconds: state.animationTimeSeconds,
       ),
+      useFrameRigAnchor: false,
       elapsedSeconds: state.animationTimeSeconds,
     );
   }
