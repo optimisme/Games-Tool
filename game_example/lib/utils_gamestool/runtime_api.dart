@@ -879,6 +879,92 @@ class GameDataRuntimeApi {
     return contacts;
   }
 
+  /// Continuous collision detection against static rects for downward motion.
+  ///
+  /// This complements `spriteCollisionRects(...)` by testing movement between
+  /// previous and current rect locations to avoid tunneling at high speed.
+  SweptRectCollision? firstDownwardCollisionAgainstRects({
+    required List<Rect> previousRects,
+    required List<Rect> currentRects,
+    required Iterable<Rect> staticRects,
+  }) {
+    final int movingCount = math.min(previousRects.length, currentRects.length);
+    if (movingCount <= 0) {
+      return null;
+    }
+    final List<Rect> solidRects = staticRects
+        .where((rect) => rect.width > 0 && rect.height > 0)
+        .toList(growable: false);
+    if (solidRects.isEmpty) {
+      return null;
+    }
+
+    SweptRectCollision? bestHit;
+    for (int i = 0; i < movingCount; i++) {
+      final Rect start = previousRects[i];
+      final Rect end = currentRects[i];
+      final double deltaX = end.left - start.left;
+      final double deltaY = end.top - start.top;
+      if (deltaY <= 0) {
+        continue;
+      }
+
+      for (final Rect solidRect in solidRects) {
+        final _SweptAabbResult? sweep = _sweptAabb(
+          movingRect: start,
+          deltaX: deltaX,
+          deltaY: deltaY,
+          staticRect: solidRect,
+        );
+        if (sweep == null || sweep.normal.dy >= 0) {
+          continue;
+        }
+
+        final SweptRectCollision candidate = SweptRectCollision(
+          time: sweep.time,
+          movingRectStart: start,
+          movingRectEnd: end,
+          staticRect: solidRect,
+          normal: sweep.normal,
+        );
+        if (bestHit == null || candidate.time < bestHit.time) {
+          bestHit = candidate;
+        }
+      }
+    }
+    return bestHit;
+  }
+
+  SweptRectCollision? firstDownwardSpriteCollisionAgainstRects({
+    required int levelIndex,
+    required int spriteIndex,
+    required RuntimeSpritePose previousPose,
+    required RuntimeSpritePose currentPose,
+    required Iterable<Rect> staticRects,
+    int? previousFrameIndex,
+    int? currentFrameIndex,
+  }) {
+    final List<Rect> previousRects = spriteCollisionRects(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+      pose: previousPose,
+      frameIndex: previousFrameIndex,
+      elapsedSeconds: previousPose.elapsedSeconds,
+    );
+    final List<Rect> currentRects = spriteCollisionRects(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+      pose: currentPose,
+      frameIndex: currentFrameIndex,
+      elapsedSeconds: currentPose.elapsedSeconds,
+    );
+    return firstDownwardCollisionAgainstRects(
+      previousRects: previousRects,
+      currentRects: currentRects,
+      staticRects: staticRects,
+    );
+  }
+
   List<ZoneContact> zoneContactsWithGroup({
     required int levelIndex,
     required int spriteIndex,
@@ -1270,6 +1356,72 @@ class GameDataRuntimeApi {
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
+  _SweptAabbResult? _sweptAabb({
+    required Rect movingRect,
+    required double deltaX,
+    required double deltaY,
+    required Rect staticRect,
+  }) {
+    if (deltaX == 0 && deltaY == 0) {
+      return null;
+    }
+
+    double xEntry;
+    double xExit;
+    if (deltaX > 0) {
+      xEntry = (staticRect.left - movingRect.right) / deltaX;
+      xExit = (staticRect.right - movingRect.left) / deltaX;
+    } else if (deltaX < 0) {
+      xEntry = (staticRect.right - movingRect.left) / deltaX;
+      xExit = (staticRect.left - movingRect.right) / deltaX;
+    } else {
+      final bool separatedX = movingRect.right <= staticRect.left ||
+          movingRect.left >= staticRect.right;
+      if (separatedX) {
+        return null;
+      }
+      xEntry = double.negativeInfinity;
+      xExit = double.infinity;
+    }
+
+    double yEntry;
+    double yExit;
+    if (deltaY > 0) {
+      yEntry = (staticRect.top - movingRect.bottom) / deltaY;
+      yExit = (staticRect.bottom - movingRect.top) / deltaY;
+    } else if (deltaY < 0) {
+      yEntry = (staticRect.bottom - movingRect.top) / deltaY;
+      yExit = (staticRect.top - movingRect.bottom) / deltaY;
+    } else {
+      final bool separatedY = movingRect.bottom <= staticRect.top ||
+          movingRect.top >= staticRect.bottom;
+      if (separatedY) {
+        return null;
+      }
+      yEntry = double.negativeInfinity;
+      yExit = double.infinity;
+    }
+
+    final double entryTime = math.max(xEntry, yEntry);
+    final double exitTime = math.min(xExit, yExit);
+
+    if (entryTime > exitTime || entryTime < 0 || entryTime > 1) {
+      return null;
+    }
+
+    final Offset normal;
+    if (xEntry > yEntry) {
+      normal = deltaX > 0 ? const Offset(-1, 0) : const Offset(1, 0);
+    } else {
+      normal = deltaY > 0 ? const Offset(0, -1) : const Offset(0, 1);
+    }
+
+    return _SweptAabbResult(
+      time: entryTime,
+      normal: normal,
+    );
+  }
+
   String _spriteKey(int levelIndex, int spriteIndex) =>
       'L${levelIndex}_S$spriteIndex';
   String _zoneKey(int levelIndex, int zoneIndex) =>
@@ -1290,4 +1442,14 @@ class _CollisionFrameState {
   final Set<String> zoneGroups;
   final Set<String> spriteKeys;
   final Set<String> spriteGroups;
+}
+
+class _SweptAabbResult {
+  const _SweptAabbResult({
+    required this.time,
+    required this.normal,
+  });
+
+  final double time;
+  final Offset normal;
 }

@@ -36,6 +36,7 @@ The API is designed for 2D gameplay runtime access:
 - `WorldHitBox`
 - `ZoneContact`
 - `SpriteContact`
+- `SweptRectCollision`
 - `CollisionTransition<T>`
 - `SpriteFrameDelta`
 
@@ -168,6 +169,24 @@ Returns `SpriteContact` with:
 - `otherSpriteIndex`, `otherSpriteGroupId`
 - colliding hitbox ids
 - `intersectionRect`
+
+### Swept collisions (CCD)
+
+- `firstDownwardCollisionAgainstRects(previousRects, currentRects, staticRects)`
+- `firstDownwardSpriteCollisionAgainstRects(levelIndex, spriteIndex, previousPose, currentPose, staticRects, previousFrameIndex?, currentFrameIndex?)`
+
+Returns `SweptRectCollision?` with:
+
+- `time` normalized in `[0, 1]` from previous to current frame
+- `movingRectStart`, `movingRectEnd`
+- `movingRectAtImpact` (derived getter)
+- `staticRect`
+- `normal` (top hit is `Offset(0, -1)`)
+
+Notes:
+
+- This is continuous collision detection for downward movement to prevent floor tunneling at high fall speeds.
+- It complements per-frame overlap checks; existing collision methods remain unchanged.
 
 ## Group helpers
 
