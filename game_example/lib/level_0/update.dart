@@ -3,20 +3,15 @@ part of 'main.dart';
 /// Per-frame simulation for movement, collisions, and world state mutations.
 extension _Level0Update on _Level0State {
   void _startLoop() {
-    _ticker?.dispose();
-    _lastTickTimestamp = null;
-    _ticker = createTicker((Duration elapsed) {
-      final Duration? previous = _lastTickTimestamp;
-      _lastTickTimestamp = elapsed;
-
-      final double dt = previous == null
-          ? 1 / 60
-          : (elapsed - previous).inMicroseconds / 1000000;
-
-      // Clamp frame delta to keep physics stable after stalls/backgrounding.
-      _tick(dt.clamp(0.0, 0.05));
-    });
-    _ticker?.start();
+    _ticker = restartGameLoopTicker(
+      tickerProvider: this,
+      ticker: _ticker,
+      getLastTickTimestamp: () => _lastTickTimestamp,
+      setLastTickTimestamp: (Duration? value) {
+        _lastTickTimestamp = value;
+      },
+      onTick: _tick,
+    );
   }
 
   void _tick(double dt) {

@@ -13,7 +13,6 @@ import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
 part 'drawing.dart';
-part 'hud.dart';
 part 'lifecycle.dart';
 part 'interaction.dart';
 part 'models.dart';
@@ -84,65 +83,6 @@ Map<String, dynamic>? _resolveLevel1PlayerSprite(Map<String, dynamic>? level) {
   for (final Map<String, dynamic> sprite in sprites) {
     if (_isLevel1PlayerSprite(sprite)) {
       return sprite;
-    }
-  }
-  return null;
-}
-
-int? _resolveLevel1PlayerSpriteIndex(Map<String, dynamic>? level) {
-  if (level == null) {
-    return null;
-  }
-  final List<Map<String, dynamic>> sprites =
-      ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  for (int i = 0; i < sprites.length; i++) {
-    if (_isLevel1PlayerSprite(sprites[i])) {
-      return i;
-    }
-  }
-  return null;
-}
-
-int? _resolveLevel1LayerIndexByName(
-  Map<String, dynamic>? level,
-  String layerName,
-) {
-  if (level == null) {
-    return null;
-  }
-  final List<Map<String, dynamic>> layers =
-      ((level['layers'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  final String target = layerName.trim().toLowerCase();
-  for (int i = 0; i < layers.length; i++) {
-    final String name = ((layers[i]['name'] as String?) ?? '').trim();
-    if (name.toLowerCase() == target) {
-      return i;
-    }
-  }
-  return null;
-}
-
-int? _resolveLevel1ZoneIndexByGameplayData(
-  Map<String, dynamic>? level,
-  String gameplayData,
-) {
-  if (level == null) {
-    return null;
-  }
-  final List<Map<String, dynamic>> zones =
-      ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  final String target = gameplayData.trim().toLowerCase();
-  for (int i = 0; i < zones.length; i++) {
-    final String zoneGameplayData =
-        ((zones[i]['gameplayData'] as String?) ?? '').trim();
-    if (zoneGameplayData.toLowerCase() == target) {
-      return i;
     }
   }
   return null;
@@ -296,6 +236,27 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
           },
         ),
       ),
+    );
+  }
+}
+
+/// HUD helpers that map virtual viewport coordinates back to screen space.
+extension _Level1Hud on _Level1State {
+  Rect _backLabelScreenRect({
+    required AppData appData,
+    required Size canvasSize,
+  }) {
+    final RuntimeLevelViewport viewport =
+        GamesToolRuntimeRenderer.levelViewport(
+      gamesTool: appData.gamesTool,
+      level: _level,
+    );
+    return resolveBackLabelScreenRect(
+      viewport: viewport,
+      canvasSize: canvasSize,
+      label: _level1BackLabel,
+      layout: _level1BackHudLayout,
+      textStyle: kHudTextStyle,
     );
   }
 }

@@ -213,6 +213,107 @@ class GameDataRuntimeApi {
     return sprites[spriteIndex];
   }
 
+  List<Rect> spriteCollisionRects({
+    required int levelIndex,
+    required int spriteIndex,
+    RuntimeSpritePose? pose,
+    int? frameIndex,
+    double elapsedSeconds = 0,
+  }) {
+    if (!isReady) {
+      return const <Rect>[];
+    }
+    final List<WorldHitBox> hitBoxes = spriteHitBoxes(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+      pose: pose,
+      frameIndex: frameIndex,
+      elapsedSeconds: elapsedSeconds,
+    );
+    if (hitBoxes.isNotEmpty) {
+      return hitBoxes.map((WorldHitBox hitBox) => hitBox.rectWorld).toList(
+            growable: false,
+          );
+    }
+    final Rect? anchoredRect = spriteAnchoredRect(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+      pose: pose,
+      elapsedSeconds: elapsedSeconds,
+    );
+    if (anchoredRect == null) {
+      return const <Rect>[];
+    }
+    return <Rect>[anchoredRect];
+  }
+
+  Rect? spriteAnchoredRect({
+    required int levelIndex,
+    required int spriteIndex,
+    RuntimeSpritePose? pose,
+    double elapsedSeconds = 0,
+  }) {
+    final Map<String, dynamic>? sprite = spriteByIndex(
+      levelIndex: levelIndex,
+      spriteIndex: spriteIndex,
+    );
+    if (sprite == null) {
+      return null;
+    }
+    final Map<String, dynamic>? animation =
+        _gamesTool.findAnimationForSprite(_gameData, sprite);
+    final String? spriteImageFile = _gamesTool.spriteImageFile(sprite);
+    final String? animationMediaFile = animation?['mediaFile'] as String?;
+    final String effectiveFile =
+        (animationMediaFile != null && animationMediaFile.isNotEmpty)
+            ? animationMediaFile
+            : (spriteImageFile ?? '');
+    final Map<String, dynamic>? mediaAsset = effectiveFile.isEmpty
+        ? null
+        : _gamesTool.findMediaAssetByFile(_gameData, effectiveFile);
+    final double frameWidth = mediaAsset == null
+        ? _gamesTool.spriteWidth(sprite)
+        : _gamesTool.mediaTileWidth(
+            mediaAsset,
+            fallback: _gamesTool.spriteWidth(sprite),
+          );
+    final double frameHeight = mediaAsset == null
+        ? _gamesTool.spriteHeight(sprite)
+        : _gamesTool.mediaTileHeight(
+            mediaAsset,
+            fallback: _gamesTool.spriteHeight(sprite),
+          );
+    if (frameWidth <= 0 || frameHeight <= 0) {
+      return null;
+    }
+
+    double anchorX = GamesToolApi.defaultAnchorX;
+    double anchorY = GamesToolApi.defaultAnchorY;
+    if (animation != null) {
+      final AnimationPlaybackConfig playback =
+          _gamesTool.animationPlaybackConfig(animation);
+      final int resolvedFrameIndex = pose?.frameIndex ??
+          _gamesTool.animationFrameIndexAtTime(
+            playback: playback,
+            elapsedSeconds: pose?.elapsedSeconds ?? elapsedSeconds,
+          );
+      anchorX = _gamesTool.animationAnchorXForFrame(
+        animation,
+        frameIndex: resolvedFrameIndex,
+      );
+      anchorY = _gamesTool.animationAnchorYForFrame(
+        animation,
+        frameIndex: resolvedFrameIndex,
+      );
+    }
+
+    final double worldX = pose?.x ?? _gamesTool.spriteX(sprite);
+    final double worldY = pose?.y ?? _gamesTool.spriteY(sprite);
+    final double left = worldX - frameWidth * anchorX;
+    final double top = worldY - frameHeight * anchorY;
+    return Rect.fromLTWH(left, top, frameWidth, frameHeight);
+  }
+
   double depthProjectionFactorForDepth(
     double depth, {
     double sensitivity = GamesToolApi.defaultDepthSensitivity,

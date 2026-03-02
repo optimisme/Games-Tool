@@ -9,12 +9,14 @@ extension _Level1Initialize on _Level1State {
     );
     _level = appData.getLevelByIndex(widget.levelIndex);
     _playerSprite = _resolveLevel1PlayerSprite(_level);
-    _playerSpriteIndex = _resolveLevel1PlayerSpriteIndex(_level);
-    _movingPlatformLayerIndex = _resolveLevel1LayerIndexByName(
+    _playerSpriteIndex = appData.gamesTool
+        .findSpriteIndexByTypeOrName(_level, _level1PlayerSpriteName);
+    _movingPlatformLayerIndex = appData.gamesTool.findLayerIndexByName(
       _level,
       _level1MovingPlatformLayerName,
     );
-    _movingPlatformFloorZoneIndex = _resolveLevel1ZoneIndexByGameplayData(
+    _movingPlatformFloorZoneIndex =
+        appData.gamesTool.findZoneIndexByGameplayData(
       _level,
       _level1MovingPlatformFloorGameplayData,
     );
@@ -33,48 +35,30 @@ extension _Level1Initialize on _Level1State {
       ),
     );
     final Map<String, dynamic>? spawn = _playerSprite;
-    final double levelViewportWidth = _level == null
-        ? GamesToolApi.defaultViewportWidth
-        : appData.gamesTool.levelViewportWidth(
-            _level!,
-            fallback: GamesToolApi.defaultViewportWidth,
-          );
-    final double levelViewportCenterX = _level == null
-        ? 100
-        : appData.gamesTool.levelViewportCenterX(
-            _level!,
-            fallbackWidth: GamesToolApi.defaultViewportWidth,
-            fallbackX: 0,
-          );
-    final double levelViewportCenterY = _level == null
-        ? 120
-        : appData.gamesTool.levelViewportCenterY(
-            _level!,
-            fallbackHeight: GamesToolApi.defaultViewportHeight,
-            fallbackY: 0,
-          );
-
-    final double spawnX =
-        (spawn?['x'] as num?)?.toDouble() ?? levelViewportCenterX;
-    final double spawnY =
-        (spawn?['y'] as num?)?.toDouble() ?? levelViewportCenterY;
+    final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
+      gamesTool: appData.gamesTool,
+      level: _level,
+      spawn: spawn,
+      fallbackCenterX: 100,
+      fallbackCenterY: 120,
+    );
     // Keep vertical follow offset stable relative to spawn and configured viewport.
     _cameraFollowOffsetX = 0;
-    _cameraFollowOffsetY = levelViewportCenterY - spawnY;
+    _cameraFollowOffsetY = bootstrap.viewportCenterY - bootstrap.spawnY;
 
     _updateState = Level1UpdateState(
-      playerX: spawnX,
-      playerY: spawnY,
+      playerX: bootstrap.spawnX,
+      playerY: bootstrap.spawnY,
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 22,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 30,
       gemsCount: 0,
       totalGems: _gemSpriteIndices().length,
     );
 
-    _camera
-      ..x = levelViewportCenterX
-      ..y = levelViewportCenterY
-      ..focal = levelViewportWidth;
+    applyBootstrapCamera(
+      camera: _camera,
+      bootstrap: bootstrap,
+    );
 
     _applyMovingPlatformPose(_level1MovingPlatformPath.first);
   }

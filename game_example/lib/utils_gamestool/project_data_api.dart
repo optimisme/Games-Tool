@@ -137,10 +137,96 @@ class GamesToolApi {
     return layers.reversed.toList(growable: false);
   }
 
+  List<Map<String, dynamic>> listLevelSprites(Map<String, dynamic>? level) {
+    if (level == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    return ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
   List<Map<String, dynamic>> levelZones(Map<String, dynamic> level) {
     return ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
+  }
+
+  int? findLayerIndexByName(
+    Map<String, dynamic>? level,
+    String layerName, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> layers = listLevelLayers(level);
+    final String target =
+        caseInsensitive ? layerName.trim().toLowerCase() : layerName.trim();
+    for (int i = 0; i < layers.length; i++) {
+      final String name = ((layers[i]['name'] as String?) ?? '').trim();
+      final String normalized = caseInsensitive ? name.toLowerCase() : name;
+      if (normalized == target) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  int? findZoneIndexByGameplayData(
+    Map<String, dynamic>? level,
+    String gameplayData, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> zones = levelZones(level);
+    final String target = caseInsensitive
+        ? gameplayData.trim().toLowerCase()
+        : gameplayData.trim();
+    for (int i = 0; i < zones.length; i++) {
+      final String value = ((zones[i]['gameplayData'] as String?) ?? '').trim();
+      final String normalized = caseInsensitive ? value.toLowerCase() : value;
+      if (normalized == target) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  int? findSpriteIndexByTypeOrName(
+    Map<String, dynamic>? level,
+    String value, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> sprites = listLevelSprites(level);
+    final String target =
+        caseInsensitive ? value.trim().toLowerCase() : value.trim();
+    for (int i = 0; i < sprites.length; i++) {
+      final String type = ((sprites[i]['type'] as String?) ?? '').trim();
+      final String name = ((sprites[i]['name'] as String?) ?? '').trim();
+      final String normalizedType = caseInsensitive ? type.toLowerCase() : type;
+      final String normalizedName = caseInsensitive ? name.toLowerCase() : name;
+      if (normalizedType == target || normalizedName == target) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  int? firstSpriteIndex(Map<String, dynamic>? level) {
+    if (level == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> sprites = listLevelSprites(level);
+    if (sprites.isEmpty) {
+      return null;
+    }
+    return 0;
   }
 
   List<Map<String, dynamic>> levelZoneGroups(Map<String, dynamic> level) {
