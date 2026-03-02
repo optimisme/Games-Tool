@@ -308,15 +308,8 @@ class CanvasPainter extends CustomPainter {
 
       for (int li = level.layers.length - 1; li >= 0; li--) {
         final layer = level.layers[li];
-        if (layer.visible == false) continue;
-        if (!appData.imagesCache.containsKey(layer.tilesSheetFile)) continue;
-
-        final ui.Image tilesetImg = appData.imagesCache[layer.tilesSheetFile]!;
         final double tw = layer.tilesWidth.toDouble();
         final double th = layer.tilesHeight.toDouble();
-        final int tsetCols = (tilesetImg.width / tw).floor();
-        if (tsetCols == 0) continue;
-
         final int rows = layer.tileMap.length;
         final int cols = layer.tileMap.isNotEmpty ? layer.tileMap[0].length : 0;
         final double lx = layer.x.toDouble();
@@ -332,72 +325,89 @@ class CanvasPainter extends CustomPainter {
         final double lw = cols * tw;
         final double lh = rows * th;
 
-        final double opacity =
-            renderingTilemap && li != appData.selectedLayer ? 0.5 : 1.0;
-        final int alpha = (255 * opacity).round().clamp(0, 255);
-        final Paint tilePaint = Paint()
-          ..color = Color.fromARGB(alpha, 255, 255, 255);
-
-        for (int row = 0; row < rows; row++) {
-          for (int col = 0; col < cols; col++) {
-            final int tileIndex = layer.tileMap[row][col];
-            if (tileIndex < 0) continue;
-
-            final int tileRow = (tileIndex / tsetCols).floor();
-            final int tileCol = tileIndex % tsetCols;
-
-            canvas.drawImageRect(
-              tilesetImg,
-              Rect.fromLTWH(tileCol * tw, tileRow * th, tw, th),
-              Rect.fromLTWH(
-                drawLx + col * tw,
-                drawLy + row * th,
-                tw,
-                th,
-              ),
-              tilePaint,
-            );
-          }
-        }
-
-        // Draw grid lines over the layer
-        final Paint gridPaint = Paint()
-          ..color =
-              Color.fromARGB((51 * opacity).round().clamp(0, 255), 0, 0, 0)
-          ..strokeWidth = 0.5
-          ..style = PaintingStyle.stroke;
-        for (int r = 0; r <= rows; r++) {
-          canvas.drawLine(
-            Offset(drawLx, drawLy + r * th),
-            Offset(drawLx + lw, drawLy + r * th),
-            gridPaint,
-          );
-        }
-        for (int c = 0; c <= cols; c++) {
-          canvas.drawLine(
-            Offset(drawLx + c * tw, drawLy),
-            Offset(drawLx + c * tw, drawLy + lh),
-            gridPaint,
-          );
-        }
-
         final bool isSelectedInLayersView = renderingLayersPreview &&
             appData.selectedSection == 'layers' &&
             selectedLayerIndices.contains(li);
         final bool isSelectedInTilemapView = !renderingLayersPreview &&
             appData.selectedSection == 'tilemap' &&
             li == appData.selectedLayer;
+
+        final bool canDrawLayerGeometry =
+            tw > 0 && th > 0 && rows > 0 && cols > 0 && lw > 0 && lh > 0;
+        final bool canDrawLayerTiles = layer.visible == true &&
+            canDrawLayerGeometry &&
+            appData.imagesCache.containsKey(layer.tilesSheetFile);
+        if (canDrawLayerTiles) {
+          final ui.Image tilesetImg =
+              appData.imagesCache[layer.tilesSheetFile]!;
+          final int tsetCols = (tilesetImg.width / tw).floor();
+          if (tsetCols == 0) {
+            continue;
+          }
+
+          final double opacity =
+              renderingTilemap && li != appData.selectedLayer ? 0.5 : 1.0;
+          final int alpha = (255 * opacity).round().clamp(0, 255);
+          final Paint tilePaint = Paint()
+            ..color = Color.fromARGB(alpha, 255, 255, 255);
+
+          for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+              final int tileIndex = layer.tileMap[row][col];
+              if (tileIndex < 0) continue;
+
+              final int tileRow = (tileIndex / tsetCols).floor();
+              final int tileCol = tileIndex % tsetCols;
+
+              canvas.drawImageRect(
+                tilesetImg,
+                Rect.fromLTWH(tileCol * tw, tileRow * th, tw, th),
+                Rect.fromLTWH(
+                  drawLx + col * tw,
+                  drawLy + row * th,
+                  tw,
+                  th,
+                ),
+                tilePaint,
+              );
+            }
+          }
+
+          // Draw grid lines over the layer
+          final Paint gridPaint = Paint()
+            ..color =
+                Color.fromARGB((51 * opacity).round().clamp(0, 255), 0, 0, 0)
+            ..strokeWidth = 0.5
+            ..style = PaintingStyle.stroke;
+          for (int r = 0; r <= rows; r++) {
+            canvas.drawLine(
+              Offset(drawLx, drawLy + r * th),
+              Offset(drawLx + lw, drawLy + r * th),
+              gridPaint,
+            );
+          }
+          for (int c = 0; c <= cols; c++) {
+            canvas.drawLine(
+              Offset(drawLx + c * tw, drawLy),
+              Offset(drawLx + c * tw, drawLy + lh),
+              gridPaint,
+            );
+          }
+        }
+
         if (isSelectedInLayersView || isSelectedInTilemapView) {
           final Color selectedColor = isSelectedInTilemapView
               ? appData.tilesetSelectionColorForFile(layer.tilesSheetFile)
               : const Color(0xFF2196F3);
-          final Paint selPaint = Paint()
-            ..color = selectedColor
-            ..strokeWidth = 2.0 / vScale
-            ..style = PaintingStyle.stroke;
-          canvas.drawRect(
-            Rect.fromLTWH(drawLx + 1, drawLy + 1, lw - 2, lh - 2),
-            selPaint,
+          _drawLayerSelectionRect(
+            canvas: canvas,
+            vScale: vScale,
+            drawLx: drawLx,
+            drawLy: drawLy,
+            layerWidth: lw,
+            layerHeight: lh,
+            selectedColor: selectedColor,
+            includeWhiteOutline: isSelectedInLayersView,
           );
         }
       }
@@ -556,13 +566,15 @@ class CanvasPainter extends CustomPainter {
           }
 
           if (!renderingLayersPreview && selectedSpriteIndices.contains(i)) {
-            final Paint selectedPaint = Paint()
-              ..color = const Color(0xFF2196F3)
-              ..strokeWidth = 2.0 / vScale
-              ..style = PaintingStyle.stroke;
-            canvas.drawRect(
-              Rect.fromLTWH(spriteX, spriteY, spriteWidth, spriteHeight),
-              selectedPaint,
+            _drawLayerSelectionRect(
+              canvas: canvas,
+              vScale: vScale,
+              drawLx: spriteX - 1,
+              drawLy: spriteY - 1,
+              layerWidth: spriteWidth + 2,
+              layerHeight: spriteHeight + 2,
+              selectedColor: const Color(0xFF2196F3),
+              includeWhiteOutline: true,
             );
           }
         }
@@ -580,6 +592,49 @@ class CanvasPainter extends CustomPainter {
 
     // Draw axes on top (in screen space)
     _paintAxes(canvas, size, vScale, vOffset);
+  }
+
+  void _drawLayerSelectionRect({
+    required Canvas canvas,
+    required double vScale,
+    required double drawLx,
+    required double drawLy,
+    required double layerWidth,
+    required double layerHeight,
+    required Color selectedColor,
+    bool includeWhiteOutline = false,
+  }) {
+    if (layerWidth <= 0 || layerHeight <= 0) {
+      return;
+    }
+    final Rect selectionRect = Rect.fromLTWH(
+      drawLx + 1,
+      drawLy + 1,
+      math.max(0, layerWidth - 2),
+      math.max(0, layerHeight - 2),
+    );
+    if (selectionRect.width <= 0 || selectionRect.height <= 0) {
+      return;
+    }
+
+    final double whiteStrokeWidth = 1.0 / vScale;
+    final double selectedStrokeWidth = whiteStrokeWidth * 2;
+    if (includeWhiteOutline) {
+      final double whiteOutlineOffset =
+          (selectedStrokeWidth + whiteStrokeWidth) / 2;
+      final Rect whiteOutlineRect = selectionRect.inflate(whiteOutlineOffset);
+      final Paint whiteOutlinePaint = Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..strokeWidth = whiteStrokeWidth
+        ..style = PaintingStyle.stroke;
+      canvas.drawRect(whiteOutlineRect, whiteOutlinePaint);
+    }
+
+    final Paint selectedOutlinePaint = Paint()
+      ..color = selectedColor
+      ..strokeWidth = selectedStrokeWidth
+      ..style = PaintingStyle.stroke;
+    canvas.drawRect(selectionRect, selectedOutlinePaint);
   }
 
   void _paintViewportOverlay(
