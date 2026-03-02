@@ -145,6 +145,12 @@ class Level1Painter extends CustomPainter {
           top: 22,
           progress: renderState!.lifePercent / 100.0,
         );
+        drawTopRightHudText(
+          canvas: canvas,
+          hudRect: hudRect,
+          text: 'FPS: ${renderState!.fps.toStringAsFixed(1)}',
+          top: 31,
+        );
         if (renderState!.isGameOver) {
           _drawGameOverOverlay(
             canvas,

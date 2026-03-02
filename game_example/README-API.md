@@ -94,8 +94,11 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 
 - `depthProjectionFactorForDepth(depth, sensitivity?)`
 - `cameraScaleForViewport(viewportSize, camera)`
+- `fpsFromDeltaTime(dtSeconds, minDtSeconds?)`
+- `updateSmoothedFps(previousFps, dtSeconds, smoothing?)`
 - `worldToScreen(worldX, worldY, camera, viewportSize, depth?, depthSensitivity?)`
 - `screenToWorld(screenX, screenY, camera, viewportSize, depth?, depthSensitivity?)`
+- `spriteFocusPoint(levelIndex, spriteIndex, pose?, frameIndex?, elapsedSeconds?, normalizedX?, normalizedY?, fallbackX?, fallbackY?)`
 - `worldViewportRect(camera, viewportSize, depth?, depthSensitivity?, paddingWorld?)`
 - `worldToTile(levelIndex, layerIndex?|layerName?, worldX, worldY, depthDisplacement?)`
 - `screenToTile(levelIndex, layerIndex?|layerName?, screenX, screenY, camera, viewportSize, depthDisplacement?, depthSensitivity?)`
@@ -107,6 +110,8 @@ Notes:
 
 - You must provide exactly one of `layerIndex` or `layerName`.
 - `screenToTile` honors camera scale and layer depth projection.
+- `spriteFocusPoint(...)` is anchor-aware and is recommended for camera follow targets.
+- `fpsFromDeltaTime(...)` and `updateSmoothedFps(...)` provide reusable FPS counter math for runtime HUD/debug overlays.
 
 ## Rendering helpers (Flutter Canvas)
 

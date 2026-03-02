@@ -19,12 +19,17 @@ extension _Level0Update on _Level0State {
     if (!mounted || state == null) {
       return;
     }
+    state.fps = _runtimeApi.updateSmoothedFps(
+      previousFps: state.fps,
+      dtSeconds: dt,
+    );
 
     if (!state.isWin) {
       _updateMovement(state, dt);
+      final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
       _camera
-        ..x = state.playerX
-        ..y = state.playerY;
+        ..x = cameraFocus.dx
+        ..y = cameraFocus.dy;
     } else if (!state.canExitEndState) {
       state.endStateElapsedSeconds += dt;
       state.tickCounter += 1;
@@ -120,6 +125,25 @@ extension _Level0Update on _Level0State {
     state.isOnPont = _isInsidePontZone(state);
     state.animationTimeSeconds += dt;
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
+  }
+
+  Offset _resolvePlayerCameraFocusPoint(Level0UpdateState state) {
+    final int? spriteIndex = _heroSpriteIndex;
+    if (spriteIndex == null) {
+      return Offset(state.playerX, state.playerY);
+    }
+    return _runtimeApi.spriteFocusPoint(
+      levelIndex: widget.levelIndex,
+      spriteIndex: spriteIndex,
+      pose: RuntimeSpritePose(
+        levelIndex: widget.levelIndex,
+        spriteIndex: spriteIndex,
+        x: state.playerX,
+        y: state.playerY,
+        elapsedSeconds: state.animationTimeSeconds,
+      ),
+      elapsedSeconds: state.animationTimeSeconds,
+    );
   }
 
   bool _wouldCollideWithBlockedZone(

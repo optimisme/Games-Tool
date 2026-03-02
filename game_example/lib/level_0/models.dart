@@ -26,6 +26,7 @@ class Level0UpdateState {
   final Set<String> collectedArbreTileKeys = <String>{};
   bool isWin = false;
   double endStateElapsedSeconds = 0;
+  double fps = 60;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
   final double speedPerSecond;
@@ -47,6 +48,7 @@ class Level0RenderState {
     required this.totalArbres,
     required this.isWin,
     required this.canExitEndState,
+    required this.fps,
     required this.animationTimeSeconds,
     required this.tickCounter,
   });
@@ -65,6 +67,7 @@ class Level0RenderState {
       totalArbres: state.totalArbres,
       isWin: state.isWin,
       canExitEndState: state.canExitEndState,
+      fps: state.fps,
       animationTimeSeconds: state.animationTimeSeconds,
       tickCounter: state.tickCounter,
     );
@@ -81,6 +84,7 @@ class Level0RenderState {
   final int totalArbres;
   final bool isWin;
   final bool canExitEndState;
+  final double fps;
   final double animationTimeSeconds;
   final int tickCounter;
 }

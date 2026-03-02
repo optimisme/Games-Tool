@@ -42,9 +42,9 @@ extension _Level1Initialize on _Level1State {
       fallbackCenterX: 100,
       fallbackCenterY: 120,
     );
-    // Keep vertical follow offset stable relative to spawn and configured viewport.
+    // Camera follow now uses sprite visual-center focus point from runtime API.
     _cameraFollowOffsetX = 0;
-    _cameraFollowOffsetY = bootstrap.viewportCenterY - bootstrap.spawnY;
+    _cameraFollowOffsetY = 0;
 
     _updateState = Level1UpdateState(
       playerX: bootstrap.spawnX,

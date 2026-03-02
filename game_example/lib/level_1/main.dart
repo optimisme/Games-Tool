@@ -154,7 +154,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
   double _cameraFollowOffsetX = 0;
-  double _cameraFollowOffsetY = -80;
+  double _cameraFollowOffsetY = 0;
   int? _movingPlatformLayerIndex;
   int? _movingPlatformFloorZoneIndex;
 
