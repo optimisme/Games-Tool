@@ -95,7 +95,7 @@
       "viewportHeight": 180,
       "viewportX": 280,
       "viewportY": 175,
-      "viewportAdaptation": "letterbox",
+      "viewportAdaptation": "expand",
       "viewportInitialColor": "yellow",
       "viewportPreviewColor": "pink",
       "backgroundColorHex": "#000000",
