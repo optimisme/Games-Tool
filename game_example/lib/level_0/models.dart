@@ -5,29 +5,19 @@ class Level0UpdateState {
   Level0UpdateState({
     required this.playerX,
     required this.playerY,
+    required this.cameraX,
+    required this.cameraY,
     required this.playerWidth,
     required this.playerHeight,
     required this.speedPerSecond,
     required this.totalArbres,
     required this.collectibleArbreTileKeys,
-  })  : previousPlayerX = playerX,
-        previousPlayerY = playerY,
-        previousCameraX = playerX,
-        previousCameraY = playerY,
-        cameraX = playerX,
-        cameraY = playerY;
+  });
 
   double playerX;
   double playerY;
-  // Previous-tick positions used by the painter for render interpolation.
-  // Both player and camera must be lerped together or tiles vibrate relative
-  // to the sprite.
-  double previousPlayerX;
-  double previousPlayerY;
   double cameraX;
   double cameraY;
-  double previousCameraX;
-  double previousCameraY;
   double playerWidth;
   double playerHeight;
   String direction = 'down';
@@ -69,23 +59,28 @@ class Level0RenderState {
     required this.tickCounter,
   });
 
-  factory Level0RenderState.from(Level0UpdateState state, {double alpha = 1.0}) {
-    // Lerp both player and camera between the previous and current physics tick.
-    // They must move together — interpolating only the player causes the sprite
-    // to shift relative to the tiles every frame (visible vibration).
-    final double renderX =
-        state.previousPlayerX + (state.playerX - state.previousPlayerX) * alpha;
-    final double renderY =
-        state.previousPlayerY + (state.playerY - state.previousPlayerY) * alpha;
-    final double renderCamX =
-        state.previousCameraX + (state.cameraX - state.previousCameraX) * alpha;
-    final double renderCamY =
-        state.previousCameraY + (state.cameraY - state.previousCameraY) * alpha;
+  factory Level0RenderState.from(
+    Level0UpdateState state, {
+    required GameDataRuntimeApi runtimeApi,
+    double alpha = 1.0,
+  }) {
+    final Offset renderPlayer = runtimeApi.sampleTransform2D(
+      _level0PlayerTransformId,
+      alpha: alpha,
+      fallbackX: state.playerX,
+      fallbackY: state.playerY,
+    );
+    final Offset renderCamera = runtimeApi.sampleTransform2D(
+      _level0CameraTransformId,
+      alpha: alpha,
+      fallbackX: state.cameraX,
+      fallbackY: state.cameraY,
+    );
     return Level0RenderState(
-      playerX: renderX,
-      playerY: renderY,
-      cameraX: renderCamX,
-      cameraY: renderCamY,
+      playerX: renderPlayer.dx,
+      playerY: renderPlayer.dy,
+      cameraX: renderCamera.dx,
+      cameraY: renderCamera.dy,
       playerWidth: state.playerWidth,
       playerHeight: state.playerHeight,
       direction: state.direction,

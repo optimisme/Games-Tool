@@ -57,6 +57,8 @@ extension _Level0Initialize on _Level0State {
     _updateState = Level0UpdateState(
       playerX: bootstrap.spawnX,
       playerY: bootstrap.spawnY,
+      cameraX: bootstrap.viewportCenterX,
+      cameraY: bootstrap.viewportCenterY,
       playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 20,
       playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 20,
       speedPerSecond: 95,
@@ -68,6 +70,19 @@ extension _Level0Initialize on _Level0State {
     applyBootstrapCamera(
       camera: _camera,
       bootstrap: bootstrap,
+    );
+    _updateState!
+      ..cameraX = _camera.x
+      ..cameraY = _camera.y;
+    _runtimeApi.snapTransform2D(
+      id: _level0PlayerTransformId,
+      x: _updateState!.playerX,
+      y: _updateState!.playerY,
+    );
+    _runtimeApi.snapTransform2D(
+      id: _level0CameraTransformId,
+      x: _updateState!.cameraX,
+      y: _updateState!.cameraY,
     );
   }
 

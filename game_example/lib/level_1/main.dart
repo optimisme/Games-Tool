@@ -32,6 +32,9 @@ const String _level1AnimFoxyJumpFall = 'Foxy Jump Fall';
 const String _level1AnimDragonDeath = 'Dragon Death';
 const String _level1MovingPlatformLayerName = 'Platform';
 const String _level1MovingPlatformFloorGameplayData = 'Platform Floor';
+const String _level1PlayerTransformId = 'level1/player';
+const String _level1CameraTransformId = 'level1/camera';
+const String _level1MovingPlatformTransformId = 'level1/platform';
 const int _level1InitialLifePercent = 100;
 const int _level1DragonDamagePercent = 25;
 const double _level1EndStateInputDelaySeconds = 1.0;
@@ -228,9 +231,14 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                     level: _level,
                     camera: _camera,
                     backIconImage: _backIconImage,
+                    movingPlatformLayerIndex: _movingPlatformLayerIndex,
                     renderState: state == null
                         ? null
-                        : Level1RenderState.from(state, alpha: _renderAlpha),
+                        : Level1RenderState.from(
+                            state,
+                            runtimeApi: _runtimeApi,
+                            alpha: _renderAlpha,
+                          ),
                   ),
                   child: const SizedBox.expand(),
                 ),

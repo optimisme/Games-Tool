@@ -7,6 +7,7 @@ class Level1Painter extends CustomPainter {
     required this.level,
     required this.camera,
     required this.backIconImage,
+    required this.movingPlatformLayerIndex,
     required this.renderState,
   });
 
@@ -14,6 +15,7 @@ class Level1Painter extends CustomPainter {
   final Map<String, dynamic>? level;
   final Camera camera;
   final ui.Image? backIconImage;
+  final int? movingPlatformLayerIndex;
   final Level1RenderState? renderState;
 
   @override
@@ -69,6 +71,19 @@ class Level1Painter extends CustomPainter {
           visibleOnly: true,
           painterOrder: true,
         );
+        final List<Map<String, dynamic>> allLayers =
+            appData.gamesTool.listLevelLayers(
+          level!,
+          visibleOnly: false,
+          painterOrder: false,
+        );
+        final int? platformLayerIndex = movingPlatformLayerIndex;
+        final Map<String, dynamic>? movingPlatformLayer =
+            platformLayerIndex != null &&
+                platformLayerIndex >= 0 &&
+                platformLayerIndex < allLayers.length
+            ? allLayers[platformLayerIndex]
+            : null;
         final List<Map<String, dynamic>> levelSprites =
             ((level!['sprites'] as List<dynamic>?) ?? const <dynamic>[])
                 .whereType<Map<String, dynamic>>()
@@ -106,6 +121,16 @@ class Level1Painter extends CustomPainter {
             depthSensitivity: depthSensitivity,
             drawBackground: false,
             onlyDepth: depth,
+            resolveLayerWorldOffset: (Map<String, dynamic> layer) {
+              if (movingPlatformLayer != null &&
+                  identical(layer, movingPlatformLayer)) {
+                return Offset(
+                  renderState!.platformX,
+                  renderState!.platformY,
+                );
+              }
+              return null;
+            },
           );
           _drawSpritesAtDepth(
             canvas: canvas,
@@ -356,7 +381,12 @@ class Level1Painter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant Level1Painter oldDelegate) {
-    return oldDelegate.renderState?.tickCounter != renderState?.tickCounter ||
+    return oldDelegate.renderState?.playerX != renderState?.playerX ||
+        oldDelegate.renderState?.playerY != renderState?.playerY ||
+        oldDelegate.renderState?.cameraX != renderState?.cameraX ||
+        oldDelegate.renderState?.cameraY != renderState?.cameraY ||
+        oldDelegate.renderState?.platformX != renderState?.platformX ||
+        oldDelegate.renderState?.platformY != renderState?.platformY ||
         oldDelegate.renderState?.gemsCount != renderState?.gemsCount ||
         oldDelegate.renderState?.lifePercent != renderState?.lifePercent ||
         oldDelegate.renderState?.isGameOver != renderState?.isGameOver ||

@@ -10,6 +10,29 @@ class RuntimeCameraMath {
   static const double minDepthProjectionFactor = 0.25;
   static const double maxDepthProjectionFactor = 4.0;
 
+  // Shared interpolation primitive used by level render states.
+  static double lerpDouble(
+    double previous,
+    double current, {
+    double alpha = 1.0,
+  }) {
+    final double t = alpha.clamp(0.0, 1.0).toDouble();
+    return previous + (current - previous) * t;
+  }
+
+  static Offset lerpOffset({
+    required double previousX,
+    required double previousY,
+    required double currentX,
+    required double currentY,
+    double alpha = 1.0,
+  }) {
+    return Offset(
+      lerpDouble(previousX, currentX, alpha: alpha),
+      lerpDouble(previousY, currentY, alpha: alpha),
+    );
+  }
+
   static double depthProjectionFactorForDepth(
     double depth, {
     double sensitivity = GamesToolApi.defaultDepthSensitivity,
