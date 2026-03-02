@@ -33,7 +33,12 @@ extension _Level1Update on _Level1State {
   }
 
   void _updatePhysics(Level1UpdateState state, double dt) {
-    _updateMovingPlatformPath(state, dt);
+    final Offset movingPlatformDelta = _updateMovingPlatformPath(state, dt);
+    if ((movingPlatformDelta.dx != 0 || movingPlatformDelta.dy != 0) &&
+        _isStandingOnMovingPlatform(state)) {
+      state.playerX += movingPlatformDelta.dx;
+      state.playerY += movingPlatformDelta.dy;
+    }
 
     final bool moveLeft = _pressedKeys.contains(LogicalKeyboardKey.arrowLeft) ||
         _pressedKeys.contains(LogicalKeyboardKey.keyA);
@@ -96,16 +101,20 @@ extension _Level1Update on _Level1State {
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
   }
 
-  void _updateMovingPlatformPath(Level1UpdateState state, double dt) {
+  Offset _updateMovingPlatformPath(Level1UpdateState state, double dt) {
     if (_movingPlatformLayerIndex == null ||
         _movingPlatformFloorZoneIndex == null) {
-      return;
+      return Offset.zero;
     }
+    final Offset previousPosition = _movingPlatformPositionAtTime(
+      state.platformMotionTimeSeconds,
+    );
     state.platformMotionTimeSeconds += dt;
     final Offset platformPosition = _movingPlatformPositionAtTime(
       state.platformMotionTimeSeconds,
     );
     _applyMovingPlatformPose(platformPosition);
+    return platformPosition - previousPosition;
   }
 
   Offset _movingPlatformPositionAtTime(double timeSeconds) {
@@ -332,6 +341,56 @@ extension _Level1Update on _Level1State {
       }
     }
     return false;
+  }
+
+  bool _isStandingOnMovingPlatform(Level1UpdateState state) {
+    final List<Rect> floors = _movingPlatformFloorRects();
+    if (floors.isEmpty) {
+      return false;
+    }
+    final List<Rect> playerRects = _playerCollisionRectsForPose(
+      state,
+      y: state.playerY + 0.5,
+      elapsedSeconds: state.animationTimeSeconds,
+    );
+    for (final Rect playerRect in playerRects) {
+      for (final Rect floor in floors) {
+        final bool overlapsHorizontally =
+            playerRect.right > floor.left && playerRect.left < floor.right;
+        if (!overlapsHorizontally) {
+          continue;
+        }
+        final double bottomDelta = (playerRect.bottom - floor.top).abs();
+        if (bottomDelta <= 1.0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  List<Rect> _movingPlatformFloorRects() {
+    final int? zoneIndex = _movingPlatformFloorZoneIndex;
+    final Map<String, dynamic>? level = _level;
+    if (zoneIndex == null || level == null) {
+      return const <Rect>[];
+    }
+    final List<Map<String, dynamic>> zones =
+        ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    if (zoneIndex < 0 || zoneIndex >= zones.length) {
+      return const <Rect>[];
+    }
+    final Map<String, dynamic> zone = zones[zoneIndex];
+    final double x = (zone['x'] as num?)?.toDouble() ?? 0;
+    final double y = (zone['y'] as num?)?.toDouble() ?? 0;
+    final double width = (zone['width'] as num?)?.toDouble() ?? 0;
+    final double height = (zone['height'] as num?)?.toDouble() ?? 0;
+    if (width <= 0 || height <= 0) {
+      return const <Rect>[];
+    }
+    return <Rect>[Rect.fromLTWH(x, y, width, height)];
   }
 
   void _collectTouchedGems(Level1UpdateState state) {
