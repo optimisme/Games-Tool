@@ -15,32 +15,17 @@ extension _Level0Initialize on _Level0State {
         gamesTool: appData.gamesTool,
       );
     }
-    _heroSpriteIndex =
-        appData.gamesTool.findSpriteIndexByTypeOrName(_level, 'Heroi') ??
-            appData.gamesTool.firstSpriteIndex(_level);
+    _heroSpriteIndex = appData.gamesTool.findSpriteIndexByTypeOrName(
+          _level,
+          _level0PlayerSpriteName,
+        ) ??
+        appData.gamesTool.firstSpriteIndex(_level);
     _decoracionsLayerIndex = appData.gamesTool
         .findLayerIndexByName(_level, _level0DecoracionsLayerName);
     _pontAmagatLayerIndex = appData.gamesTool
         .findLayerIndexByName(_level, _level0PontAmagatLayerName);
-    unawaited(
-      ensureStateImageLoaded(
-        appData: appData,
-        assetPath: _level0BackIconAssetPath,
-        currentImage: _backIconImage,
-        isMounted: () => mounted,
-        refresh: (VoidCallback update) {
-          _refreshLevel0(update);
-        },
-        assignImage: (ui.Image image) {
-          _backIconImage = image;
-        },
-      ),
-    );
 
-    final Map<String, dynamic>? spawn = _level == null
-        ? null
-        : appData.gamesTool.findSpriteByType(_level!, 'Heroi') ??
-            appData.gamesTool.findFirstSprite(_level!);
+    final Map<String, dynamic>? spawn = _resolveLevel0PlayerSprite(_level);
     final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
       gamesTool: appData.gamesTool,
       level: _level,

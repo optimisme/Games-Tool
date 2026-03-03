@@ -57,6 +57,7 @@ class Level1UpdateState {
 
 class Level1RenderState {
   const Level1RenderState({
+    required this.renderRevision,
     required this.playerX,
     required this.playerY,
     required this.cameraX,
@@ -106,6 +107,7 @@ class Level1RenderState {
       fallbackY: state.platformY,
     );
     return Level1RenderState(
+      renderRevision: state.tickCounter,
       playerX: renderPlayer.dx,
       playerY: renderPlayer.dy,
       cameraX: renderCamera.dx,
@@ -135,6 +137,7 @@ class Level1RenderState {
     );
   }
 
+  final int renderRevision;
   final double playerX;
   final double playerY;
   final double cameraX;

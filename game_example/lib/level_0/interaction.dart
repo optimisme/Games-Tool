@@ -23,7 +23,6 @@ extension _Level0Interaction on _Level0State {
     _decoracionsLayerIndex = null;
     _pontAmagatLayerIndex = null;
     _updateState = null;
-    _backIconImage = null;
   }
 
   void _goBackToMenu() {

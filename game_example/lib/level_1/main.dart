@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:ui' as ui;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../shared/camera.dart';
+import '../shared/level_rendering.dart';
 import '../shared/utils_level.dart';
 import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
@@ -91,6 +89,38 @@ Map<String, dynamic>? _resolveLevel1PlayerSprite(Map<String, dynamic>? level) {
   return null;
 }
 
+String _resolveLevel1PlayerAnimationName(Level1RenderState state) {
+  const double verticalThreshold = 5.0;
+  const double moveThreshold = 2.0;
+  if (!state.onGround) {
+    if (state.velocityY < -verticalThreshold) {
+      return _level1AnimFoxyJumpUp;
+    }
+    return _level1AnimFoxyJumpFall;
+  }
+  if (state.velocityX.abs() > moveThreshold) {
+    return _level1AnimFoxyWalk;
+  }
+  return _level1AnimFoxyIdle;
+}
+
+bool _shouldSkipLevel1Sprite({
+  required int spriteIndex,
+  required bool isPlayer,
+  required Level1RenderState state,
+}) {
+  if (isPlayer) {
+    return false;
+  }
+  if (state.collectedGemSpriteIndices.contains(spriteIndex)) {
+    return true;
+  }
+  if (state.removedDragonSpriteIndices.contains(spriteIndex)) {
+    return true;
+  }
+  return false;
+}
+
 List<Rect> _resolveLevel1FloorZones(Map<String, dynamic>? level) {
   return _resolveLevel1ZonesByTypeOrName(level, _level1FloorZoneName);
 }
@@ -156,7 +186,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   Level1UpdateState? _updateState;
   // Render interpolation alpha for the current vsync frame: [0, 1].
   double _renderAlpha = 1.0;
-  ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
   double _cameraFollowOffsetX = 0;
   double _cameraFollowOffsetY = 0;
@@ -211,6 +240,25 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
             final Rect backLabelRect = _backLabelScreenRect(
               canvasSize: canvasSize,
             );
+            final Level1RenderState? renderState = state == null
+                ? null
+                : Level1RenderState.from(
+                    state,
+                    runtimeApi: _runtimeApi,
+                    alpha: _renderAlpha,
+                  );
+            final List<LayerRenderCommand> layerCommands =
+                _buildLayerRenderCommands(
+              appData: appData,
+              renderState: renderState,
+            );
+            final List<LevelSpriteRenderCommand> spriteCommands =
+                _buildSpriteRenderCommands(
+              appData: appData,
+              renderState: renderState,
+            );
+            final List<RenderImageCommand> imageCommands =
+                _buildImageRenderCommands(canvasSize: canvasSize);
 
             return Focus(
               autofocus: true,
@@ -228,17 +276,13 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                 child: CustomPaint(
                   painter: Level1Painter(
                     appData: appData,
+                    gameData: appData.gameData,
                     level: _level,
                     camera: _camera,
-                    backIconImage: _backIconImage,
-                    movingPlatformLayerIndex: _movingPlatformLayerIndex,
-                    renderState: state == null
-                        ? null
-                        : Level1RenderState.from(
-                            state,
-                            runtimeApi: _runtimeApi,
-                            alpha: _renderAlpha,
-                          ),
+                    renderState: renderState,
+                    layerCommands: layerCommands,
+                    spriteCommands: spriteCommands,
+                    imageCommands: imageCommands,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -253,6 +297,118 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
 
 /// HUD helpers for screen-space interaction geometry.
 extension _Level1Hud on _Level1State {
+  List<LevelSpriteRenderCommand> _buildSpriteRenderCommands({
+    required AppData appData,
+    required Level1RenderState? renderState,
+  }) {
+    final Map<String, dynamic>? level = _level;
+    if (level == null || renderState == null) {
+      return const <LevelSpriteRenderCommand>[];
+    }
+    final List<Map<String, dynamic>> sprites =
+        ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    final Map<String, dynamic>? playerSprite =
+        _resolveLevel1PlayerSprite(level);
+
+    return buildLevelSpriteRenderCommands(
+      sprites: sprites,
+      playerSprite: playerSprite,
+      shouldSkip: (int spriteIndex, Map<String, dynamic> _, bool isPlayer) {
+        return _shouldSkipLevel1Sprite(
+          spriteIndex: spriteIndex,
+          isPlayer: isPlayer,
+          state: renderState,
+        );
+      },
+      buildPlayerCommand: (int _, Map<String, dynamic> sprite) {
+        return LevelSpriteRenderCommand(
+          sprite: sprite,
+          depth: appData.gamesTool.spriteDepth(sprite),
+          animationName: _resolveLevel1PlayerAnimationName(renderState),
+          elapsedSeconds: renderState.animationTimeSeconds,
+          worldX: renderState.playerX,
+          worldY: renderState.playerY,
+          drawWidthWorld: renderState.playerWidth,
+          drawHeightWorld: renderState.playerHeight,
+          flipX: !renderState.facingRight,
+        );
+      },
+      buildSpriteCommand: (int spriteIndex, Map<String, dynamic> sprite) {
+        final bool dragonDying =
+            renderState.dragonDeathStartSeconds.containsKey(spriteIndex);
+        final double? dragonDeathStart =
+            renderState.dragonDeathStartSeconds[spriteIndex];
+        final bool drawDragonDeath = dragonDying &&
+            dragonDeathStart != null &&
+            _isLevel1DragonSprite(sprite);
+        return LevelSpriteRenderCommand(
+          sprite: sprite,
+          depth: appData.gamesTool.spriteDepth(sprite),
+          animationName: drawDragonDeath ? _level1AnimDragonDeath : null,
+          elapsedSeconds: drawDragonDeath
+              ? (renderState.animationTimeSeconds - dragonDeathStart)
+                  .clamp(0.0, double.infinity)
+              : renderState.animationTimeSeconds,
+        );
+      },
+    );
+  }
+
+  List<LayerRenderCommand> _buildLayerRenderCommands({
+    required AppData appData,
+    required Level1RenderState? renderState,
+  }) {
+    final Map<String, dynamic>? level = _level;
+    if (level == null) {
+      return const <LayerRenderCommand>[];
+    }
+    final List<Map<String, dynamic>> visibleLayers = appData.gamesTool
+        .listLevelLayers(level, visibleOnly: true, painterOrder: true);
+    final List<Map<String, dynamic>> allLayers = appData.gamesTool
+        .listLevelLayers(level, visibleOnly: false, painterOrder: false);
+    final int? movingPlatformLayerIndex = _movingPlatformLayerIndex;
+    final Map<String, dynamic>? movingPlatformLayer =
+        movingPlatformLayerIndex != null &&
+                movingPlatformLayerIndex >= 0 &&
+                movingPlatformLayerIndex < allLayers.length
+            ? allLayers[movingPlatformLayerIndex]
+            : null;
+
+    return visibleLayers.map((Map<String, dynamic> layer) {
+      final bool isMovingPlatformLayer =
+          movingPlatformLayer != null && identical(layer, movingPlatformLayer);
+      return LayerRenderCommand(
+        layer: layer,
+        depth: appData.gamesTool.layerDepth(layer),
+        worldOffset: isMovingPlatformLayer && renderState != null
+            ? Offset(renderState.platformX, renderState.platformY)
+            : null,
+      );
+    }).toList(growable: false);
+  }
+
+  List<RenderImageCommand> _buildImageRenderCommands({
+    required Size canvasSize,
+  }) {
+    final Rect hudRect = resolveScreenHudRect(
+      canvasSize: canvasSize,
+    );
+    final Rect iconRect = Rect.fromLTWH(
+      hudRect.left + _level1BackHudLayout.hudX,
+      hudRect.top + _level1BackHudLayout.hudY,
+      _level1BackHudLayout.iconWidth,
+      _level1BackHudLayout.iconHeight,
+    );
+    return <RenderImageCommand>[
+      RenderImageCommand.hud(
+        assetKey: _level1BackIconAssetPath,
+        dstRectScreen: iconRect,
+      ),
+    ];
+  }
+
   Rect _backLabelScreenRect({
     required Size canvasSize,
   }) {

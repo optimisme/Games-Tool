@@ -12,6 +12,9 @@ class AppData extends ChangeNotifier {
     0: <String>[
       'other/enrrere.png',
     ],
+    1: <String>[
+      'other/enrrere.png',
+    ],
   };
 
   // Shared loaded project data from games_tool exports.

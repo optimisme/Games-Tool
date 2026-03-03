@@ -20,20 +20,6 @@ extension _Level1Initialize on _Level1State {
       _level,
       _level1MovingPlatformFloorGameplayData,
     );
-    unawaited(
-      ensureStateImageLoaded(
-        appData: appData,
-        assetPath: _level1BackIconAssetPath,
-        currentImage: _backIconImage,
-        isMounted: () => mounted,
-        refresh: (VoidCallback update) {
-          _refreshLevel1(update);
-        },
-        assignImage: (ui.Image image) {
-          _backIconImage = image;
-        },
-      ),
-    );
     final Map<String, dynamic>? spawn = _playerSprite;
     final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
       gamesTool: appData.gamesTool,
