@@ -265,6 +265,7 @@ class GamesToolRuntimeRenderer {
     double depthSensitivity = GamesToolApi.defaultDepthSensitivity,
     bool drawBackground = true,
     double? onlyDepth,
+    bool Function(Map<String, dynamic> layer)? includeLayer,
     ui.Offset? Function(Map<String, dynamic> layer)? resolveLayerWorldOffset,
   }) {
     if (drawBackground) {
@@ -287,6 +288,9 @@ class GamesToolRuntimeRenderer {
     );
 
     for (final Map<String, dynamic> layer in layers) {
+      if (includeLayer != null && !includeLayer(layer)) {
+        continue;
+      }
       final double layerDepth = gamesTool.layerDepth(layer);
       if (onlyDepth != null && (layerDepth - onlyDepth).abs() > 0.000001) {
         continue;
@@ -347,7 +351,8 @@ class GamesToolRuntimeRenderer {
       // worldToScreen expands to:
       //   screenX = worldX * depthProjection * scale - camera.x * depthProjection * scale + halfW
       // which is:  worldX * tileK + tileOriginX   (linear in worldX, constant coefficients)
-      final double depthProjection = RuntimeCameraMath.depthProjectionFactorForDepth(
+      final double depthProjection =
+          RuntimeCameraMath.depthProjectionFactorForDepth(
         layerDepth,
         sensitivity: depthSensitivity,
       );

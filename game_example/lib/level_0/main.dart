@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
@@ -9,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../app_data.dart';
 import '../shared/camera.dart';
+import '../shared/level_rendering.dart';
 import '../shared/utils_level.dart';
 import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
@@ -28,6 +27,7 @@ const String _level0PontAmagatLayerName = 'Pont Amagat';
 const String _level0FuturPontGameplayData = 'Futur Pont';
 const String _level0BackIconAssetPath = 'other/enrrere.png';
 const String _level0BackLabel = 'Tornar';
+const String _level0PlayerSpriteName = 'Heroi';
 const String _level0ArbreZoneName = 'Arbre';
 const String _level0PlayerTransformId = 'level0/player';
 const String _level0CameraTransformId = 'level0/camera';
@@ -41,6 +41,65 @@ const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
 );
 
 String _level0TileKey(int x, int y) => '$x:$y';
+
+bool _isLevel0PlayerSprite(Map<String, dynamic> sprite) {
+  final String target = _level0PlayerSpriteName.toLowerCase();
+  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
+  final String spriteType = ((sprite['type'] as String?) ?? '').trim();
+  return spriteName.toLowerCase() == target ||
+      spriteType.toLowerCase() == target;
+}
+
+Map<String, dynamic>? _resolveLevel0PlayerSprite(Map<String, dynamic>? level) {
+  if (level == null) {
+    return null;
+  }
+  final List<Map<String, dynamic>> sprites =
+      ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+  for (final Map<String, dynamic> sprite in sprites) {
+    if (_isLevel0PlayerSprite(sprite)) {
+      return sprite;
+    }
+  }
+  if (sprites.isEmpty) {
+    return null;
+  }
+  return sprites.first;
+}
+
+_AnimationSelection _resolveLevel0AnimationForState(Level0RenderState state) {
+  final String prefix = state.isMoving ? 'Heroi Camina ' : 'Heroi Aturat ';
+  switch (state.direction) {
+    case 'upLeft':
+      return _AnimationSelection(
+        animationName: '${prefix}Amunt-Dreta',
+        mirrorX: true,
+      );
+    case 'up':
+      return _AnimationSelection(animationName: '${prefix}Amunt');
+    case 'upRight':
+      return _AnimationSelection(animationName: '${prefix}Amunt-Dreta');
+    case 'left':
+      return _AnimationSelection(
+        animationName: '${prefix}Dreta',
+        mirrorX: true,
+      );
+    case 'right':
+      return _AnimationSelection(animationName: '${prefix}Dreta');
+    case 'downLeft':
+      return _AnimationSelection(
+        animationName: '${prefix}Avall-Dreta',
+        mirrorX: true,
+      );
+    case 'downRight':
+      return _AnimationSelection(animationName: '${prefix}Avall-Dreta');
+    case 'down':
+    default:
+      return _AnimationSelection(animationName: '${prefix}Avall');
+  }
+}
 
 Set<String> _collectLevel0ArbreTileKeys({
   required GamesToolApi gamesTool,
@@ -151,7 +210,6 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   Level0UpdateState? _updateState;
   // Render interpolation alpha for the current vsync frame: [0, 1].
   double _renderAlpha = 1.0;
-  ui.Image? _backIconImage;
   bool _isLeavingLevel = false;
 
   @override
@@ -202,6 +260,22 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
             final Rect backLabelRect = _backLabelScreenRect(
               canvasSize: canvasSize,
             );
+            final Level0RenderState? renderState = state == null
+                ? null
+                : Level0RenderState.from(
+                    state,
+                    runtimeApi: _runtimeApi,
+                    alpha: _renderAlpha,
+                  );
+            final List<LayerRenderCommand> layerCommands =
+                _buildLayerRenderCommands(appData: appData);
+            final List<RenderImageCommand> imageCommands =
+                _buildImageRenderCommands(canvasSize: canvasSize);
+            final List<LevelSpriteRenderCommand> spriteCommands =
+                _buildSpriteRenderCommands(
+              appData: appData,
+              renderState: renderState,
+            );
 
             return Focus(
               autofocus: true,
@@ -219,17 +293,13 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                 child: CustomPaint(
                   painter: Level0Painter(
                     appData: appData,
-                    gameData: _runtimeGameData,
+                    gameData: _runtimeGameData ?? appData.gameData,
                     level: _level,
                     camera: _camera,
-                    backIconImage: _backIconImage,
-                    renderState: state == null
-                        ? null
-                        : Level0RenderState.from(
-                            state,
-                            runtimeApi: _runtimeApi,
-                            alpha: _renderAlpha,
-                          ),
+                    renderState: renderState,
+                    layerCommands: layerCommands,
+                    spriteCommands: spriteCommands,
+                    imageCommands: imageCommands,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -244,6 +314,87 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
 /// HUD helpers for screen-space interaction geometry.
 extension _Level0Hud on _Level0State {
+  List<LevelSpriteRenderCommand> _buildSpriteRenderCommands({
+    required AppData appData,
+    required Level0RenderState? renderState,
+  }) {
+    final Map<String, dynamic>? level = _level;
+    if (level == null || renderState == null) {
+      return const <LevelSpriteRenderCommand>[];
+    }
+    final List<Map<String, dynamic>> sprites =
+        ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+    final Map<String, dynamic>? playerSprite =
+        _resolveLevel0PlayerSprite(level);
+    final _AnimationSelection animation =
+        _resolveLevel0AnimationForState(renderState);
+
+    return buildLevelSpriteRenderCommands(
+      sprites: sprites,
+      playerSprite: playerSprite,
+      buildPlayerCommand: (int _, Map<String, dynamic> sprite) {
+        return LevelSpriteRenderCommand(
+          sprite: sprite,
+          depth: appData.gamesTool.spriteDepth(sprite),
+          animationName: animation.animationName,
+          elapsedSeconds: renderState.animationTimeSeconds,
+          worldX: renderState.playerX,
+          worldY: renderState.playerY,
+          flipX: animation.mirrorX,
+          drawWidthWorld: renderState.playerWidth,
+          drawHeightWorld: renderState.playerHeight,
+          fallbackFps: 8,
+        );
+      },
+      buildSpriteCommand: (int _, Map<String, dynamic> sprite) {
+        return LevelSpriteRenderCommand(
+          sprite: sprite,
+          depth: appData.gamesTool.spriteDepth(sprite),
+          elapsedSeconds: renderState.animationTimeSeconds,
+        );
+      },
+    );
+  }
+
+  List<LayerRenderCommand> _buildLayerRenderCommands({
+    required AppData appData,
+  }) {
+    final Map<String, dynamic>? level = _level;
+    if (level == null) {
+      return const <LayerRenderCommand>[];
+    }
+    final List<Map<String, dynamic>> visibleLayers = appData.gamesTool
+        .listLevelLayers(level, visibleOnly: true, painterOrder: true);
+    return visibleLayers.map((Map<String, dynamic> layer) {
+      return LayerRenderCommand(
+        layer: layer,
+        depth: appData.gamesTool.layerDepth(layer),
+      );
+    }).toList(growable: false);
+  }
+
+  List<RenderImageCommand> _buildImageRenderCommands({
+    required Size canvasSize,
+  }) {
+    final Rect hudRect = resolveScreenHudRect(
+      canvasSize: canvasSize,
+    );
+    final Rect iconRect = Rect.fromLTWH(
+      hudRect.left + _level0BackHudLayout.hudX,
+      hudRect.top + _level0BackHudLayout.hudY,
+      _level0BackHudLayout.iconWidth,
+      _level0BackHudLayout.iconHeight,
+    );
+    return <RenderImageCommand>[
+      RenderImageCommand.hud(
+        assetKey: _level0BackIconAssetPath,
+        dstRectScreen: iconRect,
+      ),
+    ];
+  }
+
   Rect _backLabelScreenRect({
     required Size canvasSize,
   }) {
