@@ -202,6 +202,14 @@ extension _Level1Update on _Level1State {
       final Offset nextPosition = _bindingPositionAtTime(binding, nextTime);
       binding.targetObject['x'] = nextPosition.dx;
       binding.targetObject['y'] = nextPosition.dy;
+      _runtimeApi.setTransform2D(
+        id: _level1PathTargetTransformId(
+          targetType: binding.targetType,
+          targetIndex: binding.targetIndex,
+        ),
+        x: nextPosition.dx,
+        y: nextPosition.dy,
+      );
 
       if (!binding.isFloorZone) {
         continue;

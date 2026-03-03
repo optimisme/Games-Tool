@@ -65,6 +65,7 @@ extension _Level1Initialize on _Level1State {
 
     _initializePathBindings();
     _applyPathBindingsAtCurrentTime(_updateState!);
+    _snapPathBindingTransforms();
     _runtimeApi.snapTransform2D(
       id: _level1PlayerTransformId,
       x: _updateState!.playerX,
@@ -215,6 +216,27 @@ extension _Level1Initialize on _Level1State {
       );
       binding.targetObject['x'] = position.dx;
       binding.targetObject['y'] = position.dy;
+    }
+  }
+
+  void _snapPathBindingTransforms() {
+    if (_pathBindings.isEmpty) {
+      return;
+    }
+    for (final _Level1PathBindingRuntime binding in _pathBindings) {
+      if (!binding.enabled) {
+        continue;
+      }
+      final double x = (binding.targetObject['x'] as num?)?.toDouble() ?? 0;
+      final double y = (binding.targetObject['y'] as num?)?.toDouble() ?? 0;
+      _runtimeApi.snapTransform2D(
+        id: _level1PathTargetTransformId(
+          targetType: binding.targetType,
+          targetIndex: binding.targetIndex,
+        ),
+        x: x,
+        y: y,
+      );
     }
   }
 }
