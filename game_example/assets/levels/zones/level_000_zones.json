@@ -28,6 +28,7 @@
   ],
   "zones": [
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 629,
@@ -38,6 +39,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 611,
@@ -48,6 +50,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 531,
@@ -58,6 +61,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 631,
@@ -68,6 +72,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 672,
@@ -78,6 +83,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 732,
@@ -88,6 +94,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 749,
@@ -98,6 +105,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 516,
@@ -108,6 +116,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 501,
@@ -118,6 +127,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 547,
@@ -128,6 +138,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 632,
@@ -138,6 +149,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 563,
@@ -148,6 +160,7 @@
       "groupId": "__group_1772101681753835_2"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 272,
@@ -158,6 +171,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 113,
@@ -168,6 +182,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 465,
@@ -178,6 +193,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 929,
@@ -188,6 +204,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 881,
@@ -198,6 +215,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 913,
@@ -208,6 +226,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 945,
@@ -218,6 +237,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 881,
@@ -228,6 +248,7 @@
       "groupId": "__group_1772103034773875_0"
     },
     {
+      "name": "Pont",
       "type": "Pont",
       "gameplayData": "",
       "x": 304,
@@ -238,6 +259,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Aigua temporal",
       "type": "Aigua temporal",
       "gameplayData": "Futur Pont",
       "x": 688,
@@ -248,6 +270,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 0,
@@ -258,6 +281,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 0,
@@ -268,6 +292,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 0,
@@ -278,6 +303,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 1014,
@@ -288,6 +314,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Mur",
       "type": "Mur",
       "gameplayData": "",
       "x": 743,
@@ -298,6 +325,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 35,
@@ -308,6 +336,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 83,
@@ -318,6 +347,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 67,
@@ -328,6 +358,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 51,
@@ -338,6 +369,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 115,
@@ -348,6 +380,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 83,
@@ -358,6 +391,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 35,
@@ -368,6 +402,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 67,
@@ -378,6 +413,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 19,
@@ -388,6 +424,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 19,
@@ -398,6 +435,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 67,
@@ -408,6 +446,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 146,
@@ -418,6 +457,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 291,
@@ -428,6 +468,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 243,
@@ -438,6 +479,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 292,
@@ -448,6 +490,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 355,
@@ -458,6 +501,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 435,
@@ -468,6 +512,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 547,
@@ -478,6 +523,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 531,
@@ -488,6 +534,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 563,
@@ -498,6 +545,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 643,
@@ -508,6 +556,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 612,
@@ -518,6 +567,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 674,
@@ -528,6 +578,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 803,
@@ -538,6 +589,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 786,
@@ -548,6 +600,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 803,
@@ -558,6 +611,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 850,
@@ -568,6 +622,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 932,
@@ -578,6 +633,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 899,
@@ -588,6 +644,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 978,
@@ -598,6 +655,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 979,
@@ -608,6 +666,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 979,
@@ -618,6 +677,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 963,
@@ -628,6 +688,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 931,
@@ -638,6 +699,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 915,
@@ -648,6 +710,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 867,
@@ -658,6 +721,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 883,
@@ -668,6 +732,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 867,
@@ -678,6 +743,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 867,
@@ -688,6 +754,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 853,
@@ -698,6 +765,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 562,
@@ -708,6 +776,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 563,
@@ -718,6 +787,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 531,
@@ -728,6 +798,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 547,
@@ -738,6 +809,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 339,
@@ -748,6 +820,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 387,
@@ -758,6 +831,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 354,
@@ -768,6 +842,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 371,
@@ -778,6 +853,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 467,
@@ -788,6 +864,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 243,
@@ -798,6 +875,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 355,
@@ -808,6 +886,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 355,
@@ -818,6 +897,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Arbre",
       "type": "Arbre",
       "gameplayData": "",
       "x": 243,
@@ -828,6 +908,7 @@
       "groupId": "__group_1772101670839881_0"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 277,
@@ -838,6 +919,7 @@
       "groupId": "__group_1772101676619958_1"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 322,
@@ -848,6 +930,7 @@
       "groupId": "__group_1772101676619958_1"
     },
     {
+      "name": "Aigua",
       "type": "Aigua",
       "gameplayData": "",
       "x": 292,

@@ -587,6 +587,14 @@ class CanvasPainter extends CustomPainter {
           }
         }
       }
+
+      if (appData.selectedSection == 'paths') {
+        _paintSelectedPathOverlay(
+          canvas,
+          level: level,
+          viewScale: vScale,
+        );
+      }
     }
 
     canvas.restore();
@@ -600,6 +608,84 @@ class CanvasPainter extends CustomPainter {
 
     // Draw axes on top (in screen space)
     _paintAxes(canvas, size, vScale, vOffset);
+  }
+
+  void _paintSelectedPathOverlay(
+    Canvas canvas, {
+    required GameLevel level,
+    required double viewScale,
+  }) {
+    final int selectedPathIndex = appData.selectedPath;
+    if (selectedPathIndex < 0 || selectedPathIndex >= level.paths.length) {
+      return;
+    }
+    final path = level.paths[selectedPathIndex];
+    if (path.points.isEmpty) {
+      return;
+    }
+    final Color pathColor = LayoutUtils.getColorFromName(path.color);
+    final double safeScale = viewScale <= 0 ? 1.0 : viewScale;
+    final double lineWidth = 2.2 / safeScale;
+    final double outerLineWidth = 4.0 / safeScale;
+
+    if (path.points.length >= 2) {
+      final Path polyline = Path()
+        ..moveTo(
+          path.points.first.x.toDouble(),
+          path.points.first.y.toDouble(),
+        );
+      for (int i = 1; i < path.points.length; i++) {
+        final point = path.points[i];
+        polyline.lineTo(point.x.toDouble(), point.y.toDouble());
+      }
+
+      canvas.drawPath(
+        polyline,
+        Paint()
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.86)
+          ..strokeWidth = outerLineWidth
+          ..style = PaintingStyle.stroke,
+      );
+      canvas.drawPath(
+        polyline,
+        Paint()
+          ..color = pathColor
+          ..strokeWidth = lineWidth
+          ..style = PaintingStyle.stroke,
+      );
+    }
+
+    final double diamondRadius = LayoutUtils.pathPointHandleRadiusWorld(
+      appData,
+      screenRadius: 8.0,
+    );
+    for (int i = 0; i < path.points.length; i++) {
+      final point = path.points[i];
+      final Offset center = Offset(point.x.toDouble(), point.y.toDouble());
+      final bool isFirst = i == 0;
+      final Paint fillPaint = Paint()
+        ..color = pathColor
+        ..style = PaintingStyle.fill;
+      final Paint strokePaint = Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..strokeWidth = 1.4 / safeScale
+        ..style = PaintingStyle.stroke;
+
+      if (isFirst) {
+        canvas.drawCircle(center, diamondRadius, fillPaint);
+        canvas.drawCircle(center, diamondRadius, strokePaint);
+        continue;
+      }
+
+      final Path diamond = Path()
+        ..moveTo(center.dx, center.dy - diamondRadius)
+        ..lineTo(center.dx + diamondRadius, center.dy)
+        ..lineTo(center.dx, center.dy + diamondRadius)
+        ..lineTo(center.dx - diamondRadius, center.dy)
+        ..close();
+      canvas.drawPath(diamond, fillPaint);
+      canvas.drawPath(diamond, strokePaint);
+    }
   }
 
   void _drawLayerSelectionRect({

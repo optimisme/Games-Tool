@@ -59,11 +59,17 @@ extension _LayoutNavigation on _LayoutState {
         return;
       }
       final zone = level.zones[appData.selectedZone];
+      final String zoneName = zone.name.trim();
       final String zoneType = zone.type.trim();
+      final String displayName = zoneName.isNotEmpty
+          ? zoneName
+          : (zoneType.isNotEmpty
+              ? zoneType
+              : 'Zone ${appData.selectedZone + 1}');
       parts.add(
         MapEntry(
           'Zone',
-          zoneType.isEmpty ? 'Zone ${appData.selectedZone + 1}' : zoneType,
+          displayName,
         ),
       );
     }

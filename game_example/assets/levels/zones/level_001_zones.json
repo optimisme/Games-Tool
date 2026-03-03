@@ -8,6 +8,7 @@
   ],
   "zones": [
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 1,
@@ -18,6 +19,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 182,
@@ -28,6 +30,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 369,
@@ -38,8 +41,9 @@
       "groupId": "__main__"
     },
     {
+      "name": "Moving Platform Floor",
       "type": "Floor",
-      "gameplayData": "Platform Floor",
+      "gameplayData": "",
       "x": 597,
       "y": 444,
       "width": 80,
@@ -48,6 +52,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 833,
@@ -58,6 +63,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 833,
@@ -68,6 +74,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Floor",
       "type": "Floor",
       "gameplayData": "",
       "x": 1136,
@@ -78,6 +85,7 @@
       "groupId": "__main__"
     },
     {
+      "name": "Foxy Death",
       "type": "Foxy Death",
       "gameplayData": "",
       "x": -261,

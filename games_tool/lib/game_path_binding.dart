@@ -2,6 +2,7 @@ class GamePathBinding {
   static const String targetTypeLayer = 'layer';
   static const String targetTypeZone = 'zone';
   static const String targetTypeSprite = 'sprite';
+  static const int defaultDurationMs = 2000;
 
   static const String behaviorRestart = 'restart';
   static const String behaviorPingPong = 'ping_pong';
@@ -25,6 +26,7 @@ class GamePathBinding {
   String behavior;
   bool enabled;
   bool relativeToInitialPosition;
+  int durationMs;
 
   GamePathBinding({
     required this.id,
@@ -34,8 +36,10 @@ class GamePathBinding {
     String behavior = behaviorPingPong,
     this.enabled = true,
     this.relativeToInitialPosition = true,
+    int durationMs = defaultDurationMs,
   })  : targetType = _normalizeTargetType(targetType),
-        behavior = _normalizeBehavior(behavior);
+        behavior = _normalizeBehavior(behavior),
+        durationMs = _normalizeDurationMs(durationMs);
 
   factory GamePathBinding.fromJson(Map<String, dynamic> json) {
     return GamePathBinding(
@@ -47,6 +51,7 @@ class GamePathBinding {
       enabled: json['enabled'] as bool? ?? true,
       relativeToInitialPosition:
           json['relativeToInitialPosition'] as bool? ?? true,
+      durationMs: (json['durationMs'] as num?)?.round() ?? defaultDurationMs,
     );
   }
 
@@ -59,6 +64,7 @@ class GamePathBinding {
       'behavior': _normalizeBehavior(behavior),
       'enabled': enabled,
       'relativeToInitialPosition': relativeToInitialPosition,
+      'durationMs': _normalizeDurationMs(durationMs),
     };
   }
 
@@ -74,5 +80,12 @@ class GamePathBinding {
       return raw;
     }
     return behaviorRestart;
+  }
+
+  static int _normalizeDurationMs(int raw) {
+    if (raw <= 0) {
+      return defaultDurationMs;
+    }
+    return raw;
   }
 }

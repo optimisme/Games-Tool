@@ -8,6 +8,7 @@ import 'game_animation.dart';
 import 'game_layer.dart';
 import 'game_level.dart';
 import 'game_media_asset.dart';
+import 'game_path.dart';
 import 'game_sprite.dart';
 import 'game_zone.dart';
 import 'layout_sprites.dart';
@@ -1111,6 +1112,83 @@ class LayoutUtils {
       (coords.dx - offset.dx) / scaleFactor,
       (coords.dy - offset.dy) / scaleFactor,
     );
+  }
+
+  static double pathPointHandleRadiusWorld(
+    AppData appData, {
+    double screenRadius = 8.0,
+  }) {
+    final double scale = appData.scaleFactor <= 0 ? 1.0 : appData.scaleFactor;
+    return (screenRadius / scale).clamp(4.0 / scale, 20.0 / scale);
+  }
+
+  static int pathPointIndexFromPosition(AppData appData, Offset localPosition) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return -1;
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    if (appData.selectedPath < 0 ||
+        appData.selectedPath >= level.paths.length) {
+      return -1;
+    }
+    final GamePath path = level.paths[appData.selectedPath];
+    if (path.points.isEmpty) {
+      return -1;
+    }
+    final Offset worldCoords = translateCoords(
+      localPosition,
+      appData.imageOffset,
+      appData.scaleFactor,
+    );
+    final double hitRadius = pathPointHandleRadiusWorld(
+      appData,
+      screenRadius: 12.0,
+    );
+    final double hitRadiusSquared = hitRadius * hitRadius;
+    for (int i = path.points.length - 1; i >= 0; i--) {
+      final GamePathPoint point = path.points[i];
+      final double dx = worldCoords.dx - point.x.toDouble();
+      final double dy = worldCoords.dy - point.y.toDouble();
+      if ((dx * dx) + (dy * dy) <= hitRadiusSquared) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  static bool dragSelectedPathPointFromCanvas(
+    AppData appData, {
+    required int pointIndex,
+    required Offset localPosition,
+  }) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return false;
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    if (appData.selectedPath < 0 ||
+        appData.selectedPath >= level.paths.length) {
+      return false;
+    }
+    final GamePath path = level.paths[appData.selectedPath];
+    if (pointIndex < 0 || pointIndex >= path.points.length) {
+      return false;
+    }
+    final Offset worldCoords = translateCoords(
+      localPosition,
+      appData.imageOffset,
+      appData.scaleFactor,
+    );
+    final int nextX = worldCoords.dx.round();
+    final int nextY = worldCoords.dy.round();
+    final GamePathPoint point = path.points[pointIndex];
+    if (point.x == nextX && point.y == nextY) {
+      return false;
+    }
+    point.x = nextX;
+    point.y = nextY;
+    return true;
   }
 
   static Future<int> tileIndexFromTilesetCoords(

@@ -498,6 +498,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     appData.selectedLayer = -1;
     appData.selectedZone = -1;
     appData.selectedSprite = -1;
+    appData.selectedPath = -1;
     appData.update();
     await _autoSaveIfPossible(appData);
   }
@@ -586,6 +587,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       appData.selectedLayer = -1;
       appData.selectedZone = -1;
       appData.selectedSprite = -1;
+      appData.selectedPath = -1;
       appData.update();
       return;
     }
@@ -593,6 +595,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     appData.selectedLayer = -1;
     appData.selectedZone = -1;
     appData.selectedSprite = -1;
+    appData.selectedPath = -1;
     appData.update();
   }
 
@@ -618,6 +621,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       appData.selectedLayer = -1;
       appData.selectedZone = -1;
       appData.selectedSprite = -1;
+      appData.selectedPath = -1;
     }
     appData.update();
     await _autoSaveIfPossible(appData);
@@ -666,6 +670,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       appData.selectedLayer = -1;
       appData.selectedZone = -1;
       appData.selectedSprite = -1;
+      appData.selectedPath = -1;
     }
   }
 
