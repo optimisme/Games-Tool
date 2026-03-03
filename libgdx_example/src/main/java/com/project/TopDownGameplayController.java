@@ -29,9 +29,11 @@ public final class TopDownGameplayController extends AbstractGameplayController 
     public TopDownGameplayController(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
-        boolean[] layerVisibilityStates
+        boolean[] layerVisibilityStates,
+        Array<RuntimeTransform> zoneRuntimeStates,
+        Array<RuntimeTransform> zonePreviousRuntimeStates
     ) {
-        super(levelData, spriteRuntimeStates, layerVisibilityStates);
+        super(levelData, spriteRuntimeStates, layerVisibilityStates, zoneRuntimeStates, zonePreviousRuntimeStates);
 
         decorationsLayerIndex = findLayerIndexByName("decoracions", "decorations");
         hiddenBridgeLayerIndex = findLayerIndexByName("pont amagat", "hidden bridge");

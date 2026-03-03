@@ -10,6 +10,8 @@ public abstract class AbstractGameplayController implements GameplayController {
     protected final LevelData levelData;
     protected final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates;
     protected final boolean[] layerVisibilityStates;
+    protected final Array<RuntimeTransform> zoneRuntimeStates;
+    protected final Array<RuntimeTransform> zonePreviousRuntimeStates;
     private final String[] animationOverrideBySpriteIndex;
     private final ObjectMap<String, String> animationIdByName = new ObjectMap<>();
     protected final Rectangle rectCacheA = new Rectangle();
@@ -24,11 +26,15 @@ public abstract class AbstractGameplayController implements GameplayController {
     protected AbstractGameplayController(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
-        boolean[] layerVisibilityStates
+        boolean[] layerVisibilityStates,
+        Array<RuntimeTransform> zoneRuntimeStates,
+        Array<RuntimeTransform> zonePreviousRuntimeStates
     ) {
         this.levelData = levelData;
         this.spriteRuntimeStates = spriteRuntimeStates;
         this.layerVisibilityStates = layerVisibilityStates;
+        this.zoneRuntimeStates = zoneRuntimeStates;
+        this.zonePreviousRuntimeStates = zonePreviousRuntimeStates;
         this.animationOverrideBySpriteIndex = new String[levelData.sprites.size];
 
         for (ObjectMap.Entry<String, LevelData.AnimationClip> entry : levelData.animationClips) {
@@ -173,7 +179,41 @@ public abstract class AbstractGameplayController implements GameplayController {
     }
 
     protected final Rectangle zoneRect(LevelData.LevelZone zone, Rectangle out) {
+        int zoneIndex = levelData.zones.indexOf(zone, true);
+        if (zoneIndex >= 0) {
+            return zoneRectAtIndex(zoneIndex, out);
+        }
         out.set(zone.x, zone.y, zone.width, zone.height);
+        return out;
+    }
+
+    protected final Rectangle zoneRectAtIndex(int zoneIndex, Rectangle out) {
+        if (zoneIndex < 0 || zoneIndex >= levelData.zones.size) {
+            out.set(0f, 0f, 0f, 0f);
+            return out;
+        }
+        LevelData.LevelZone zone = levelData.zones.get(zoneIndex);
+        RuntimeTransform runtime = zoneRuntimeStates != null && zoneIndex < zoneRuntimeStates.size
+            ? zoneRuntimeStates.get(zoneIndex)
+            : null;
+        float zoneX = runtime == null ? zone.x : runtime.x;
+        float zoneY = runtime == null ? zone.y : runtime.y;
+        out.set(zoneX, zoneY, zone.width, zone.height);
+        return out;
+    }
+
+    protected final Rectangle zoneRectAtPreviousIndex(int zoneIndex, Rectangle out) {
+        if (zoneIndex < 0 || zoneIndex >= levelData.zones.size) {
+            out.set(0f, 0f, 0f, 0f);
+            return out;
+        }
+        LevelData.LevelZone zone = levelData.zones.get(zoneIndex);
+        RuntimeTransform runtime = zonePreviousRuntimeStates != null && zoneIndex < zonePreviousRuntimeStates.size
+            ? zonePreviousRuntimeStates.get(zoneIndex)
+            : null;
+        float zoneX = runtime == null ? zone.x : runtime.x;
+        float zoneY = runtime == null ? zone.y : runtime.y;
+        out.set(zoneX, zoneY, zone.width, zone.height);
         return out;
     }
 
@@ -241,7 +281,7 @@ public abstract class AbstractGameplayController implements GameplayController {
             if (idx < 0 || idx >= levelData.zones.size) {
                 continue;
             }
-            if (bounds.overlaps(zoneRect(levelData.zones.get(idx), rectCacheB))) {
+            if (bounds.overlaps(zoneRectAtIndex(idx, rectCacheB))) {
                 return true;
             }
         }

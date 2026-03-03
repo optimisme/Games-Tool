@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.IntFloatMap;
 import com.badlogic.gdx.utils.IntSet;
 
 public final class PlatformerGameplayController extends AbstractGameplayController {
@@ -18,19 +19,26 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private static final float DRAGON_STOMP_MIN_FALL_SPEED = 25f;
     private static final float DRAGON_DAMAGE_PERCENT = 25f;
     private static final float START_LIFE_PERCENT = 100f;
+    private static final float DRAGON_DEATH_FALLBACK_DURATION_SECONDS = 0.7f;
+    private static final String DRAGON_DEATH_ANIMATION_NAME = "Dragon Death";
+    private static final float DEFAULT_ANIMATION_FPS = 8f;
 
     private final IntArray floorZoneIndices = new IntArray();
     private final IntArray deathZoneIndices = new IntArray();
     private final IntArray gemSpriteIndices;
     private final IntArray dragonSpriteIndices;
+    private final IntFloatMap dragonDeathStartSecondsBySprite = new IntFloatMap();
+    private final IntArray completedDragonDeathSpriteIndices = new IntArray();
     private final IntSet collectedGemSpriteIndices = new IntSet();
     private final IntSet removedDragonSpriteIndices = new IntSet();
     private final IntSet touchingDragonSpriteIndices = new IntSet();
     private final IntSet touchingDragonNowCache = new IntSet();
     private final Rectangle previousPlayerRectCache = new Rectangle();
+    private final float dragonDeathDurationSeconds;
     private float velocityX = 0f;
     private float velocityY = 0f;
     private float lifePercent = START_LIFE_PERCENT;
+    private float simulationTimeSeconds = 0f;
     private boolean onGround = false;
     private boolean gameOver = false;
     private boolean win = false;
@@ -40,12 +48,15 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     public PlatformerGameplayController(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
-        boolean[] layerVisibilityStates
+        boolean[] layerVisibilityStates,
+        Array<RuntimeTransform> zoneRuntimeStates,
+        Array<RuntimeTransform> zonePreviousRuntimeStates
     ) {
-        super(levelData, spriteRuntimeStates, layerVisibilityStates);
+        super(levelData, spriteRuntimeStates, layerVisibilityStates, zoneRuntimeStates, zonePreviousRuntimeStates);
         classifyZones();
         gemSpriteIndices = findSpriteIndicesByTypeOrName("gem");
         dragonSpriteIndices = findSpriteIndicesByTypeOrName("dragon");
+        dragonDeathDurationSeconds = resolveDragonDeathDurationSeconds();
         onGround = isStandingOnFloor();
         updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
@@ -62,6 +73,9 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
 
     @Override
     public void fixedUpdate(float dtSeconds) {
+        simulationTimeSeconds += Math.max(0f, dtSeconds);
+        pruneCompletedDragonDeaths();
+
         if (!hasPlayer()) {
             return;
         }
@@ -88,6 +102,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             facingRight = true;
         }
         setPlayerFlip(!facingRight, false);
+
+        applyMovingFloorCarry();
 
         boolean hasSupport = isStandingOnFloor();
         if (hasSupport && velocityY >= 0f) {
@@ -172,8 +188,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         float bestLandingTop = Float.NaN;
 
         for (int i = 0; i < floorZoneIndices.size; i++) {
-            LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(i));
-            Rectangle zoneRect = zoneRect(zone, rectCacheB);
+            int zoneIndex = floorZoneIndices.get(i);
+            Rectangle zoneRect = zoneRectAtIndex(zoneIndex, rectCacheB);
             float zoneTop = zoneRect.y;
 
             if (!overlapsHorizontallyForSweep(previousRect, playerRect, zoneRect)) {
@@ -203,8 +219,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             Rectangle correctedRect = playerRectAt(playerX, correctedY, rectCacheA);
             float maxPenetration = 0f;
             for (int z = 0; z < floorZoneIndices.size; z++) {
-                LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(z));
-                Rectangle zoneRect = zoneRect(zone, rectCacheB);
+                int zoneIndex = floorZoneIndices.get(z);
+                Rectangle zoneRect = zoneRectAtIndex(zoneIndex, rectCacheB);
                 if (!overlapsHorizontallyForSweep(correctedRect, correctedRect, zoneRect)) {
                     continue;
                 }
@@ -245,7 +261,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         float testRight = playerRect.x + playerRect.width;
 
         for (int i = 0; i < floorZoneIndices.size; i++) {
-            Rectangle zoneRect = zoneRect(levelData.zones.get(floorZoneIndices.get(i)), rectCacheB);
+            int zoneIndex = floorZoneIndices.get(i);
+            Rectangle zoneRect = zoneRectAtIndex(zoneIndex, rectCacheB);
             boolean overlapsHorizontally = testRight > zoneRect.x && testLeft < zoneRect.x + zoneRect.width;
             if (!overlapsHorizontally) {
                 continue;
@@ -310,7 +327,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
 
         for (int i = 0; i < dragonSpriteIndices.size; i++) {
             int spriteIndex = dragonSpriteIndices.get(i);
-            if (removedDragonSpriteIndices.contains(spriteIndex)) {
+            if (removedDragonSpriteIndices.contains(spriteIndex)
+                || dragonDeathStartSecondsBySprite.containsKey(spriteIndex)) {
                 continue;
             }
             if (spriteIndex < 0 || spriteIndex >= spriteRuntimeStates.size) {
@@ -332,8 +350,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             }
 
             if (foxyIsFalling) {
-                removedDragonSpriteIndices.add(spriteIndex);
-                setSpriteVisible(spriteIndex, false);
+                startDragonDeath(spriteIndex);
                 velocityY = -JUMP_IMPULSE_PER_SECOND * 0.38f;
                 onGround = false;
                 continue;
@@ -355,6 +372,63 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         while (iterator.hasNext) {
             touchingDragonSpriteIndices.add(iterator.next());
         }
+    }
+
+    private void startDragonDeath(int spriteIndex) {
+        if (spriteIndex < 0 || spriteIndex >= spriteRuntimeStates.size) {
+            return;
+        }
+        if (dragonDeathStartSecondsBySprite.containsKey(spriteIndex)) {
+            return;
+        }
+        dragonDeathStartSecondsBySprite.put(spriteIndex, simulationTimeSeconds);
+        touchingDragonSpriteIndices.remove(spriteIndex);
+        setAnimationOverrideByName(spriteIndex, DRAGON_DEATH_ANIMATION_NAME);
+    }
+
+    private void pruneCompletedDragonDeaths() {
+        if (dragonDeathStartSecondsBySprite.size <= 0) {
+            return;
+        }
+
+        completedDragonDeathSpriteIndices.clear();
+        IntFloatMap.Keys keys = dragonDeathStartSecondsBySprite.keys();
+        while (keys.hasNext) {
+            int spriteIndex = keys.next();
+            float startSeconds = dragonDeathStartSecondsBySprite.get(spriteIndex, simulationTimeSeconds);
+            float elapsedSeconds = simulationTimeSeconds - startSeconds;
+            if (elapsedSeconds >= dragonDeathDurationSeconds) {
+                completedDragonDeathSpriteIndices.add(spriteIndex);
+            }
+        }
+
+        for (int i = 0; i < completedDragonDeathSpriteIndices.size; i++) {
+            int spriteIndex = completedDragonDeathSpriteIndices.get(i);
+            dragonDeathStartSecondsBySprite.remove(spriteIndex, -1f);
+            removedDragonSpriteIndices.add(spriteIndex);
+            setAnimationOverrideByName(spriteIndex, null);
+            setSpriteVisible(spriteIndex, false);
+        }
+        completedDragonDeathSpriteIndices.clear();
+    }
+
+    private float resolveDragonDeathDurationSeconds() {
+        String animationId = findAnimationIdByName(DRAGON_DEATH_ANIMATION_NAME);
+        if (animationId == null || animationId.isEmpty()) {
+            return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+        }
+        LevelData.AnimationClip clip = levelData.animationClips.get(animationId);
+        if (clip == null) {
+            return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+        }
+
+        int spanFrames = Math.max(1, clip.endFrame - clip.startFrame + 1);
+        float fps = Float.isFinite(clip.fps) && clip.fps > 0f ? clip.fps : DEFAULT_ANIMATION_FPS;
+        float durationSeconds = spanFrames / fps;
+        if (!Float.isFinite(durationSeconds) || durationSeconds <= 0f) {
+            return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+        }
+        return durationSeconds;
     }
 
     private void applyDragonDamage() {
@@ -388,6 +462,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         velocityX = 0f;
         velocityY = 0f;
         lifePercent = START_LIFE_PERCENT;
+        simulationTimeSeconds = 0f;
         gameOver = false;
         win = false;
         jumpQueued = false;
@@ -396,8 +471,11 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         touchingDragonNowCache.clear();
         collectedGemSpriteIndices.clear();
         removedDragonSpriteIndices.clear();
+        dragonDeathStartSecondsBySprite.clear();
+        completedDragonDeathSpriteIndices.clear();
         restoreSpritesVisible(gemSpriteIndices);
         restoreSpritesVisible(dragonSpriteIndices);
+        clearAnimationOverrides(dragonSpriteIndices);
         setPlayerFlip(false, false);
         updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
@@ -406,6 +484,54 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private void restoreSpritesVisible(IntArray indices) {
         for (int i = 0; i < indices.size; i++) {
             setSpriteVisible(indices.get(i), true);
+        }
+    }
+
+    private void clearAnimationOverrides(IntArray indices) {
+        for (int i = 0; i < indices.size; i++) {
+            setAnimationOverrideByName(indices.get(i), null);
+        }
+    }
+
+    private void applyMovingFloorCarry() {
+        if (!hasPlayer() || floorZoneIndices.size <= 0 || zoneRuntimeStates == null || zonePreviousRuntimeStates == null) {
+            return;
+        }
+
+        Rectangle playerRect = playerRect(rectCacheA);
+        float bestCarryMagnitudeSq = 0f;
+        float carryX = 0f;
+        float carryY = 0f;
+
+        for (int i = 0; i < floorZoneIndices.size; i++) {
+            int zoneIndex = floorZoneIndices.get(i);
+            if (zoneIndex < 0 || zoneIndex >= zoneRuntimeStates.size || zoneIndex >= zonePreviousRuntimeStates.size) {
+                continue;
+            }
+            RuntimeTransform current = zoneRuntimeStates.get(zoneIndex);
+            RuntimeTransform previous = zonePreviousRuntimeStates.get(zoneIndex);
+            float deltaX = current.x - previous.x;
+            float deltaY = current.y - previous.y;
+            if (Math.abs(deltaX) <= 0.0001f && Math.abs(deltaY) <= 0.0001f) {
+                continue;
+            }
+
+            Rectangle previousZoneRect = zoneRectAtPreviousIndex(zoneIndex, rectCacheB);
+            if (!isStandingOnFloorRect(playerRect, previousZoneRect)) {
+                continue;
+            }
+
+            float magnitudeSq = deltaX * deltaX + deltaY * deltaY;
+            if (magnitudeSq > bestCarryMagnitudeSq) {
+                bestCarryMagnitudeSq = magnitudeSq;
+                carryX = deltaX;
+                carryY = deltaY;
+            }
+        }
+
+        if (bestCarryMagnitudeSq > 0f) {
+            playerX += carryX;
+            playerY += carryY;
         }
     }
 
@@ -419,6 +545,17 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private boolean crossedZoneTop(float previousBottom, float currentBottom, float zoneTop) {
         return previousBottom <= zoneTop + COLLISION_EPSILON
             && currentBottom >= zoneTop - COLLISION_EPSILON;
+    }
+
+    private boolean isStandingOnFloorRect(Rectangle playerRect, Rectangle floorRect) {
+        float playerBottom = playerRect.y + playerRect.height + 0.5f;
+        boolean overlapsHorizontally = playerRect.x + playerRect.width > floorRect.x
+            && playerRect.x < floorRect.x + floorRect.width;
+        if (!overlapsHorizontally) {
+            return false;
+        }
+        float bottomDelta = Math.abs(playerBottom - floorRect.y);
+        return bottomDelta <= FLOOR_SUPPORT_DELTA;
     }
 
     private void updatePlayerAnimationSelection() {

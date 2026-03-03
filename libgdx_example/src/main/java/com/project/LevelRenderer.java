@@ -21,7 +21,8 @@ public final class LevelRenderer {
         SpriteBatch batch,
         OrthographicCamera camera,
         Array<SpriteRuntimeState> spriteRuntimeStates,
-        boolean[] layerVisibilityStates
+        boolean[] layerVisibilityStates,
+        Array<RuntimeTransform> layerRuntimeStates
     ) {
         FloatArray depths = collectDepths(level);
         depths.sort();
@@ -35,7 +36,15 @@ public final class LevelRenderer {
             camera.update();
             batch.setProjectionMatrix(camera.combined);
 
-            renderLayersAtDepth(level.layers, depth, assets, batch, level.worldHeight, layerVisibilityStates);
+            renderLayersAtDepth(
+                level.layers,
+                depth,
+                assets,
+                batch,
+                level.worldHeight,
+                layerVisibilityStates,
+                layerRuntimeStates
+            );
             renderSpritesAtDepth(level.sprites, spriteRuntimeStates, depth, assets, batch, level.worldHeight);
         }
 
@@ -67,7 +76,8 @@ public final class LevelRenderer {
         AssetManager assets,
         SpriteBatch batch,
         float worldHeight,
-        boolean[] layerVisibilityStates
+        boolean[] layerVisibilityStates,
+        Array<RuntimeTransform> layerRuntimeStates
     ) {
         // Keep the same painter order as games_tool: reversed layer list per depth.
         for (int i = layers.size - 1; i >= 0; i--) {
@@ -79,11 +89,20 @@ public final class LevelRenderer {
             if (!visible || !sameDepth(layer.depth, depth)) {
                 continue;
             }
-            drawLayer(layer, assets, batch, worldHeight);
+            RuntimeTransform runtime = layerRuntimeStates != null && i >= 0 && i < layerRuntimeStates.size
+                ? layerRuntimeStates.get(i)
+                : null;
+            drawLayer(layer, runtime, assets, batch, worldHeight);
         }
     }
 
-    private void drawLayer(LevelData.LevelLayer layer, AssetManager assets, SpriteBatch batch, float worldHeight) {
+    private void drawLayer(
+        LevelData.LevelLayer layer,
+        RuntimeTransform runtime,
+        AssetManager assets,
+        SpriteBatch batch,
+        float worldHeight
+    ) {
         if (!assets.isLoaded(layer.tilesTexturePath, Texture.class)) {
             return;
         }
@@ -95,6 +114,8 @@ public final class LevelRenderer {
         }
 
         int cols = regions[0].length;
+        float layerX = runtime == null ? layer.x : runtime.x;
+        float layerY = runtime == null ? layer.y : runtime.y;
         for (int row = 0; row < layer.tileMap.length; row++) {
             int[] rowData = layer.tileMap[row];
             for (int col = 0; col < rowData.length; col++) {
@@ -109,8 +130,8 @@ public final class LevelRenderer {
                     continue;
                 }
 
-                float x = layer.x + col * layer.tileWidth;
-                float yDown = layer.y + row * layer.tileHeight;
+                float x = layerX + col * layer.tileWidth;
+                float yDown = layerY + row * layer.tileHeight;
                 float y = worldHeight - yDown - layer.tileHeight;
                 batch.draw(regions[srcRow][srcCol], x, y, layer.tileWidth, layer.tileHeight);
             }
@@ -165,8 +186,10 @@ public final class LevelRenderer {
         float topDown = worldY - sprite.height * anchorY;
         float x = leftDown;
         float y = worldHeight - topDown - sprite.height;
-        int frameWidth = Math.max(1, Math.round(sprite.width));
-        int frameHeight = Math.max(1, Math.round(sprite.height));
+        int frameWidth = runtimeState == null ? Math.max(1, Math.round(sprite.width)) : Math.max(1, runtimeState.frameWidth);
+        int frameHeight = runtimeState == null ? Math.max(1, Math.round(sprite.height)) : Math.max(1, runtimeState.frameHeight);
+        frameWidth = Math.min(frameWidth, texture.getWidth());
+        frameHeight = Math.min(frameHeight, texture.getHeight());
         TextureRegion[][] regions = getSplitRegions(texturePath, texture, frameWidth, frameHeight);
         if (regions.length == 0 || regions[0].length == 0) {
             return;
@@ -236,6 +259,8 @@ public final class LevelRenderer {
         public boolean visible;
         public boolean flipX;
         public boolean flipY;
+        public int frameWidth;
+        public int frameHeight;
         public String texturePath;
         public String animationId;
 
@@ -248,6 +273,8 @@ public final class LevelRenderer {
             boolean visible,
             boolean flipX,
             boolean flipY,
+            int frameWidth,
+            int frameHeight,
             String texturePath,
             String animationId
         ) {
@@ -259,6 +286,8 @@ public final class LevelRenderer {
             this.visible = visible;
             this.flipX = flipX;
             this.flipY = flipY;
+            this.frameWidth = frameWidth;
+            this.frameHeight = frameHeight;
             this.texturePath = texturePath;
             this.animationId = animationId;
         }
