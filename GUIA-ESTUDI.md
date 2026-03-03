@@ -25,28 +25,53 @@ Notes importants:
 
 El bucle es defineix a `shared/utils_level.dart` amb `restartGameLoopTicker(...)`:
 
-- cada vsync rep `frameDt`.
-- acumula temps i executa `onTick(fixedDt)` tantes vegades com calgui.
-- al final del frame crida `onFrame(frameDt, alpha)`.
-- `alpha` es factor `[0..1]` entre tick anterior i tick seguent.
+- cada vsync (callback del `Ticker`) calcula `frameDt`.
+- `frameDt` es clampa (maxim) per evitar salts gegants en una sola iteracio.
+- s'acumula en `accumulatorSeconds`.
+- mentre `accumulatorSeconds >= fixedDt`, executa un `onTick(fixedDt)` i resta
+  `fixedDt` de l'acumulador.
+- si hi ha massa retard, limita substeps (`maxSubsteps`) per evitar
+  "spiral of death".
+- al final del frame, calcula `alpha = accumulatorSeconds / fixedDt` i crida
+  `onFrame(frameDt, alpha)` una sola vegada.
 
-Aixo dona:
+Interpretacio practica:
 
-- simulacio estable (fisica/collisions) en ticks fixos.
-- render suau entre ticks amb interpolacio.
+- `onTick` = simulacio determinista (fisica, collisions, gameplay).
+- `onFrame` = render del frame actual (amb alpha).
+
+Exemple curt (`fixedDt = 16.67ms`):
+
+- arriba un frame de `25ms`.
+- s'executa 1 tick complet (queden `8.33ms` a l'acumulador).
+- `alpha = 8.33 / 16.67 = 0.5`.
+- el draw pinta a mig cami entre estat anterior i estat actual.
 
 ### 2.2 Contracte d'interpolacio
 
 A cada tick:
 
-1. `runtimeApi.beginTick()` copia `current -> previous` dels transforms tracked.
-2. gameplay actualitza estat (`playerX`, `cameraX`, targets de paths, etc.).
-3. gameplay crida `setTransform2D(id, x, y)` per valors "current".
+1. `runtimeApi.beginTick()` mou transform tracked `current -> previous`.
+2. gameplay calcula el nou estat (player, camera, paths, etc.).
+3. gameplay publica el nou estat amb `setTransform2D(id, x, y)` com a `current`.
 
 A cada draw:
 
-- `Level*RenderState.from(..., alpha)` fa `sampleTransform2D(id, alpha)`.
-- el painter rep posicions interpolades.
+- `Level*RenderState.from(..., alpha)` crida `sampleTransform2D(id, alpha)`.
+- `alpha = 0` retorna gairebe `previous`; `alpha = 1` retorna `current`.
+- valors intermedis donen lerp suau entre ticks.
+
+Perque funciona:
+
+- la simulacio no depen del framerate de render.
+- el render no "salta" d'un tick al seguent.
+- mantens precisio de gameplay + suavitat visual.
+
+Regla d'or:
+
+- tot el que es mou i vols suavitzar ha d'entrar en aquest contracte
+  (`beginTick -> setTransform2D` al tick, `sampleTransform2D(alpha)` al draw).
+- si un objecte no registra transform tracked, es renderitza "a salts" de tick.
 
 Aquest patró es fa a `level_0/update.dart` i `level_1/update.dart`.
 
@@ -66,6 +91,23 @@ Peces clau:
 - `shared/level_rendering.dart` (`LevelPainter` + `paintLevelFrameWithCommands`).
 - ordre de draw per profunditat amb `resolveDepthOrderForLayerAndCommands(...)`.
 - tile/sprite culling al renderer (`runtime_rendering_api.dart`).
+
+Perque aquest sistema es millor (avantatges):
+
+- separacio clara de rols:
+  `update.dart` calcula estat i `level_rendering.dart` nomes dibuixa.
+- menys regressions:
+  canvis de gameplay no toquen draw de baix nivell i a l'inreves.
+- ordre de render explicit:
+  profunditats/capes/sprites es resolen en una pipeline unica i consistent.
+- reutilitzacio:
+  `LevelPainter` i helpers compartits serveixen per `level_0` i `level_1`.
+- mes rendiment:
+  centralitzes culling (tiles/sprites) i evites feina duplicada per nivell.
+- extensibilitat:
+  afegir HUD/overlay/imatges noves es afegir commands, no reescriure el painter.
+- millor depuracio:
+  una llista de commands es una "foto" del frame que es pot inspeccionar rapid.
 
 En resum:
 
@@ -184,9 +226,17 @@ Hi ha dues capes de proteccio:
    `firstDownwardSpriteCollisionAgainstRects(previousPose, currentPose, floors)`
    i fa correccio de penetracio.
 
+   Aixo vol dir: si el player ha quedat una mica "dins" del terra al final del
+   tick, es calcula quants pixels ha entrat (`penetration = playerBottom - floorTop`)
+   i se li resta aquest valor a `playerY` (+ un petit marge) per deixar-lo just
+   recolzat sobre la superficie, sense travessar-la.
+
 Per plataformes en moviment, `_updateLinkedPathBindings(...)` compara
 `previousPosition -> nextPosition` de la zona floor per saber si el player
 estava damunt del floor anterior i aplicar carry delta.
+Aplicar carry delta vol dir sumar al player el mateix desplacament que ha fet
+la plataforma en aquell tick (`delta = nextFloorPos - previousFloorPos`), de
+manera que "viatgi amb la plataforma" i no es quedi enrere o tremoli.
 
 ### 5.2 Gravetat
 
@@ -194,7 +244,7 @@ A `_updatePhysics(...)`:
 
 - si no esta a terra (o encara puja), aplica
   `velocityY += gravityPerSecondSq * dt`.
-- clamp a `maxFallSpeedPerSecond`.
+- clamp (maxim) a `maxFallSpeedPerSecond`.
 - despres integra posicio i resol penetracio de terra.
 
 Constants a `Level1UpdateState`:
@@ -224,8 +274,8 @@ Animacio:
 `_updateLinkedPathBindings(state, dt)`:
 
 1. avanca temps de path.
-2. mou targetes lligades a paths (layers/zones/sprites).
-3. per targets que son floor zones:
+2. mou elements (targets) lligats a paths (layers/zones/sprites).
+3. per els elements (targets) que son floor zones:
    - comprova si player estava damunt del rect anterior del floor.
    - calcula `candidateDelta = nextPosition - previousPosition`.
    - aplica el delta de major magnitud com `carryDelta`.
@@ -249,8 +299,8 @@ Cada tick (despres de moviment/combat):
 5. `lib/loading/main.dart`
 6. `lib/shared/utils_level.dart`
 7. `lib/shared/level_rendering.dart`
-8. `lib/level_0/main.dart` + `lifecycle/update/models/interaction`
-9. `lib/level_1/main.dart` + `lifecycle/update/models/interaction`
+8. `lib/level_0/main.dart` + `lifecycle.dart/update.dart/models.dart/interaction.dart`
+9. `lib/level_1/main.dart` + `lifecycle.dart/update.dart/models.dart/interaction.dart`
 10. `lib/utils_gamestool/project_data_api.dart`
 11. `lib/utils_gamestool/runtime_api.dart`
 12. `game_example/README-API.md` (referencia completa)
@@ -259,7 +309,30 @@ Cada tick (despres de moviment/combat):
 
 - No facis logica gameplay dins painter.
 - Mantingues `onTick` deterministic; `onFrame` nomes per UI/interpolacio.
+  
+  * A `onTick` posa moviment, fisica, collisions, canvis de vida,
+  col.leccio d'items, triggers i mutacions de `gameData`.
+ 
+  * A `onFrame` posa coses visuals depenents del frame (fps smoothing,
+  `setState` unic per vsync, i lectura de `alpha` per interpolar posicions).
+  
+  No moguis gameplay a `onFrame`, perque llavors depen del framerate i es
+  torna no-reproduible (resultats diferents a 30fps vs 120fps).
+
 - Si afegeixes objectes moguts per path, fes `setTransform2D` al tick i
   `sampleTransform2D(alpha)` al render.
 - Per hot loops, resol llistes de zones/sprites una vegada per tick i reusa-les.
 - Quan facis end-state, neteja input i bloqueja sortida fins cooldown.
+
+## 8. Exercicis practics (recomanats)
+
+1. Afegeix un `level_2` clonant l'estructura de `level_1` i canvia
+   una mecanica (ex: doble salt o velocitat de gravetat diferent).
+2. Implementa una zona nova de gameplay (ex: "wind zone") que modifiqui
+   `velocityX` o `velocityY` mentre el player la toca.
+3. Afegeix una plataforma amb path `ping_pong` i comprova que el carry delta
+   mantingui el player estable sense flicker.
+4. Crea un HUD nou amb `HudRenderCommand.progressBar` per energia/stamina.
+5. Usa `updateFrameDeltaForSprite(...)` per detectar `entered/exited` d'una
+   zona i mostrar missatges nomès en l'entrada.
+6. Fes que el Drac amb moviment de path, miri cap a la direcció on es mou
