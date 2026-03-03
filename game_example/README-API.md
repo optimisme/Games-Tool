@@ -95,11 +95,78 @@ final fps = api.gameDataGetAs<num>(['animations', 0, 'fps']);
 - `layerByIndex(levelIndex, layerIndex)`
 - `layerByName(levelIndex, layerName)`
 - `spriteByIndex(levelIndex, spriteIndex)`
+- `zoneRectsByTypeOrName(levelIndex, value, caseInsensitive?, requirePositiveSize?)`
 - `listLevelSprites(level)` (`GamesToolApi`)
 - `findLayerIndexByName(level, layerName, caseInsensitive?)` (`GamesToolApi`)
 - `findZoneIndexByGameplayData(level, gameplayData, caseInsensitive?)` (`GamesToolApi`)
+- `findZoneIndicesByTypeOrName(level, value, caseInsensitive?)` (`GamesToolApi`)
+- `findZonesByTypeOrName(level, value, caseInsensitive?)` (`GamesToolApi`)
+- `zoneMatchesTypeOrName(zone, value, caseInsensitive?)` (`GamesToolApi`)
+- `zoneRect(zone, requirePositiveSize?)` (`GamesToolApi`)
+- `zoneRectsByTypeOrName(level, value, caseInsensitive?, requirePositiveSize?)` (`GamesToolApi`)
 - `findSpriteIndexByTypeOrName(level, value, caseInsensitive?)` (`GamesToolApi`)
 - `firstSpriteIndex(level)` (`GamesToolApi`)
+
+### Zone lookup helpers
+
+Use these helpers when gameplay needs to resolve zones by semantic label
+(`type` or `name`) instead of hard-coded indices.
+
+- `zoneMatchesTypeOrName(zone, value, caseInsensitive?)`:
+  returns `true` when `zone.type` or `zone.name` matches `value`.
+- `findZoneIndicesByTypeOrName(level, value, caseInsensitive?)`:
+  returns all matching zone indices in level order.
+- `findZonesByTypeOrName(level, value, caseInsensitive?)`:
+  returns all matching zone maps.
+- `zoneRect(zone, requirePositiveSize?)`:
+  converts one zone to a `Rect`; returns `null` when size is invalid and
+  `requirePositiveSize` is `true`.
+- `zoneRectsByTypeOrName(level, value, caseInsensitive?, requirePositiveSize?)`:
+  resolves and converts all matching zones to `Rect`.
+- `GameDataRuntimeApi.zoneRectsByTypeOrName(levelIndex, value, ...)`:
+  runtime convenience wrapper that resolves `level` by `levelIndex` first.
+
+Behavior notes:
+
+- `byTypeOrName` means `type == value OR name == value` (not both).
+- matching is case-insensitive by default.
+- both `type` and `name` are trimmed before comparison.
+- rectangle conversion clamps negative width/height to `0`.
+- by default (`requirePositiveSize = true`), non-positive zone sizes are skipped.
+
+Runtime usage note for hot loops:
+
+- in fixed-step updates, resolve frequently used zone rect lists once per tick
+  (for example `floors`, `deathZones`) and pass those lists to collision
+  helpers in that same tick.
+- this avoids repeated scans while keeping correctness when zones move during
+  the tick (for example path-bound zones in `level_1`).
+
+Example:
+
+```dart
+final floors = api.zoneRectsByTypeOrName(
+  levelIndex: 1,
+  value: 'Floor',
+);
+
+final deathZoneIndices =
+    api.gamesTool.findZoneIndicesByTypeOrName(level, 'Foxy Death');
+```
+
+Per-tick pattern:
+
+```dart
+void updatePhysics(double dt) {
+  final floors = api.zoneRectsByTypeOrName(levelIndex: levelIndex, value: 'Floor');
+  final deathZones =
+      api.zoneRectsByTypeOrName(levelIndex: levelIndex, value: 'Foxy Death');
+
+  final hasSupport = isStandingOnFloor(floors);
+  final landed = resolveFloorPenetration(floors);
+  final touchingDeath = isTouchingDeathZone(deathZones);
+}
+```
 
 ## Tile/coordinate helpers
 

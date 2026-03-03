@@ -82,6 +82,9 @@ flutter run -d macos # linux or windows
 - `lib/level_1/models.dart`: update/render state models.
 - `lib/level_1/interaction.dart`: input handling and end-state actions.
 - `lib/level_1/update.dart`: platforming physics/combat/gameplay tick logic.
+- Zone rects used by floor/death checks are resolved once at the start of each
+  simulation tick and reused within that tick (avoids repeated zone scans while
+  keeping moving-zone correctness).
 - Rendering is built as command lists in `main.dart` and executed by shared
   `lib/shared/level_rendering.dart`.
 - End-state overlays are command-driven (`OverlayRenderCommand`) and rendered by
@@ -128,7 +131,14 @@ Most-used methods when integrating gameplay:
 - `GameDataRuntimeApi.updateSmoothedFps(...)`: update a stable FPS counter for HUD/debug.
 - `GamesToolApi.findLayerIndexByName(...)`: layer lookup by name in a level.
 - `GamesToolApi.findZoneIndexByGameplayData(...)`: zone lookup by gameplayData.
+- `GamesToolApi.zoneMatchesTypeOrName(...)`: match zone `type` OR `name`.
+- `GamesToolApi.findZoneIndicesByTypeOrName(...)`: find all zone indices by
+  `type` OR `name`.
+- `GamesToolApi.zoneRectsByTypeOrName(...)`: resolve zone rects by `type` OR
+  `name`.
 - `GamesToolApi.findSpriteIndexByTypeOrName(...)`: sprite index lookup helper.
+- `GameDataRuntimeApi.zoneRectsByTypeOrName(...)`: runtime wrapper for
+  level-index-based zone rect lookup.
 - `GamesToolRuntimeRenderer.drawLevelTileLayers(...)`: draw visible tile layers.
 - `GamesToolRuntimeRenderer.drawAnimatedSprite(...)`: draw animated sprites
   with camera/depth support.

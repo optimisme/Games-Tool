@@ -134,6 +134,21 @@ class GameDataRuntimeApi {
     return _gamesTool.findLevelByName(_gameData, levelName);
   }
 
+  List<Rect> zoneRectsByTypeOrName({
+    required int levelIndex,
+    required String value,
+    bool caseInsensitive = true,
+    bool requirePositiveSize = true,
+  }) {
+    final Map<String, dynamic>? level = levelByIndex(levelIndex);
+    return _gamesTool.zoneRectsByTypeOrName(
+      level,
+      value,
+      caseInsensitive: caseInsensitive,
+      requirePositiveSize: requirePositiveSize,
+    );
+  }
+
   RuntimeLevelViewport levelViewportByIndex({
     required int levelIndex,
     double fallbackWidth = GamesToolApi.defaultViewportWidth,

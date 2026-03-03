@@ -65,6 +65,15 @@ extension _Level1Update on _Level1State {
       state.playerX += movingFloorDelta.dx;
       state.playerY += movingFloorDelta.dy;
     }
+    // Resolve zone rects once per simulation tick after moving path bindings.
+    final List<Rect> floors = _runtimeApi.zoneRectsByTypeOrName(
+      levelIndex: widget.levelIndex,
+      value: _level1FloorZoneName,
+    );
+    final List<Rect> deathZones = _runtimeApi.zoneRectsByTypeOrName(
+      levelIndex: widget.levelIndex,
+      value: _level1DeathZoneName,
+    );
 
     final bool moveLeft = _pressedKeys.contains(LogicalKeyboardKey.arrowLeft) ||
         _pressedKeys.contains(LogicalKeyboardKey.keyA);
@@ -82,7 +91,10 @@ extension _Level1Update on _Level1State {
       state.facingRight = true;
     }
 
-    final bool hasSupport = _isStandingOnFloor(state);
+    final bool hasSupport = _isStandingOnFloor(
+      state,
+      floors: floors,
+    );
     if (hasSupport && state.velocityY >= 0) {
       state.velocityY = 0;
       state.onGround = true;
@@ -114,8 +126,12 @@ extension _Level1Update on _Level1State {
       state,
       previousX: previousPlayerX,
       previousY: previousPlayerY,
+      floors: floors,
     );
-    final bool standingOnFloor = _isStandingOnFloor(state);
+    final bool standingOnFloor = _isStandingOnFloor(
+      state,
+      floors: floors,
+    );
     if ((landed || standingOnFloor) && state.velocityY >= 0) {
       state.velocityY = 0;
       state.onGround = true;
@@ -129,7 +145,11 @@ extension _Level1Update on _Level1State {
     }
     _handleDragonInteractions(state);
 
-    if (!state.isGameOver && _isTouchingDeathZone(state)) {
+    if (!state.isGameOver &&
+        _isTouchingDeathZone(
+          state,
+          deathZones: deathZones,
+        )) {
       _triggerGameOver(state);
     }
 
@@ -265,12 +285,10 @@ extension _Level1Update on _Level1State {
   }
 
   bool _isFloorZone(Map<String, dynamic> zone) {
-    final String target = _level1FloorZoneName.toLowerCase();
-    final String zoneType =
-        ((zone['type'] as String?) ?? '').trim().toLowerCase();
-    final String zoneName =
-        ((zone['name'] as String?) ?? '').trim().toLowerCase();
-    return zoneType == target || zoneName == target;
+    return _runtimeApi.gamesTool.zoneMatchesTypeOrName(
+      zone,
+      _level1FloorZoneName,
+    );
   }
 
   void _triggerGameOver(Level1UpdateState state) {
@@ -409,11 +427,10 @@ extension _Level1Update on _Level1State {
     return false;
   }
 
-  bool _isTouchingDeathZone(Level1UpdateState state) {
-    final List<Rect> deathZones = _resolveLevel1ZonesByTypeOrName(
-      _level,
-      _level1DeathZoneName,
-    );
+  bool _isTouchingDeathZone(
+    Level1UpdateState state, {
+    required List<Rect> deathZones,
+  }) {
     if (deathZones.isEmpty) {
       return false;
     }
@@ -432,11 +449,10 @@ extension _Level1Update on _Level1State {
     return false;
   }
 
-  bool _isStandingOnFloor(Level1UpdateState state) {
-    final List<Rect> floors = _resolveLevel1ZonesByTypeOrName(
-      _level,
-      _level1FloorZoneName,
-    );
+  bool _isStandingOnFloor(
+    Level1UpdateState state, {
+    required List<Rect> floors,
+  }) {
     if (floors.isEmpty) {
       return false;
     }
@@ -558,14 +574,11 @@ extension _Level1Update on _Level1State {
     Level1UpdateState state, {
     required double previousX,
     required double previousY,
+    required List<Rect> floors,
   }) {
     if (state.velocityY < 0) {
       return false;
     }
-    final List<Rect> floors = _resolveLevel1ZonesByTypeOrName(
-      _level,
-      _level1FloorZoneName,
-    );
     if (floors.isEmpty) {
       return false;
     }
