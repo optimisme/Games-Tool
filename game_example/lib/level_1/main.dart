@@ -39,6 +39,7 @@ const String _level1PathBehaviorRestart = 'restart';
 const String _level1PathBehaviorPingPong = 'ping_pong';
 const String _level1PathBehaviorOnce = 'once';
 const int _level1PathDefaultDurationMs = 2000;
+const String _level1PathTransformPrefix = 'level1/path';
 const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
   hudX: 20 * kHudSpacingScaleX,
   hudY: 5 * kHudSpacingScaleY,
@@ -46,6 +47,13 @@ const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
   iconHeight: 8 * kHudScale,
   iconGap: 3 * kHudSpacingScaleX,
 );
+
+String _level1PathTargetTransformId({
+  required String targetType,
+  required int targetIndex,
+}) {
+  return '$_level1PathTransformPrefix/$targetType/$targetIndex';
+}
 
 LevelSpriteRenderSelection _resolveLevel1PlayerRenderSelection(
   Level1RenderState state,
@@ -174,14 +182,18 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                     runtimeApi: _runtimeApi,
                     alpha: _renderAlpha,
                   );
+            final Map<String, Offset> pathTargetRenderOffsets =
+                _resolvePathTargetRenderOffsets(alpha: _renderAlpha);
             final List<LayerRenderCommand> layerCommands =
                 _buildLayerRenderCommands(
               appData: appData,
+              pathTargetRenderOffsets: pathTargetRenderOffsets,
             );
             final List<LevelSpriteRenderCommand> spriteCommands =
                 _buildSpriteRenderCommands(
               appData: appData,
               renderState: renderState,
+              pathTargetRenderOffsets: pathTargetRenderOffsets,
             );
             final List<HudRenderCommand> hudCommands = _buildHudRenderCommands(
               renderState: renderState,
@@ -243,9 +255,39 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
 
 /// HUD helpers for screen-space interaction geometry.
 extension _Level1Hud on _Level1State {
+  Map<String, Offset> _resolvePathTargetRenderOffsets({
+    required double alpha,
+  }) {
+    if (_pathBindings.isEmpty) {
+      return const <String, Offset>{};
+    }
+    final Map<String, Offset> offsetsByTransformId = <String, Offset>{};
+    for (final _Level1PathBindingRuntime binding in _pathBindings) {
+      if (!binding.enabled) {
+        continue;
+      }
+      final String transformId = _level1PathTargetTransformId(
+        targetType: binding.targetType,
+        targetIndex: binding.targetIndex,
+      );
+      final double fallbackX =
+          (binding.targetObject['x'] as num?)?.toDouble() ?? 0;
+      final double fallbackY =
+          (binding.targetObject['y'] as num?)?.toDouble() ?? 0;
+      offsetsByTransformId[transformId] = _runtimeApi.sampleTransform2D(
+        transformId,
+        alpha: alpha,
+        fallbackX: fallbackX,
+        fallbackY: fallbackY,
+      );
+    }
+    return offsetsByTransformId;
+  }
+
   List<LevelSpriteRenderCommand> _buildSpriteRenderCommands({
     required AppData appData,
     required Level1RenderState? renderState,
+    required Map<String, Offset> pathTargetRenderOffsets,
   }) {
     final Map<String, dynamic>? level = _level;
     if (level == null || renderState == null) {
@@ -298,6 +340,11 @@ extension _Level1Hud on _Level1State {
         final bool drawDragonDeath = dragonDying &&
             dragonDeathStart != null &&
             dragonSpriteIndices.contains(spriteIndex);
+        final Offset? sampledOffset =
+            pathTargetRenderOffsets[_level1PathTargetTransformId(
+          targetType: _level1PathTargetTypeSprite,
+          targetIndex: spriteIndex,
+        )];
         return LevelSpriteRenderCommand(
           sprite: sprite,
           depth: appData.gamesTool.spriteDepth(sprite),
@@ -306,6 +353,8 @@ extension _Level1Hud on _Level1State {
               ? (renderState.animationTimeSeconds - dragonDeathStart)
                   .clamp(0.0, double.infinity)
               : renderState.animationTimeSeconds,
+          worldX: sampledOffset?.dx,
+          worldY: sampledOffset?.dy,
         );
       },
     );
@@ -313,21 +362,39 @@ extension _Level1Hud on _Level1State {
 
   List<LayerRenderCommand> _buildLayerRenderCommands({
     required AppData appData,
+    required Map<String, Offset> pathTargetRenderOffsets,
   }) {
     final Map<String, dynamic>? level = _level;
     if (level == null) {
       return const <LayerRenderCommand>[];
     }
+    final List<Map<String, dynamic>> allLayers =
+        appData.gamesTool.listLevelLayers(
+      level,
+      visibleOnly: false,
+      painterOrder: false,
+    );
+    final Map<Map<String, dynamic>, int> layerIndexByIdentity =
+        <Map<String, dynamic>, int>{};
+    for (int i = 0; i < allLayers.length; i++) {
+      layerIndexByIdentity[allLayers[i]] = i;
+    }
     final List<Map<String, dynamic>> visibleLayers = appData.gamesTool
         .listLevelLayers(level, visibleOnly: true, painterOrder: true);
-    return visibleLayers
-        .map(
-          (Map<String, dynamic> layer) => LayerRenderCommand(
-            layer: layer,
-            depth: appData.gamesTool.layerDepth(layer),
-          ),
-        )
-        .toList(growable: false);
+    return visibleLayers.map((Map<String, dynamic> layer) {
+      final int? layerIndex = layerIndexByIdentity[layer];
+      final Offset? sampledOffset = layerIndex == null
+          ? null
+          : pathTargetRenderOffsets[_level1PathTargetTransformId(
+              targetType: _level1PathTargetTypeLayer,
+              targetIndex: layerIndex,
+            )];
+      return LayerRenderCommand(
+        layer: layer,
+        depth: appData.gamesTool.layerDepth(layer),
+        worldOffset: sampledOffset,
+      );
+    }).toList(growable: false);
   }
 
   List<HudRenderCommand> _buildHudRenderCommands({
