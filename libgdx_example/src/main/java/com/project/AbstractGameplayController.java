@@ -3,12 +3,15 @@ package com.project;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public abstract class AbstractGameplayController implements GameplayController {
 
     protected final LevelData levelData;
     protected final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates;
     protected final boolean[] layerVisibilityStates;
+    private final String[] animationOverrideBySpriteIndex;
+    private final ObjectMap<String, String> animationIdByName = new ObjectMap<>();
     protected final Rectangle rectCacheA = new Rectangle();
     protected final Rectangle rectCacheB = new Rectangle();
 
@@ -26,6 +29,15 @@ public abstract class AbstractGameplayController implements GameplayController {
         this.levelData = levelData;
         this.spriteRuntimeStates = spriteRuntimeStates;
         this.layerVisibilityStates = layerVisibilityStates;
+        this.animationOverrideBySpriteIndex = new String[levelData.sprites.size];
+
+        for (ObjectMap.Entry<String, LevelData.AnimationClip> entry : levelData.animationClips) {
+            LevelData.AnimationClip clip = entry.value;
+            if (clip == null || clip.name == null || clip.name.trim().isEmpty()) {
+                continue;
+            }
+            animationIdByName.put(normalize(clip.name), clip.id);
+        }
 
         this.playerSpriteIndex = findPlayerSpriteIndex();
         if (hasPlayer()) {
@@ -55,6 +67,14 @@ public abstract class AbstractGameplayController implements GameplayController {
     @Override
     public final float getCameraTargetY() {
         return playerY;
+    }
+
+    @Override
+    public final String animationOverrideForSprite(int spriteIndex) {
+        if (spriteIndex < 0 || spriteIndex >= animationOverrideBySpriteIndex.length) {
+            return null;
+        }
+        return animationOverrideBySpriteIndex[spriteIndex];
     }
 
     protected final boolean hasPlayer() {
@@ -111,9 +131,35 @@ public abstract class AbstractGameplayController implements GameplayController {
 
         LevelData.LevelSprite sprite = levelData.sprites.get(spriteIndex);
         LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
-        float left = worldX - sprite.width * runtime.anchorX;
-        float top = worldY - sprite.height * runtime.anchorY;
-        out.set(left, top, sprite.width, sprite.height);
+        Array<LevelData.HitBox> hitBoxes = activeHitBoxes(spriteIndex);
+        if (hitBoxes == null || hitBoxes.size <= 0) {
+            setFullSpriteRect(sprite, runtime, worldX, worldY, out);
+            return out;
+        }
+
+        float minX = Float.POSITIVE_INFINITY;
+        float minY = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY;
+        float maxY = Float.NEGATIVE_INFINITY;
+
+        for (int i = 0; i < hitBoxes.size; i++) {
+            LevelData.HitBox hitBox = hitBoxes.get(i);
+            if (hitBox == null || hitBox.width <= 0f || hitBox.height <= 0f) {
+                continue;
+            }
+            hitBoxRectAt(sprite, runtime, worldX, worldY, hitBox, rectCacheB);
+            minX = Math.min(minX, rectCacheB.x);
+            minY = Math.min(minY, rectCacheB.y);
+            maxX = Math.max(maxX, rectCacheB.x + rectCacheB.width);
+            maxY = Math.max(maxY, rectCacheB.y + rectCacheB.height);
+        }
+
+        if (!Float.isFinite(minX) || !Float.isFinite(minY) || !Float.isFinite(maxX) || !Float.isFinite(maxY)) {
+            setFullSpriteRect(sprite, runtime, worldX, worldY, out);
+            return out;
+        }
+
+        out.set(minX, minY, maxX - minX, maxY - minY);
         return out;
     }
 
@@ -136,6 +182,31 @@ public abstract class AbstractGameplayController implements GameplayController {
             return;
         }
         spriteRuntimeStates.get(spriteIndex).visible = visible;
+    }
+
+    protected final void setPlayerAnimationOverrideByName(String animationName) {
+        if (!hasPlayer()) {
+            return;
+        }
+        setAnimationOverrideByName(playerSpriteIndex, animationName);
+    }
+
+    protected final void setAnimationOverrideByName(int spriteIndex, String animationName) {
+        if (spriteIndex < 0 || spriteIndex >= animationOverrideBySpriteIndex.length) {
+            return;
+        }
+        if (animationName == null || animationName.trim().isEmpty()) {
+            animationOverrideBySpriteIndex[spriteIndex] = null;
+            return;
+        }
+        animationOverrideBySpriteIndex[spriteIndex] = animationIdByName.get(normalize(animationName));
+    }
+
+    protected final String findAnimationIdByName(String animationName) {
+        if (animationName == null || animationName.trim().isEmpty()) {
+            return null;
+        }
+        return animationIdByName.get(normalize(animationName));
     }
 
     protected final IntArray findSpriteIndicesByTypeOrName(String... tokens) {
@@ -177,6 +248,105 @@ public abstract class AbstractGameplayController implements GameplayController {
         return false;
     }
 
+    protected final boolean spriteOverlapsAnyZoneByHitBoxes(
+        int spriteIndex,
+        float worldX,
+        float worldY,
+        IntArray zoneIndices
+    ) {
+        if (zoneIndices == null || zoneIndices.size <= 0) {
+            return false;
+        }
+        if (spriteIndex < 0 || spriteIndex >= levelData.sprites.size || spriteIndex >= spriteRuntimeStates.size) {
+            return false;
+        }
+
+        LevelData.LevelSprite sprite = levelData.sprites.get(spriteIndex);
+        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
+        Array<LevelData.HitBox> hitBoxes = activeHitBoxes(spriteIndex);
+        if (hitBoxes == null || hitBoxes.size <= 0) {
+            Rectangle spriteBounds = spriteRectAt(spriteIndex, worldX, worldY, rectCacheA);
+            return overlapsAnyZone(spriteBounds, zoneIndices);
+        }
+
+        for (int h = 0; h < hitBoxes.size; h++) {
+            LevelData.HitBox hitBox = hitBoxes.get(h);
+            if (hitBox == null || hitBox.width <= 0f || hitBox.height <= 0f) {
+                continue;
+            }
+            Rectangle hitBoxRect = hitBoxRectAt(sprite, runtime, worldX, worldY, hitBox, rectCacheA);
+            if (overlapsAnyZone(hitBoxRect, zoneIndices)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    protected final boolean spritesOverlapByHitBoxes(
+        int firstSpriteIndex,
+        float firstWorldX,
+        float firstWorldY,
+        int secondSpriteIndex,
+        float secondWorldX,
+        float secondWorldY
+    ) {
+        if (firstSpriteIndex < 0
+            || firstSpriteIndex >= levelData.sprites.size
+            || firstSpriteIndex >= spriteRuntimeStates.size
+            || secondSpriteIndex < 0
+            || secondSpriteIndex >= levelData.sprites.size
+            || secondSpriteIndex >= spriteRuntimeStates.size) {
+            return false;
+        }
+
+        LevelData.LevelSprite firstSprite = levelData.sprites.get(firstSpriteIndex);
+        LevelRenderer.SpriteRuntimeState firstRuntime = spriteRuntimeStates.get(firstSpriteIndex);
+        LevelData.LevelSprite secondSprite = levelData.sprites.get(secondSpriteIndex);
+        LevelRenderer.SpriteRuntimeState secondRuntime = spriteRuntimeStates.get(secondSpriteIndex);
+        Array<LevelData.HitBox> firstHitBoxes = activeHitBoxes(firstSpriteIndex);
+        Array<LevelData.HitBox> secondHitBoxes = activeHitBoxes(secondSpriteIndex);
+
+        if (firstHitBoxes == null || firstHitBoxes.size <= 0 || secondHitBoxes == null || secondHitBoxes.size <= 0) {
+            Rectangle firstBounds = spriteRectAt(firstSpriteIndex, firstWorldX, firstWorldY, rectCacheA);
+            Rectangle secondBounds = spriteRectAt(secondSpriteIndex, secondWorldX, secondWorldY, rectCacheB);
+            return firstBounds.overlaps(secondBounds);
+        }
+
+        for (int i = 0; i < firstHitBoxes.size; i++) {
+            LevelData.HitBox firstHitBox = firstHitBoxes.get(i);
+            if (firstHitBox == null || firstHitBox.width <= 0f || firstHitBox.height <= 0f) {
+                continue;
+            }
+            Rectangle firstRect = hitBoxRectAt(
+                firstSprite,
+                firstRuntime,
+                firstWorldX,
+                firstWorldY,
+                firstHitBox,
+                rectCacheA
+            );
+
+            for (int j = 0; j < secondHitBoxes.size; j++) {
+                LevelData.HitBox secondHitBox = secondHitBoxes.get(j);
+                if (secondHitBox == null || secondHitBox.width <= 0f || secondHitBox.height <= 0f) {
+                    continue;
+                }
+                Rectangle secondRect = hitBoxRectAt(
+                    secondSprite,
+                    secondRuntime,
+                    secondWorldX,
+                    secondWorldY,
+                    secondHitBox,
+                    rectCacheB
+                );
+                if (firstRect.overlaps(secondRect)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     protected final String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase();
     }
@@ -205,5 +375,68 @@ public abstract class AbstractGameplayController implements GameplayController {
             }
         }
         return levelData.sprites.size > 0 ? 0 : -1;
+    }
+
+    private void setFullSpriteRect(
+        LevelData.LevelSprite sprite,
+        LevelRenderer.SpriteRuntimeState runtime,
+        float worldX,
+        float worldY,
+        Rectangle out
+    ) {
+        float left = worldX - sprite.width * runtime.anchorX;
+        float top = worldY - sprite.height * runtime.anchorY;
+        out.set(left, top, sprite.width, sprite.height);
+    }
+
+    private Rectangle hitBoxRectAt(
+        LevelData.LevelSprite sprite,
+        LevelRenderer.SpriteRuntimeState runtime,
+        float worldX,
+        float worldY,
+        LevelData.HitBox hitBox,
+        Rectangle out
+    ) {
+        float left = worldX - sprite.width * runtime.anchorX;
+        float top = worldY - sprite.height * runtime.anchorY;
+
+        float normalizedX = hitBox.x;
+        float normalizedY = hitBox.y;
+        if (runtime.flipX) {
+            normalizedX = 1f - hitBox.x - hitBox.width;
+        }
+        if (runtime.flipY) {
+            normalizedY = 1f - hitBox.y - hitBox.height;
+        }
+
+        float x = left + normalizedX * sprite.width;
+        float y = top + normalizedY * sprite.height;
+        float width = hitBox.width * sprite.width;
+        float height = hitBox.height * sprite.height;
+        out.set(x, y, width, height);
+        return out;
+    }
+
+    private Array<LevelData.HitBox> activeHitBoxes(int spriteIndex) {
+        if (spriteIndex < 0 || spriteIndex >= spriteRuntimeStates.size) {
+            return null;
+        }
+        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
+        String animationId = runtime.animationId;
+        if (animationId == null || animationId.isEmpty()) {
+            return null;
+        }
+        LevelData.AnimationClip clip = levelData.animationClips.get(animationId);
+        if (clip == null) {
+            return null;
+        }
+        LevelData.FrameRig frameRig = clip.frameRigs.get(runtime.frameIndex);
+        if (frameRig != null && frameRig.hitBoxes != null && frameRig.hitBoxes.size > 0) {
+            return frameRig.hitBoxes;
+        }
+        if (clip.hitBoxes != null && clip.hitBoxes.size > 0) {
+            return clip.hitBoxes;
+        }
+        return null;
     }
 }

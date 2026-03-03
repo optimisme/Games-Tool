@@ -23,6 +23,8 @@ public final class TopDownGameplayController extends AbstractGameplayController 
     private final int decorationsLayerIndex;
     private final int hiddenBridgeLayerIndex;
     private boolean wasInsideFutureBridgeZone = false;
+    private Direction direction = Direction.DOWN;
+    private boolean moving = false;
 
     public TopDownGameplayController(
         LevelData levelData,
@@ -36,6 +38,7 @@ public final class TopDownGameplayController extends AbstractGameplayController 
 
         classifyZones();
         buildCollectibleArbreTiles();
+        updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
     }
 
@@ -79,7 +82,10 @@ public final class TopDownGameplayController extends AbstractGameplayController 
 
         float dx = inputX * MOVE_SPEED_PER_SECOND * dtSeconds;
         float dy = inputY * MOVE_SPEED_PER_SECOND * dtSeconds;
+        updateDirection(up, down, left, right);
 
+        float previousX = playerX;
+        float previousY = playerY;
         if (dx != 0f) {
             float nextX = playerX + dx;
             if (!wouldCollideBlocked(nextX, playerY)) {
@@ -93,11 +99,8 @@ public final class TopDownGameplayController extends AbstractGameplayController 
             }
         }
 
-        if (dx < 0f) {
-            setPlayerFlip(true, false);
-        } else if (dx > 0f) {
-            setPlayerFlip(false, false);
-        }
+        moving = Math.abs(playerX - previousX) > 0.001f || Math.abs(playerY - previousY) > 0.001f;
+        updatePlayerAnimationSelection();
 
         revealHiddenBridgeIfNeeded();
         collectArbreTileIfNeeded();
@@ -108,6 +111,10 @@ public final class TopDownGameplayController extends AbstractGameplayController 
     protected void resetPlayerToSpawn() {
         super.resetPlayerToSpawn();
         wasInsideFutureBridgeZone = false;
+        direction = Direction.DOWN;
+        moving = false;
+        setPlayerFlip(false, false);
+        updatePlayerAnimationSelection();
     }
 
     private void classifyZones() {
@@ -120,8 +127,15 @@ public final class TopDownGameplayController extends AbstractGameplayController 
             String type = normalize(zone.type);
             String name = normalize(zone.name);
             String gameplayData = normalize(zone.gameplayData);
+            boolean isWall = containsAny(type, "mur", "wall") || containsAny(name, "mur", "wall");
+            boolean isWater = containsAny(type, "aigua", "water") || containsAny(name, "aigua", "water");
+            boolean isBridge = containsAny(type, "pont", "bridge") || containsAny(name, "pont", "bridge");
+            boolean isTemporary = containsAny(type, "temporal")
+                || containsAny(name, "temporal")
+                || "futur pont".equals(gameplayData)
+                || "future bridge".equals(gameplayData);
 
-            if (containsAny(type, "mur", "aigua") || containsAny(name, "wall", "mur", "aigua", "water")) {
+            if (isWall || (isWater && !isBridge && !isTemporary)) {
                 blockedZoneIndices.add(i);
             }
             if (containsAny(type, "arbre") || containsAny(name, "arbre", "tree")) {
@@ -134,8 +148,7 @@ public final class TopDownGameplayController extends AbstractGameplayController 
     }
 
     private boolean wouldCollideBlocked(float nextX, float nextY) {
-        Rectangle next = playerRectAt(nextX, nextY, rectCacheA);
-        return overlapsAnyZone(next, blockedZoneIndices);
+        return spriteOverlapsAnyZoneByHitBoxes(playerSpriteIndex, nextX, nextY, blockedZoneIndices);
     }
 
     private int findLayerIndexByName(String... tokens) {
@@ -156,7 +169,8 @@ public final class TopDownGameplayController extends AbstractGameplayController 
             return;
         }
 
-        boolean insideFutureBridge = overlapsAnyZone(playerRect(rectCacheA), futureBridgeZoneIndices);
+        boolean insideFutureBridge =
+            spriteOverlapsAnyZoneByHitBoxes(playerSpriteIndex, playerX, playerY, futureBridgeZoneIndices);
         if (insideFutureBridge && !wasInsideFutureBridgeZone) {
             layerVisibilityStates[hiddenBridgeLayerIndex] = true;
         }
@@ -197,7 +211,7 @@ public final class TopDownGameplayController extends AbstractGameplayController 
         if (decorationsLayerIndex < 0 || decorationsLayerIndex >= levelData.layers.size || arbreZoneIndices.size <= 0) {
             return;
         }
-        if (!overlapsAnyZone(playerRect(rectCacheA), arbreZoneIndices)) {
+        if (!spriteOverlapsAnyZoneByHitBoxes(playerSpriteIndex, playerX, playerY, arbreZoneIndices)) {
             return;
         }
 
@@ -230,5 +244,84 @@ public final class TopDownGameplayController extends AbstractGameplayController 
 
     private String tileKey(int x, int y) {
         return x + ":" + y;
+    }
+
+    private void updateDirection(boolean up, boolean down, boolean left, boolean right) {
+        if (up && left) {
+            direction = Direction.UP_LEFT;
+        } else if (up && right) {
+            direction = Direction.UP_RIGHT;
+        } else if (down && left) {
+            direction = Direction.DOWN_LEFT;
+        } else if (down && right) {
+            direction = Direction.DOWN_RIGHT;
+        } else if (up) {
+            direction = Direction.UP;
+        } else if (down) {
+            direction = Direction.DOWN;
+        } else if (left) {
+            direction = Direction.LEFT;
+        } else if (right) {
+            direction = Direction.RIGHT;
+        }
+    }
+
+    private void updatePlayerAnimationSelection() {
+        if (!hasPlayer()) {
+            return;
+        }
+
+        String prefix = moving ? "Heroi Camina " : "Heroi Aturat ";
+        String suffix;
+        boolean flipX;
+        switch (direction) {
+            case UP_LEFT:
+                suffix = "Amunt-Dreta";
+                flipX = true;
+                break;
+            case UP:
+                suffix = "Amunt";
+                flipX = false;
+                break;
+            case UP_RIGHT:
+                suffix = "Amunt-Dreta";
+                flipX = false;
+                break;
+            case LEFT:
+                suffix = "Dreta";
+                flipX = true;
+                break;
+            case RIGHT:
+                suffix = "Dreta";
+                flipX = false;
+                break;
+            case DOWN_LEFT:
+                suffix = "Avall-Dreta";
+                flipX = true;
+                break;
+            case DOWN_RIGHT:
+                suffix = "Avall-Dreta";
+                flipX = false;
+                break;
+            case DOWN:
+            default:
+                suffix = "Avall";
+                flipX = false;
+                break;
+        }
+
+        setPlayerFlip(flipX, false);
+        setPlayerAnimationOverrideByName(prefix + suffix);
+    }
+
+    private enum Direction {
+        UP_LEFT,
+        UP,
+        UP_RIGHT,
+        LEFT,
+        RIGHT,
+        DOWN_LEFT,
+        DOWN,
+        DOWN_RIGHT
     }
 }

@@ -22,6 +22,7 @@ public class GameApp extends Game {
     private final Array<Array<String>> referencedImageFilesByLevel = new Array<>();
     private final ObjectSet<String> queuedAssets = new ObjectSet<>();
     private final ObjectMap<String, String> animationMediaById = new ObjectMap<>();
+    private final Array<AnimationMediaEntry> animationMediaEntries = new Array<>();
 
     private SpriteBatch batch;
     private ShapeRenderer shapeRenderer;
@@ -99,6 +100,7 @@ public class GameApp extends Game {
         levelNames.clear();
         referencedImageFilesByLevel.clear();
         animationMediaById.clear();
+        animationMediaEntries.clear();
 
         FileHandle gameDataFile = Gdx.files.internal("levels/game_data.json");
         if (!gameDataFile.exists()) {
@@ -162,11 +164,17 @@ public class GameApp extends Game {
 
             for (JsonValue animation = animations.child; animation != null; animation = animation.next) {
                 String id = animation.getString("id", null);
+                String name = animation.getString("name", null);
                 String mediaFile = animation.getString("mediaFile", null);
                 if (id == null || mediaFile == null || !looksLikeImageFile(mediaFile)) {
                     continue;
                 }
                 animationMediaById.put(id, mediaFile);
+                String normalizedName = normalize(name);
+                animationMediaEntries.add(new AnimationMediaEntry(
+                    normalizedName,
+                    mediaFile
+                ));
             }
         } catch (Exception ex) {
             Gdx.app.error("GameApp", "Failed to parse animations file", ex);
@@ -179,15 +187,36 @@ public class GameApp extends Game {
             return;
         }
 
+        ObjectSet<String> spriteTokens = new ObjectSet<>();
         for (JsonValue sprite = sprites.child; sprite != null; sprite = sprite.next) {
             String animationId = sprite.getString("animationId", null);
             if (animationId == null) {
-                continue;
+                animationId = "";
             }
 
             String mediaFile = animationMediaById.get(animationId);
             if (mediaFile != null && !levelImageFiles.contains(mediaFile, false)) {
                 levelImageFiles.add(mediaFile);
+            }
+
+            addTokens(spriteTokens, sprite.getString("type", ""));
+            addTokens(spriteTokens, sprite.getString("name", ""));
+        }
+
+        if (spriteTokens.size <= 0 || animationMediaEntries.size <= 0) {
+            return;
+        }
+
+        for (int i = 0; i < animationMediaEntries.size; i++) {
+            AnimationMediaEntry entry = animationMediaEntries.get(i);
+            if (entry == null || entry.normalizedName.isEmpty()) {
+                continue;
+            }
+            if (!containsAnyToken(entry.normalizedName, spriteTokens)) {
+                continue;
+            }
+            if (!levelImageFiles.contains(entry.mediaFile, false)) {
+                levelImageFiles.add(entry.mediaFile);
             }
         }
     }
@@ -233,6 +262,49 @@ public class GameApp extends Game {
             || normalized.endsWith(".jpg")
             || normalized.endsWith(".jpeg")
             || normalized.endsWith(".bmp");
+    }
+
+    private boolean containsAnyToken(String normalizedValue, ObjectSet<String> tokens) {
+        if (normalizedValue == null || normalizedValue.isEmpty() || tokens == null || tokens.size <= 0) {
+            return false;
+        }
+        for (String token : tokens) {
+            if (token != null && !token.isEmpty() && normalizedValue.contains(token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void addTokens(ObjectSet<String> tokens, String raw) {
+        if (tokens == null) {
+            return;
+        }
+        String normalized = normalize(raw);
+        if (normalized.isEmpty()) {
+            return;
+        }
+        String[] split = normalized.split("[^a-z0-9]+");
+        for (int i = 0; i < split.length; i++) {
+            String token = split[i];
+            if (token != null && token.length() >= 3) {
+                tokens.add(token);
+            }
+        }
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+
+    private static final class AnimationMediaEntry {
+        final String normalizedName;
+        final String mediaFile;
+
+        AnimationMediaEntry(String normalizedName, String mediaFile) {
+            this.normalizedName = normalizedName == null ? "" : normalizedName;
+            this.mediaFile = mediaFile;
+        }
     }
 
     @Override

@@ -146,7 +146,10 @@ public final class LevelRenderer {
         if (runtimeState != null && !runtimeState.visible) {
             return;
         }
-        if (!assets.isLoaded(sprite.texturePath, Texture.class)) {
+        String texturePath = runtimeState == null || runtimeState.texturePath == null || runtimeState.texturePath.isEmpty()
+            ? sprite.texturePath
+            : runtimeState.texturePath;
+        if (!assets.isLoaded(texturePath, Texture.class)) {
             return;
         }
 
@@ -157,14 +160,14 @@ public final class LevelRenderer {
         float worldY = runtimeState == null ? sprite.y : runtimeState.worldY;
         boolean flipX = runtimeState == null ? sprite.flipX : runtimeState.flipX;
         boolean flipY = runtimeState == null ? sprite.flipY : runtimeState.flipY;
-        Texture texture = assets.get(sprite.texturePath, Texture.class);
+        Texture texture = assets.get(texturePath, Texture.class);
         float leftDown = worldX - sprite.width * anchorX;
         float topDown = worldY - sprite.height * anchorY;
         float x = leftDown;
         float y = worldHeight - topDown - sprite.height;
         int frameWidth = Math.max(1, Math.round(sprite.width));
         int frameHeight = Math.max(1, Math.round(sprite.height));
-        TextureRegion[][] regions = getSplitRegions(sprite.texturePath, texture, frameWidth, frameHeight);
+        TextureRegion[][] regions = getSplitRegions(texturePath, texture, frameWidth, frameHeight);
         if (regions.length == 0 || regions[0].length == 0) {
             return;
         }
@@ -233,6 +236,8 @@ public final class LevelRenderer {
         public boolean visible;
         public boolean flipX;
         public boolean flipY;
+        public String texturePath;
+        public String animationId;
 
         public SpriteRuntimeState(
             int frameIndex,
@@ -242,7 +247,9 @@ public final class LevelRenderer {
             float worldY,
             boolean visible,
             boolean flipX,
-            boolean flipY
+            boolean flipY,
+            String texturePath,
+            String animationId
         ) {
             this.frameIndex = frameIndex;
             this.anchorX = anchorX;
@@ -252,6 +259,8 @@ public final class LevelRenderer {
             this.visible = visible;
             this.flipX = flipX;
             this.flipY = flipY;
+            this.texturePath = texturePath;
+            this.animationId = animationId;
         }
     }
 }

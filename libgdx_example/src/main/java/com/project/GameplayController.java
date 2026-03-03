@@ -5,6 +5,8 @@ public interface GameplayController {
 
     void fixedUpdate(float dtSeconds);
 
+    String animationOverrideForSprite(int spriteIndex);
+
     boolean hasCameraTarget();
 
     float getCameraTargetX();

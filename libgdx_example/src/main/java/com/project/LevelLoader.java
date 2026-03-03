@@ -296,6 +296,7 @@ public final class LevelLoader {
                     float fps = positiveFiniteOrDefault(animation, "fps", 8f);
                     boolean loop = animation.getBoolean("loop", true);
                     ObjectMap<Integer, LevelData.FrameRig> frameRigByFrame = new ObjectMap<>();
+                    Array<LevelData.HitBox> clipHitBoxes = parseHitBoxes(animation.get("hitBoxes"));
 
                     JsonValue frameRigsNode = animation.get("frameRigs");
                     if (frameRigsNode != null && frameRigsNode.isArray()) {
@@ -306,7 +307,8 @@ public final class LevelLoader {
                             }
                             float rigAnchorX = anchorOrDefault(frameRigNode.getFloat("anchorX", anchorX), anchorX);
                             float rigAnchorY = anchorOrDefault(frameRigNode.getFloat("anchorY", anchorY), anchorY);
-                            frameRigByFrame.put(frame, new LevelData.FrameRig(rigAnchorX, rigAnchorY));
+                            Array<LevelData.HitBox> rigHitBoxes = parseHitBoxes(frameRigNode.get("hitBoxes"));
+                            frameRigByFrame.put(frame, new LevelData.FrameRig(rigAnchorX, rigAnchorY, rigHitBoxes));
                         }
                     }
 
@@ -314,6 +316,7 @@ public final class LevelLoader {
                         id,
                         new LevelData.AnimationClip(
                             id,
+                            animation.getString("name", id),
                             texturePath,
                             startFrame,
                             endFrame,
@@ -321,6 +324,7 @@ public final class LevelLoader {
                             loop,
                             anchorX,
                             anchorY,
+                            clipHitBoxes,
                             frameRigByFrame
                         )
                     );
@@ -566,6 +570,35 @@ public final class LevelLoader {
             return fallback;
         }
         return Math.max(0f, Math.min(1f, value));
+    }
+
+    private static Array<LevelData.HitBox> parseHitBoxes(JsonValue hitBoxesNode) {
+        Array<LevelData.HitBox> hitBoxes = new Array<>();
+        if (hitBoxesNode == null || !hitBoxesNode.isArray()) {
+            return hitBoxes;
+        }
+
+        for (JsonValue hitBoxNode = hitBoxesNode.child; hitBoxNode != null; hitBoxNode = hitBoxNode.next) {
+            float x = hitBoxNode.getFloat("x", Float.NaN);
+            float y = hitBoxNode.getFloat("y", Float.NaN);
+            float width = hitBoxNode.getFloat("width", Float.NaN);
+            float height = hitBoxNode.getFloat("height", Float.NaN);
+            if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(width) || !Float.isFinite(height)) {
+                continue;
+            }
+            if (width <= 0f || height <= 0f) {
+                continue;
+            }
+            hitBoxes.add(new LevelData.HitBox(
+                hitBoxNode.getString("id", ""),
+                hitBoxNode.getString("name", ""),
+                x,
+                y,
+                width,
+                height
+            ));
+        }
+        return hitBoxes;
     }
 
     private static String normalizeViewportAdaptation(String raw) {
