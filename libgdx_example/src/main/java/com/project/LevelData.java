@@ -186,6 +186,7 @@ public final class LevelData {
 
     public static final class AnimationClip {
         public final String id;
+        public final String texturePath;
         public final int startFrame;
         public final int endFrame;
         public final float fps;
@@ -196,6 +197,7 @@ public final class LevelData {
 
         public AnimationClip(
             String id,
+            String texturePath,
             int startFrame,
             int endFrame,
             float fps,
@@ -205,6 +207,7 @@ public final class LevelData {
             ObjectMap<Integer, FrameRig> frameRigs
         ) {
             this.id = id;
+            this.texturePath = texturePath;
             this.startFrame = startFrame;
             this.endFrame = endFrame;
             this.fps = fps;

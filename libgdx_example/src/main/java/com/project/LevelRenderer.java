@@ -159,7 +159,7 @@ public final class LevelRenderer {
         int cols = regions[0].length;
         int rows = regions.length;
         int total = rows * cols;
-        int frame = ((frameIndex % total) + total) % total;
+        int frame = Math.max(0, Math.min(total - 1, frameIndex));
         int srcCol = frame % cols;
         int srcRow = frame / cols;
         if (srcRow < 0 || srcRow >= rows || srcCol < 0 || srcCol >= cols) {
