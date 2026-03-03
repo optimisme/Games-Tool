@@ -31,7 +31,7 @@ class Level1Painter extends CustomPainter {
         canvas: canvas,
         size: size,
         label: 'Loading level 1...',
-        backgroundColor: const Color(0xFF0A0D1A),
+        backgroundColor: const Color(0xFF000000),
       );
       return;
     }
@@ -55,7 +55,7 @@ class Level1Painter extends CustomPainter {
       layerCommands: layerCommands,
       spriteCommands: spriteCommands,
       imageCommands: imageCommands,
-      backgroundFallback: const Color(0xFF0A0D1A),
+      backgroundFallback: const Color(0xFF000000),
     );
 
     final Rect screenHudRect = resolveScreenHudRect(

@@ -89,19 +89,30 @@ Map<String, dynamic>? _resolveLevel1PlayerSprite(Map<String, dynamic>? level) {
   return null;
 }
 
-String _resolveLevel1PlayerAnimationName(Level1RenderState state) {
+LevelSpriteRenderSelection _resolveLevel1PlayerRenderSelection(
+  Level1RenderState state,
+) {
   const double verticalThreshold = 5.0;
   const double moveThreshold = 2.0;
+  String animationName = _level1AnimFoxyIdle;
   if (!state.onGround) {
     if (state.velocityY < -verticalThreshold) {
-      return _level1AnimFoxyJumpUp;
+      animationName = _level1AnimFoxyJumpUp;
+    } else {
+      animationName = _level1AnimFoxyJumpFall;
     }
-    return _level1AnimFoxyJumpFall;
+    return LevelSpriteRenderSelection(
+      animationName: animationName,
+      flipX: !state.facingRight,
+    );
   }
   if (state.velocityX.abs() > moveThreshold) {
-    return _level1AnimFoxyWalk;
+    animationName = _level1AnimFoxyWalk;
   }
-  return _level1AnimFoxyIdle;
+  return LevelSpriteRenderSelection(
+    animationName: animationName,
+    flipX: !state.facingRight,
+  );
 }
 
 bool _shouldSkipLevel1Sprite({
@@ -311,6 +322,8 @@ extension _Level1Hud on _Level1State {
             .toList(growable: false);
     final Map<String, dynamic>? playerSprite =
         _resolveLevel1PlayerSprite(level);
+    final LevelSpriteRenderSelection playerSelection =
+        _resolveLevel1PlayerRenderSelection(renderState);
 
     return buildLevelSpriteRenderCommands(
       sprites: sprites,
@@ -326,13 +339,17 @@ extension _Level1Hud on _Level1State {
         return LevelSpriteRenderCommand(
           sprite: sprite,
           depth: appData.gamesTool.spriteDepth(sprite),
-          animationName: _resolveLevel1PlayerAnimationName(renderState),
-          elapsedSeconds: renderState.animationTimeSeconds,
+          animationName: playerSelection.animationName,
+          elapsedSeconds: renderState.animationTimeSeconds +
+              playerSelection.elapsedSecondsOffset,
           worldX: renderState.playerX,
           worldY: renderState.playerY,
           drawWidthWorld: renderState.playerWidth,
           drawHeightWorld: renderState.playerHeight,
-          flipX: !renderState.facingRight,
+          flipX: playerSelection.flipX,
+          flipY: playerSelection.flipY,
+          fallbackFps:
+              playerSelection.fallbackFps ?? GamesToolApi.defaultAnimationFps,
         );
       },
       buildSpriteCommand: (int spriteIndex, Map<String, dynamic> sprite) {

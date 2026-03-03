@@ -69,35 +69,55 @@ Map<String, dynamic>? _resolveLevel0PlayerSprite(Map<String, dynamic>? level) {
   return sprites.first;
 }
 
-_AnimationSelection _resolveLevel0AnimationForState(Level0RenderState state) {
+LevelSpriteRenderSelection _resolveLevel0PlayerRenderSelection(
+  Level0RenderState state,
+) {
   final String prefix = state.isMoving ? 'Heroi Camina ' : 'Heroi Aturat ';
   switch (state.direction) {
     case 'upLeft':
-      return _AnimationSelection(
+      return LevelSpriteRenderSelection(
         animationName: '${prefix}Amunt-Dreta',
-        mirrorX: true,
+        flipX: true,
+        fallbackFps: 8,
       );
     case 'up':
-      return _AnimationSelection(animationName: '${prefix}Amunt');
+      return LevelSpriteRenderSelection(
+        animationName: '${prefix}Amunt',
+        fallbackFps: 8,
+      );
     case 'upRight':
-      return _AnimationSelection(animationName: '${prefix}Amunt-Dreta');
+      return LevelSpriteRenderSelection(
+        animationName: '${prefix}Amunt-Dreta',
+        fallbackFps: 8,
+      );
     case 'left':
-      return _AnimationSelection(
+      return LevelSpriteRenderSelection(
         animationName: '${prefix}Dreta',
-        mirrorX: true,
+        flipX: true,
+        fallbackFps: 8,
       );
     case 'right':
-      return _AnimationSelection(animationName: '${prefix}Dreta');
+      return LevelSpriteRenderSelection(
+        animationName: '${prefix}Dreta',
+        fallbackFps: 8,
+      );
     case 'downLeft':
-      return _AnimationSelection(
+      return LevelSpriteRenderSelection(
         animationName: '${prefix}Avall-Dreta',
-        mirrorX: true,
+        flipX: true,
+        fallbackFps: 8,
       );
     case 'downRight':
-      return _AnimationSelection(animationName: '${prefix}Avall-Dreta');
+      return LevelSpriteRenderSelection(
+        animationName: '${prefix}Avall-Dreta',
+        fallbackFps: 8,
+      );
     case 'down':
     default:
-      return _AnimationSelection(animationName: '${prefix}Avall');
+      return LevelSpriteRenderSelection(
+        animationName: '${prefix}Avall',
+        fallbackFps: 8,
+      );
   }
 }
 
@@ -328,8 +348,8 @@ extension _Level0Hud on _Level0State {
             .toList(growable: false);
     final Map<String, dynamic>? playerSprite =
         _resolveLevel0PlayerSprite(level);
-    final _AnimationSelection animation =
-        _resolveLevel0AnimationForState(renderState);
+    final LevelSpriteRenderSelection playerSelection =
+        _resolveLevel0PlayerRenderSelection(renderState);
 
     return buildLevelSpriteRenderCommands(
       sprites: sprites,
@@ -338,14 +358,17 @@ extension _Level0Hud on _Level0State {
         return LevelSpriteRenderCommand(
           sprite: sprite,
           depth: appData.gamesTool.spriteDepth(sprite),
-          animationName: animation.animationName,
-          elapsedSeconds: renderState.animationTimeSeconds,
+          animationName: playerSelection.animationName,
+          elapsedSeconds: renderState.animationTimeSeconds +
+              playerSelection.elapsedSecondsOffset,
           worldX: renderState.playerX,
           worldY: renderState.playerY,
-          flipX: animation.mirrorX,
+          flipX: playerSelection.flipX,
+          flipY: playerSelection.flipY,
           drawWidthWorld: renderState.playerWidth,
           drawHeightWorld: renderState.playerHeight,
-          fallbackFps: 8,
+          fallbackFps:
+              playerSelection.fallbackFps ?? GamesToolApi.defaultAnimationFps,
         );
       },
       buildSpriteCommand: (int _, Map<String, dynamic> sprite) {

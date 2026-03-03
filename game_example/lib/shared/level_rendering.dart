@@ -52,6 +52,22 @@ class LevelSpriteRenderCommand {
   final bool cullWhenOffscreen;
 }
 
+class LevelSpriteRenderSelection {
+  const LevelSpriteRenderSelection({
+    this.animationName,
+    this.flipX,
+    this.flipY,
+    this.fallbackFps,
+    this.elapsedSecondsOffset = 0,
+  });
+
+  final String? animationName;
+  final bool? flipX;
+  final bool? flipY;
+  final double? fallbackFps;
+  final double elapsedSecondsOffset;
+}
+
 class LayerRenderCommand {
   const LayerRenderCommand({
     required this.layer,

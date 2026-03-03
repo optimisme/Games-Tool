@@ -31,7 +31,7 @@ class Level0Painter extends CustomPainter {
         canvas: canvas,
         size: size,
         label: 'Loading level 0...',
-        backgroundColor: const Color(0xFF0B1014),
+        backgroundColor: const Color(0xFF000000),
       );
       return;
     }
@@ -55,7 +55,7 @@ class Level0Painter extends CustomPainter {
       layerCommands: layerCommands,
       spriteCommands: spriteCommands,
       imageCommands: imageCommands,
-      backgroundFallback: const Color(0xFF0B1014),
+      backgroundFallback: const Color(0xFF000000),
     );
 
     final Rect screenHudRect = resolveScreenHudRect(
@@ -142,14 +142,4 @@ class Level0Painter extends CustomPainter {
             renderState?.renderRevision ||
         oldDelegate.level != level;
   }
-}
-
-class _AnimationSelection {
-  const _AnimationSelection({
-    required this.animationName,
-    this.mirrorX = false,
-  });
-
-  final String animationName;
-  final bool mirrorX;
 }
