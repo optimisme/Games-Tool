@@ -13,7 +13,6 @@ import '../shared/utils_painter.dart';
 
 part 'lifecycle.dart';
 part 'interaction.dart';
-part 'layout.dart';
 part 'drawing.dart';
 
 /// Transitional screen that waits for both data readiness and minimum UX timing.
@@ -51,6 +50,38 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
       return;
     }
     setState(() {});
+  }
+
+  double _buildProgress({
+    required AppData appData,
+    required bool levelReady,
+  }) {
+    final double rawProgress = _controller.value;
+    final double dataProgress =
+        levelReady ? 1 : appData.loadingProgress.clamp(0.0, 0.95);
+    // Blend UI animation and real load progress; reserve final 5% for handoff.
+    return levelReady
+        ? rawProgress
+        : math.min(0.95, math.max(rawProgress * 0.35, dataProgress));
+  }
+
+  String _buildLoadingLabel({
+    required AppData appData,
+    required bool levelReady,
+  }) {
+    if (appData.loadingError != null) {
+      return 'Asset loading failed';
+    }
+    if (!_controller.isCompleted) {
+      return 'Loading...';
+    }
+    if (appData.isLoadingData) {
+      return 'Loading assets...';
+    }
+    if (!levelReady) {
+      return 'Waiting for assets...';
+    }
+    return 'Launching level ${widget.levelIndex}...';
   }
 
   @override
