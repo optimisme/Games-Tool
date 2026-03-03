@@ -106,6 +106,7 @@ class AppData extends ChangeNotifier {
   Set<int> selectedZoneIndices = <int>{};
   int selectedSprite = -1;
   Set<int> selectedSpriteIndices = <int>{};
+  int selectedPath = -1;
   int selectedAnimation = -1;
   int selectedAnimationHitBox = -1;
   bool animationRigShowPixelGrid = true;
@@ -2112,6 +2113,7 @@ class AppData extends ChangeNotifier {
     selectedZoneIndices = <int>{};
     selectedSprite = -1;
     selectedSpriteIndices = <int>{};
+    selectedPath = -1;
     selectedAnimation = -1;
     selectedAnimationHitBox = -1;
     animationRigSelectionAnimationId = "";
@@ -2235,6 +2237,7 @@ class AppData extends ChangeNotifier {
     selectedZoneIndices = <int>{};
     selectedSprite = -1;
     selectedSpriteIndices = <int>{};
+    selectedPath = -1;
     selectedAnimation = -1;
     selectedAnimationHitBox = -1;
     animationRigSelectionAnimationId = "";
@@ -2695,6 +2698,7 @@ class AppData extends ChangeNotifier {
       selectedZoneIndices = <int>{};
       selectedSprite = -1;
       selectedSpriteIndices = <int>{};
+      selectedPath = -1;
       selectedAnimation = -1;
       selectedAnimationHitBox = -1;
       animationRigSelectionAnimationId = "";

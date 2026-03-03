@@ -17,6 +17,7 @@ class EditorFormDialogScaffold extends StatelessWidget {
     this.onDelete,
     this.deleteLabel = 'Delete',
     this.compactActionBar = false,
+    this.liveEditBottomSpacing = true,
     this.minWidth = 360,
     this.maxWidth = 520,
   });
@@ -34,6 +35,7 @@ class EditorFormDialogScaffold extends StatelessWidget {
   final VoidCallback? onDelete;
   final String deleteLabel;
   final bool compactActionBar;
+  final bool liveEditBottomSpacing;
   final double minWidth;
   final double maxWidth;
 
@@ -60,7 +62,11 @@ class EditorFormDialogScaffold extends StatelessWidget {
                 SizedBox(height: spacing.md),
               ],
               body,
-              SizedBox(height: spacing.lg + spacing.sm),
+              SizedBox(
+                height: liveEditMode && !liveEditBottomSpacing
+                    ? 0
+                    : spacing.lg + spacing.sm,
+              ),
               if (liveEditMode)
                 const SizedBox.shrink()
               else if (compactActionBar)

@@ -36,6 +36,36 @@ class _LayoutPathsState extends State<LayoutPaths> {
   String? _hoveredGroupId;
   int _selectedPathIndex = -1;
 
+  void _setSelectedPathIndex(
+    AppData appData,
+    int nextIndex, {
+    bool notify = true,
+  }) {
+    final int pathCount = (appData.selectedLevel >= 0 &&
+            appData.selectedLevel < appData.gameData.levels.length)
+        ? appData.gameData.levels[appData.selectedLevel].paths.length
+        : 0;
+    final int clamped = pathCount == 0 || nextIndex < 0
+        ? -1
+        : nextIndex.clamp(0, pathCount - 1);
+    final bool localChanged = _selectedPathIndex != clamped;
+    final bool appChanged = appData.selectedPath != clamped;
+    if (!localChanged && !appChanged) {
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _selectedPathIndex = clamped;
+      });
+    } else {
+      _selectedPathIndex = clamped;
+    }
+    appData.selectedPath = clamped;
+    if (notify && appChanged) {
+      appData.update();
+    }
+  }
+
   Future<void> _autoSaveIfPossible(AppData appData) async {
     if (appData.selectedProject == null) {
       return;
@@ -369,10 +399,13 @@ class _LayoutPathsState extends State<LayoutPaths> {
 
   List<_PathTargetOption> _zoneTargetOptions(GameLevel level) {
     return List<_PathTargetOption>.generate(level.zones.length, (int index) {
-      final String type = level.zones[index].type.trim();
+      final String zoneName = level.zones[index].name.trim();
+      final String zoneType = level.zones[index].type.trim();
       return _PathTargetOption(
         index: index,
-        label: type.isEmpty ? 'Zone ${index + 1}' : type,
+        label: zoneName.isNotEmpty
+            ? zoneName
+            : (zoneType.isNotEmpty ? zoneType : 'Zone ${index + 1}'),
       );
     });
   }
@@ -419,6 +452,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
             behavior: binding.behavior,
             enabled: binding.enabled,
             relativeToInitialPosition: binding.relativeToInitialPosition,
+            durationMs: binding.durationMs,
           ),
         )
         .toList(growable: true);
@@ -581,11 +615,9 @@ class _LayoutPathsState extends State<LayoutPaths> {
       return;
     }
 
-    setState(() {
-      final int newCount =
-          appData.gameData.levels[appData.selectedLevel].paths.length;
-      _selectedPathIndex = newCount - 1;
-    });
+    final int newCount =
+        appData.gameData.levels[appData.selectedLevel].paths.length;
+    _setSelectedPathIndex(appData, newCount - 1);
     await _autoSaveIfPossible(appData);
   }
 
@@ -639,13 +671,9 @@ class _LayoutPathsState extends State<LayoutPaths> {
       return;
     }
 
-    setState(() {
-      if (level.paths.isEmpty) {
-        _selectedPathIndex = -1;
-      } else {
-        _selectedPathIndex = index.clamp(0, level.paths.length - 1);
-      }
-    });
+    final int nextSelection =
+        level.paths.isEmpty ? -1 : index.clamp(0, level.paths.length - 1);
+    _setSelectedPathIndex(appData, nextSelection);
     await _autoSaveIfPossible(appData);
   }
 
@@ -721,6 +749,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
                   behavior: binding.behavior,
                   enabled: binding.enabled,
                   relativeToInitialPosition: binding.relativeToInitialPosition,
+                  durationMs: binding.durationMs,
                 ),
               );
             }
@@ -732,13 +761,8 @@ class _LayoutPathsState extends State<LayoutPaths> {
   }
 
   void _selectPath(int index, bool isSelected) {
-    setState(() {
-      if (isSelected) {
-        _selectedPathIndex = -1;
-      } else {
-        _selectedPathIndex = index;
-      }
-    });
+    final AppData appData = Provider.of<AppData>(context, listen: false);
+    _setSelectedPathIndex(appData, isSelected ? -1 : index);
   }
 
   Future<void> _toggleGroupCollapsed(AppData appData, String groupId) async {
@@ -773,9 +797,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
       final String selectedGroupId =
           _effectivePathGroupId(level, level.paths[_selectedPathIndex]);
       if (selectedGroupId == groupId) {
-        setState(() {
-          _selectedPathIndex = -1;
-        });
+        _setSelectedPathIndex(appData, -1);
       }
     }
   }
@@ -875,9 +897,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
       if (!applied || !mounted) {
         return;
       }
-      setState(() {
-        _selectedPathIndex = nextSelected;
-      });
+      _setSelectedPathIndex(appData, nextSelected);
       await _autoSaveIfPossible(appData);
     }());
   }
@@ -898,6 +918,8 @@ class _LayoutPathsState extends State<LayoutPaths> {
     final bool hasLevel = appData.selectedLevel >= 0 &&
         appData.selectedLevel < appData.gameData.levels.length;
     if (!hasLevel) {
+      _selectedPathIndex = -1;
+      appData.selectedPath = -1;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -943,6 +965,9 @@ class _LayoutPathsState extends State<LayoutPaths> {
 
     if (_selectedPathIndex < 0 || _selectedPathIndex >= level.paths.length) {
       _selectedPathIndex = -1;
+    }
+    if (appData.selectedPath != _selectedPathIndex) {
+      appData.selectedPath = _selectedPathIndex;
     }
 
     return Column(
@@ -1518,6 +1543,14 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       .initialData.bindings
       .map(_PathBindingDraft.fromBinding)
       .toList(growable: true);
+  late final List<TextEditingController> _bindingDurationControllers =
+      widget.initialData.bindings
+          .map(
+            (binding) => TextEditingController(
+              text: binding.durationMs.toString(),
+            ),
+          )
+          .toList(growable: true);
   EditSession<_PathDialogData>? _editSession;
 
   String _resolveInitialColor() {
@@ -1619,8 +1652,30 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     return GamePathBinding.targetTypeSprite;
   }
 
+  int _sanitizeDurationMs(int raw) {
+    if (raw <= 0) {
+      return GamePathBinding.defaultDurationMs;
+    }
+    return raw;
+  }
+
+  String _ellipsizeObjectLabel(
+    String value, {
+    required int maxChars,
+  }) {
+    final String normalized = value.trim();
+    if (normalized.length <= maxChars) {
+      return normalized;
+    }
+    if (maxChars <= 3) {
+      return normalized;
+    }
+    return '${normalized.substring(0, maxChars - 3)}...';
+  }
+
   void _addLinkedObject() {
     final String targetType = _newBindingType();
+    final int defaultDurationMs = GamePathBinding.defaultDurationMs;
     setState(() {
       _draftBindings.add(
         _PathBindingDraft(
@@ -1630,7 +1685,11 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           behavior: GamePathBinding.behaviorPingPong,
           enabled: true,
           relativeToInitialPosition: true,
+          durationMs: defaultDurationMs,
         ),
+      );
+      _bindingDurationControllers.add(
+        TextEditingController(text: defaultDurationMs.toString()),
       );
     });
     _onInputChanged();
@@ -1642,6 +1701,9 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     }
     setState(() {
       _draftBindings.removeAt(index);
+      final TextEditingController controller =
+          _bindingDurationControllers.removeAt(index);
+      controller.dispose();
     });
     _onInputChanged();
   }
@@ -1653,6 +1715,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     String? behavior,
     bool? enabled,
     bool? relativeToInitialPosition,
+    int? durationMs,
   }) {
     if (index < 0 || index >= _draftBindings.length) {
       return;
@@ -1671,6 +1734,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
         enabled: enabled ?? current.enabled,
         relativeToInitialPosition:
             relativeToInitialPosition ?? current.relativeToInitialPosition,
+        durationMs: _sanitizeDurationMs(durationMs ?? current.durationMs),
       );
     });
     _onInputChanged();
@@ -1743,6 +1807,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
               behavior: draft.behavior,
               enabled: draft.enabled,
               relativeToInitialPosition: draft.relativeToInitialPosition,
+              durationMs: draft.durationMs,
             ),
           )
           .toList(growable: false),
@@ -1764,9 +1829,11 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
             a.groupId == b.groupId &&
             a.points.length == b.points.length &&
             a.bindings.length == b.bindings.length &&
-            List.generate(a.points.length,
-                (i) => a.points[i].x == b.points[i].x && a.points[i].y == b.points[i].y)
-                .every((e) => e) &&
+            List.generate(
+                a.points.length,
+                (i) =>
+                    a.points[i].x == b.points[i].x &&
+                    a.points[i].y == b.points[i].y).every((e) => e) &&
             List.generate(a.bindings.length, (i) {
               final ab = a.bindings[i];
               final bb = b.bindings[i];
@@ -1774,7 +1841,9 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                   ab.targetIndex == bb.targetIndex &&
                   ab.behavior == bb.behavior &&
                   ab.enabled == bb.enabled &&
-                  ab.relativeToInitialPosition == bb.relativeToInitialPosition;
+                  ab.relativeToInitialPosition ==
+                      bb.relativeToInitialPosition &&
+                  ab.durationMs == bb.durationMs;
             }).every((e) => e),
       );
     }
@@ -1790,6 +1859,9 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     for (final draft in _draftPoints) {
       draft.dispose();
     }
+    for (final controller in _bindingDurationControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -1799,15 +1871,20 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     const double typeColumnWidth = 96;
     const double behaviorColumnWidth = 104;
-    const double toggleColumnWidth = 56;
-    const double removeColumnWidth = 24;
+    const double durationColumnWidth = 49;
+    const double toggleColumnWidth = 52;
+    const double removeColumnWidth = 18;
+    final double typeObjectGap = spacing.xs;
+    final double enabledRelativeGap = spacing.xs;
     final int maxSpriteNameLength = widget.spriteTargetOptions.fold<int>(
       0,
       (int maxLen, _PathTargetOption option) =>
           option.label.length > maxLen ? option.label.length : maxLen,
     );
     final double objectColumnWidth =
-        (64 + (maxSpriteNameLength * 7.5)).clamp(140.0, 240.0);
+        (64 + (maxSpriteNameLength * 7.5)).clamp(140.0, 260.0);
+    final int objectLabelMaxChars =
+        ((objectColumnWidth - 36.0) / 7.0).floor().clamp(8, 48);
     return EditorFormDialogScaffold(
       title: widget.title,
       description: '',
@@ -1816,6 +1893,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       onConfirm: () {},
       onCancel: widget.onClose,
       liveEditMode: true,
+      liveEditBottomSpacing: false,
       onClose: widget.onClose,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1969,7 +2047,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                               width: typeColumnWidth,
                               child: CDKText('Type', role: CDKTextRole.caption),
                             ),
-                            SizedBox(width: spacing.sm),
+                            SizedBox(width: typeObjectGap),
                             SizedBox(
                               width: objectColumnWidth,
                               child: const CDKText(
@@ -1987,13 +2065,21 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                             ),
                             SizedBox(width: spacing.sm),
                             const SizedBox(
+                              width: durationColumnWidth,
+                              child: CDKText(
+                                'Duration (ms)',
+                                role: CDKTextRole.caption,
+                              ),
+                            ),
+                            SizedBox(width: spacing.sm),
+                            const SizedBox(
                               width: toggleColumnWidth,
                               child: CDKText(
                                 'Enabled',
                                 role: CDKTextRole.caption,
                               ),
                             ),
-                            SizedBox(width: spacing.sm),
+                            SizedBox(width: enabledRelativeGap),
                             const SizedBox(
                               width: toggleColumnWidth,
                               child: CDKText(
@@ -2010,6 +2096,8 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                       ...List<Widget>.generate(_draftBindings.length,
                           (int index) {
                         final _PathBindingDraft draft = _draftBindings[index];
+                        final TextEditingController durationController =
+                            _bindingDurationControllers[index];
                         final List<_PathTargetOption> targetOptions =
                             _targetOptionsForType(draft.targetType);
                         final int selectedTargetOptionIndex =
@@ -2062,7 +2150,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: spacing.sm),
+                              SizedBox(width: typeObjectGap),
                               SizedBox(
                                 width: objectColumnWidth,
                                 child: Align(
@@ -2086,7 +2174,14 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                                             selectedIndex:
                                                 safeTargetOptionIndex,
                                             options: targetOptions
-                                                .map((option) => option.label)
+                                                .map(
+                                                  (option) =>
+                                                      _ellipsizeObjectLabel(
+                                                    option.label,
+                                                    maxChars:
+                                                        objectLabelMaxChars,
+                                                  ),
+                                                )
                                                 .toList(growable: false),
                                             onSelected: (int optionIndex) {
                                               _updateLinkedObject(
@@ -2126,12 +2221,51 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                               ),
                               SizedBox(width: spacing.sm),
                               SizedBox(
+                                width: durationColumnWidth,
+                                child: CDKFieldText(
+                                  placeholder: 'ms',
+                                  keyboardType: TextInputType.number,
+                                  controller: durationController,
+                                  onChanged: (String value) {
+                                    final int? parsed =
+                                        int.tryParse(value.trim());
+                                    if (parsed == null || parsed <= 0) {
+                                      return;
+                                    }
+                                    if (parsed == draft.durationMs) {
+                                      return;
+                                    }
+                                    _updateLinkedObject(
+                                      index,
+                                      durationMs: parsed,
+                                    );
+                                  },
+                                  onSubmitted: (String value) {
+                                    final int? parsed =
+                                        int.tryParse(value.trim());
+                                    final int sanitized =
+                                        parsed == null || parsed <= 0
+                                            ? draft.durationMs
+                                            : _sanitizeDurationMs(parsed);
+                                    if (sanitized != draft.durationMs) {
+                                      _updateLinkedObject(
+                                        index,
+                                        durationMs: sanitized,
+                                      );
+                                    }
+                                    durationController.text =
+                                        sanitized.toString();
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: spacing.sm),
+                              SizedBox(
                                 width: toggleColumnWidth,
                                 child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: SizedBox(
-                                    width: 39,
-                                    height: 24,
+                                    width: 30,
+                                    height: 18,
                                     child: FittedBox(
                                       fit: BoxFit.fill,
                                       child: CupertinoSwitch(
@@ -2147,14 +2281,14 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: spacing.sm),
+                              SizedBox(width: enabledRelativeGap),
                               SizedBox(
                                 width: toggleColumnWidth,
                                 child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: SizedBox(
-                                    width: 39,
-                                    height: 24,
+                                    width: 30,
+                                    height: 18,
                                     child: FittedBox(
                                       fit: BoxFit.fill,
                                       child: CupertinoSwitch(
@@ -2175,11 +2309,11 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                                 width: removeColumnWidth,
                                 child: CupertinoButton(
                                   padding: EdgeInsets.zero,
-                                  minimumSize: const Size(20, 20),
+                                  minimumSize: const Size(16, 16),
                                   onPressed: () => _removeLinkedObject(index),
                                   child: Icon(
                                     CupertinoIcons.minus_circle,
-                                    size: 16,
+                                    size: 14,
                                     color: cdkColors.colorText,
                                   ),
                                 ),
@@ -2208,45 +2342,47 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           ),
           SizedBox(height: spacing.sm),
           Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: 220,
-              child: EditorLabeledField(
-                label: 'Path Group',
-                child: CDKButtonSelect(
-                  selectedIndex: widget.groupOptions
-                      .indexWhere((group) => group.id == _selectedGroupId)
-                      .clamp(0, widget.groupOptions.length - 1),
-                  options: widget.groupOptions
-                      .map((group) => group.name.trim().isEmpty
-                          ? GameListGroup.defaultMainName
-                          : group.name)
-                      .toList(growable: false),
-                  onSelected: (int index) {
-                    setState(() {
-                      _selectedGroupId = widget.groupOptions[index].id;
-                    });
-                    _onInputChanged();
-                  },
+            alignment: Alignment.bottomLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: EditorLabeledField(
+                    label: 'Path Group',
+                    child: CDKButtonSelect(
+                      selectedIndex: widget.groupOptions
+                          .indexWhere((group) => group.id == _selectedGroupId)
+                          .clamp(0, widget.groupOptions.length - 1),
+                      options: widget.groupOptions
+                          .map((group) => group.name.trim().isEmpty
+                              ? GameListGroup.defaultMainName
+                              : group.name)
+                          .toList(growable: false),
+                      onSelected: (int index) {
+                        setState(() {
+                          _selectedGroupId = widget.groupOptions[index].id;
+                        });
+                        _onInputChanged();
+                      },
+                    ),
+                  ),
                 ),
-              ),
+                if (widget.onDelete != null) ...[
+                  SizedBox(height: spacing.md),
+                  CDKButton(
+                    style: CDKButtonStyle.destructive,
+                    onPressed: widget.onDelete,
+                    child: const Text('Delete Path'),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (widget.onDelete != null) ...[
-            SizedBox(height: spacing.md),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: CDKButton(
-                style: CDKButtonStyle.destructive,
-                onPressed: widget.onDelete,
-                child: const Text('Delete Path'),
-              ),
-            ),
-          ],
         ],
       ),
-      minWidth: 540,
-      maxWidth: 720,
+      minWidth: 565,
+      maxWidth: 745,
     );
   }
 }
@@ -2269,6 +2405,7 @@ class _PathBindingDraft {
     required this.behavior,
     required this.enabled,
     required this.relativeToInitialPosition,
+    required this.durationMs,
   });
 
   factory _PathBindingDraft.fromBinding(GamePathBinding binding) {
@@ -2279,6 +2416,7 @@ class _PathBindingDraft {
       behavior: binding.behavior,
       enabled: binding.enabled,
       relativeToInitialPosition: binding.relativeToInitialPosition,
+      durationMs: binding.durationMs,
     );
   }
 
@@ -2288,6 +2426,7 @@ class _PathBindingDraft {
   final String behavior;
   final bool enabled;
   final bool relativeToInitialPosition;
+  final int durationMs;
 
   _PathBindingDraft copyWith({
     String? id,
@@ -2296,6 +2435,7 @@ class _PathBindingDraft {
     String? behavior,
     bool? enabled,
     bool? relativeToInitialPosition,
+    int? durationMs,
   }) {
     return _PathBindingDraft(
       id: id ?? this.id,
@@ -2305,6 +2445,7 @@ class _PathBindingDraft {
       enabled: enabled ?? this.enabled,
       relativeToInitialPosition:
           relativeToInitialPosition ?? this.relativeToInitialPosition,
+      durationMs: durationMs ?? this.durationMs,
     );
   }
 }

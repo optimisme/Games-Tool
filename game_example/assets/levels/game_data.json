@@ -123,7 +123,7 @@
           "tileMapFile": "tilemaps/level_001_layer_000.json"
         },
         {
-          "name": "Platform",
+          "name": "Moving Platform",
           "gameplayData": "",
           "x": 597,
           "y": 440,

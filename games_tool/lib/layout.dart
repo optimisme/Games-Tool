@@ -79,11 +79,13 @@ class _LayoutState extends State<Layout> {
   bool _isDraggingZone = false;
   bool _isResizingZone = false;
   bool _isDraggingSprite = false;
+  bool _isDraggingPathPoint = false;
   bool _isSelectingAnimationFrames = false;
   bool _isPaintingTilemap = false;
   bool _consumeTilemapTapUp = false;
   bool _didModifyZoneDuringGesture = false;
   bool _didModifySpriteDuringGesture = false;
+  bool _didModifyPathDuringGesture = false;
   bool _didModifyLayerDuringGesture = false;
   bool _didModifyAnimationDuringGesture = false;
   bool _didModifyAnimationRigDuringGesture = false;
@@ -92,6 +94,7 @@ class _LayoutState extends State<Layout> {
   bool _isDraggingAnimationRigAnchor = false;
   bool _isDraggingAnimationRigHitBox = false;
   bool _isResizingAnimationRigHitBox = false;
+  int _draggingPathPointIndex = -1;
   bool _isSelectingAnimationRigFramesFromStrip = false;
   bool _animationRigFrameStripDragAdditive = false;
   int? _animationRigFrameStripDragAnchorFrame;

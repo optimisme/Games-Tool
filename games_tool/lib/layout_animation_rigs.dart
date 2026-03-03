@@ -1313,6 +1313,7 @@ class _AnimationRigEditorPopoverState
       key: ValueKey(draft.id),
       onTap: () => _setSelectedIndex(index, notifyParent: true),
       child: Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         color: cdkColors.backgroundSecondary0,
@@ -1339,8 +1340,7 @@ class _AnimationRigEditorPopoverState
               ),
             ),
             SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 90,
+            Expanded(
               child: CDKFieldText(
                 placeholder: 'Name',
                 controller: _nameControllers[index],
@@ -1538,7 +1538,7 @@ class _AnimationRigEditorPopoverState
     );
 
     final Widget hitBoxesPanel = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_drafts.isEmpty)
           const CDKText(
@@ -1561,17 +1561,19 @@ class _AnimationRigEditorPopoverState
               itemCount: _drafts.length,
               onReorder: _reorderHitBoxes,
               itemBuilder: (context, index) {
-                return _buildHitBoxInlineRow(
-                    context, index, _drafts[index]);
+                return _buildHitBoxInlineRow(context, index, _drafts[index]);
               },
             ),
           ),
         ),
         SizedBox(height: spacing.sm),
-        CDKButton(
-          style: CDKButtonStyle.action,
-          onPressed: _addHitBox,
-          child: const Text('Add Hit Box'),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: CDKButton(
+            style: CDKButtonStyle.action,
+            onPressed: _addHitBox,
+            child: const Text('Add Hit Box'),
+          ),
         ),
       ],
     );
@@ -1592,7 +1594,8 @@ class _AnimationRigEditorPopoverState
               Row(
                 children: [
                   const Expanded(
-                    child: CDKText('Edit animation rigs', role: CDKTextRole.title),
+                    child:
+                        CDKText('Edit animation rigs', role: CDKTextRole.title),
                   ),
                   CDKButton(
                     style: CDKButtonStyle.action,

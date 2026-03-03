@@ -284,6 +284,18 @@ class LayoutZonesState extends State<LayoutZones> {
     return _normalizeZoneTypeColor(zone.color);
   }
 
+  String _zoneDisplayName(GameZone zone, int index) {
+    final String zoneName = zone.name.trim();
+    if (zoneName.isNotEmpty) {
+      return zoneName;
+    }
+    final String zoneType = zone.type.trim();
+    if (zoneType.isNotEmpty) {
+      return zoneType;
+    }
+    return 'Zone ${index + 1}';
+  }
+
   Set<String> _usedZoneTypeNames(AppData appData) {
     final Set<String> used = {};
     for (final level in appData.gameData.levels) {
@@ -619,6 +631,7 @@ class LayoutZonesState extends State<LayoutZones> {
         : GameZoneGroup.mainId;
     level.zones.add(
       GameZone(
+        name: data.name,
         type: data.type,
         gameplayData: data.gameplayData,
         x: data.x,
@@ -647,6 +660,7 @@ class LayoutZonesState extends State<LayoutZones> {
     }
     final String existingGroupId = zones[index].groupId;
     zones[index] = GameZone(
+      name: data.name,
       type: data.type,
       gameplayData: data.gameplayData,
       x: data.x,
@@ -764,6 +778,7 @@ class LayoutZonesState extends State<LayoutZones> {
       title: "New zone",
       confirmLabel: "Add",
       initialData: _ZoneDialogData(
+        name: 'Zone ${level.zones.length + 1}',
         type: zoneTypes.first.name,
         gameplayData: '',
         x: 0,
@@ -794,7 +809,7 @@ class LayoutZonesState extends State<LayoutZones> {
     if (appData.selectedLevel == -1) return;
     final zones = appData.gameData.levels[appData.selectedLevel].zones;
     if (index < 0 || index >= zones.length) return;
-    final String zoneName = zones[index].type;
+    final String zoneName = _zoneDisplayName(zones[index], index);
 
     final bool? confirmed = await CDKDialogsManager.showConfirm(
       context: context,
@@ -834,6 +849,7 @@ class LayoutZonesState extends State<LayoutZones> {
         }
         final GameZone source = zones[index];
         final GameZone duplicate = GameZone(
+          name: source.name,
           type: source.type,
           gameplayData: source.gameplayData,
           x: source.x,
@@ -868,6 +884,7 @@ class LayoutZonesState extends State<LayoutZones> {
       title: "Edit zone",
       confirmLabel: "Save",
       initialData: _ZoneDialogData(
+        name: zone.name,
         type: typeExists ? zone.type : zoneTypes.first.name,
         gameplayData: zone.gameplayData,
         x: zone.x,
@@ -1505,10 +1522,22 @@ class LayoutZonesState extends State<LayoutZones> {
                                           text: TextSpan(
                                             children: [
                                               TextSpan(
-                                                text: zone.type,
+                                                text: _zoneDisplayName(
+                                                    zone, zoneIndex),
                                                 style:
                                                     listItemTitleStyle.copyWith(
                                                   color: cdkColors.colorText,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text:
+                                                    '  Category: ${zone.type}',
+                                                style: listItemInlineMetaStyle
+                                                    .copyWith(
+                                                  color: cdkColors.colorText
+                                                      .withValues(
+                                                    alpha: 0.72,
+                                                  ),
                                                 ),
                                               ),
                                               if (zoneGameplayData.isNotEmpty)
@@ -1659,6 +1688,7 @@ class _ZoneListRow {
 
 class _ZoneDialogData {
   const _ZoneDialogData({
+    required this.name,
     required this.type,
     required this.gameplayData,
     required this.x,
@@ -1668,6 +1698,7 @@ class _ZoneDialogData {
     required this.groupId,
   });
 
+  final String name;
   final String type;
   final String gameplayData;
   final int x;
@@ -1714,6 +1745,9 @@ class _ZoneFormDialog extends StatefulWidget {
 
 class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   final GlobalKey _typePickerAnchorKey = GlobalKey();
+  late final TextEditingController _nameController = TextEditingController(
+    text: widget.initialData.name,
+  );
   late final TextEditingController _xController = TextEditingController(
     text: widget.initialData.x.toString(),
   );
@@ -1757,10 +1791,13 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   }
 
   bool get _isValid =>
-      _selectedType.trim().isNotEmpty && widget.zoneTypes.isNotEmpty;
+      _nameController.text.trim().isNotEmpty &&
+      _selectedType.trim().isNotEmpty &&
+      widget.zoneTypes.isNotEmpty;
 
   _ZoneDialogData _currentData() {
     return _ZoneDialogData(
+      name: _nameController.text.trim(),
       type: _selectedType,
       gameplayData: _gameplayDataController.text,
       x: int.tryParse(_xController.text.trim()) ?? 0,
@@ -1772,6 +1809,9 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   }
 
   String? _validateData(_ZoneDialogData data) {
+    if (data.name.trim().isEmpty) {
+      return 'Name is required.';
+    }
     if (data.type.trim().isEmpty || widget.zoneTypes.isEmpty) {
       return 'Category is required.';
     }
@@ -1779,6 +1819,9 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   }
 
   void _onInputChanged() {
+    if (mounted) {
+      setState(() {});
+    }
     if (widget.liveEdit) {
       _editSession?.update(_currentData());
     }
@@ -1827,6 +1870,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
     }
     widget.onConfirm(
       _ZoneDialogData(
+        name: _nameController.text.trim(),
         type: _selectedType,
         gameplayData: _gameplayDataController.text,
         x: int.tryParse(_xController.text.trim()) ?? 0,
@@ -1847,6 +1891,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
         validate: _validateData,
         onPersist: widget.onLiveChanged!,
         areEqual: (a, b) =>
+            a.name == b.name &&
             a.type == b.type &&
             a.gameplayData == b.gameplayData &&
             a.x == b.x &&
@@ -1864,6 +1909,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
       unawaited(_editSession!.flush());
       _editSession!.dispose();
     }
+    _nameController.dispose();
     _xController.dispose();
     _gameplayDataController.dispose();
     _yController.dispose();
@@ -1892,6 +1938,22 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          EditorLabeledField(
+            label: 'Name',
+            child: CDKFieldText(
+              placeholder: 'Zone name',
+              controller: _nameController,
+              onChanged: (_) => _onInputChanged(),
+              onSubmitted: (_) {
+                if (widget.liveEdit) {
+                  _onInputChanged();
+                  return;
+                }
+                _confirm();
+              },
+            ),
+          ),
+          SizedBox(height: spacing.sm),
           EditorLabeledField(
             label: 'Zone Category',
             child: Align(
@@ -2228,8 +2290,7 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
   void _addDraft() {
     final int nextNumber = _drafts.length + 1;
     String candidateName = 'Category $nextNumber';
-    final Set<String> existingNames =
-        _drafts.map((d) => d.name.trim()).toSet();
+    final Set<String> existingNames = _drafts.map((d) => d.name.trim()).toSet();
     int suffix = nextNumber;
     while (existingNames.contains(candidateName)) {
       suffix++;
