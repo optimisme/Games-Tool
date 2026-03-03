@@ -6,11 +6,13 @@ class _LoadingPainter extends CustomPainter {
     required this.levelIndex,
     required this.progress,
     required this.label,
+    required this.showRetryHint,
   });
 
   final int levelIndex;
   final double progress;
   final String label;
+  final bool showRetryHint;
 
   static const Color _bg = Color(0xFF040404);
   static const Color _primary = Color(0xFF35FF74);
@@ -55,17 +57,28 @@ class _LoadingPainter extends CustomPainter {
       ),
       textAlign: TextAlign.center,
     );
+    final TextPainter hintPainter = buildTextPainter(
+      'ENTER/TAP: Retry    ESC: Menu',
+      const TextStyle(
+        color: _secondary,
+        fontSize: 12,
+        fontFamily: 'monospace',
+      ),
+      textAlign: TextAlign.center,
+    );
 
     const double gapTitleToBar = 28;
     const double gapBarToPercent = 14;
     const double gapPercentToLabel = 10;
+    const double gapLabelToHint = 10;
     final double totalHeight = titlePainter.height +
         gapTitleToBar +
         barHeight +
         gapBarToPercent +
         percentPainter.height +
         gapPercentToLabel +
-        labelPainter.height;
+        labelPainter.height +
+        (showRetryHint ? gapLabelToHint + hintPainter.height : 0);
 
     double y = (size.height - totalHeight) / 2;
 
@@ -104,12 +117,21 @@ class _LoadingPainter extends CustomPainter {
       canvas,
       Offset((size.width - labelPainter.width) / 2, y),
     );
+    if (!showRetryHint) {
+      return;
+    }
+    y += labelPainter.height + gapLabelToHint;
+    hintPainter.paint(
+      canvas,
+      Offset((size.width - hintPainter.width) / 2, y),
+    );
   }
 
   @override
   bool shouldRepaint(covariant _LoadingPainter oldDelegate) {
     return oldDelegate.levelIndex != levelIndex ||
         oldDelegate.progress != progress ||
-        oldDelegate.label != label;
+        oldDelegate.label != label ||
+        oldDelegate.showRetryHint != showRetryHint;
   }
 }
