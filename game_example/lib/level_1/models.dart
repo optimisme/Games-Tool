@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Mutable simulation state advanced by update.dart every frame.
 class Level1UpdateState {
+  /// Creates the mutable update-state container.
   Level1UpdateState({
     required this.playerX,
     required this.playerY,
@@ -47,11 +48,14 @@ class Level1UpdateState {
   final Set<int> touchingDragonSpriteIndices = <int>{};
 
   // Input is ignored during end states until this cooldown has elapsed.
+  /// Indicates when end-state input can trigger scene exit.
   bool get canExitEndState =>
       endStateElapsedSeconds >= _level1EndStateInputDelaySeconds;
 }
 
+/// Immutable render snapshot derived from update state.
 class Level1RenderState {
+  /// Creates a render-state value object.
   const Level1RenderState({
     required this.renderRevision,
     required this.playerX,
@@ -77,6 +81,7 @@ class Level1RenderState {
     required this.dragonDeathStartSeconds,
   });
 
+  /// Builds an interpolated render snapshot from mutable simulation state.
   factory Level1RenderState.from(
     Level1UpdateState state, {
     required GameDataRuntimeApi runtimeApi,
@@ -147,7 +152,9 @@ class Level1RenderState {
   final Map<int, double> dragonDeathStartSeconds;
 }
 
+/// Runtime polyline path with cached segment distances.
 class _Level1PathRuntime {
+  /// Creates a path runtime from points and cumulative distances.
   const _Level1PathRuntime({
     required this.id,
     required this.points,
@@ -160,8 +167,10 @@ class _Level1PathRuntime {
   final List<double> cumulativeDistances;
   final double totalDistance;
 
+  /// Returns the first point of the path.
   Offset get firstPoint => points.first;
 
+  /// Samples a world position at normalized progress `[0, 1]`.
   Offset sampleAtProgress(double progress) {
     if (points.length < 2 || totalDistance <= 0) {
       return firstPoint;
@@ -186,7 +195,9 @@ class _Level1PathRuntime {
   }
 }
 
+/// Runtime descriptor for one path-target binding.
 class _Level1PathBindingRuntime {
+  /// Creates a bound-target runtime record.
   const _Level1PathBindingRuntime({
     required this.path,
     required this.targetObject,

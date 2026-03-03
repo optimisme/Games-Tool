@@ -1,6 +1,8 @@
 part of 'main.dart';
 
+/// Custom painter for the retro menu screen.
 class _MenuPainter extends CustomPainter {
+  /// Creates a painter with menu selection and layout state.
   _MenuPainter({
     required this.selectedIndex,
     required this.cursorVisible,
@@ -17,6 +19,7 @@ class _MenuPainter extends CustomPainter {
   static const Color _primary = Color(0xFF35FF74);
   static const Color _dim = Color(0xFF146F34);
 
+  /// Renders menu background, options, and footer text.
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint();
@@ -109,6 +112,7 @@ class _MenuPainter extends CustomPainter {
     );
   }
 
+  /// Repaints when selection or layout changes.
   @override
   bool shouldRepaint(covariant _MenuPainter oldDelegate) {
     return selectedIndex != oldDelegate.selectedIndex ||

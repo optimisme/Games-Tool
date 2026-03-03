@@ -17,14 +17,17 @@ part 'drawing.dart';
 
 /// Transitional screen that waits for both data readiness and minimum UX timing.
 class Loading extends StatefulWidget {
+  /// Creates a loading screen for a target level.
   const Loading({super.key, required this.levelIndex});
 
   final int levelIndex;
 
+  /// Creates mutable loading state.
   @override
   State<Loading> createState() => _LoadingState();
 }
 
+/// Holds loading progress animation and navigation state.
 class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
   // Prevents a flash transition when assets are already warm in memory.
   static const Duration _minimumLoadingTime = Duration(milliseconds: 1100);
@@ -32,6 +35,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _didNavigate = false;
 
+  /// Initializes loading request and progress animation.
   @override
   void initState() {
     super.initState();
@@ -39,12 +43,14 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     _startProgressAnimation();
   }
 
+  /// Disposes animation resources.
   @override
   void dispose() {
     _disposeProgressAnimation();
     super.dispose();
   }
 
+  /// Triggers a repaint when loading state changes.
   void _refreshLoading() {
     if (!mounted) {
       return;
@@ -52,6 +58,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     setState(() {});
   }
 
+  /// Computes visual loading progress from data and animation state.
   double _buildProgress({
     required AppData appData,
     required bool levelReady,
@@ -65,6 +72,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
         : math.min(0.95, math.max(rawProgress * 0.35, dataProgress));
   }
 
+  /// Resolves the status label shown under the progress bar.
   String _buildLoadingLabel({
     required AppData appData,
     required bool levelReady,
@@ -84,6 +92,7 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     return 'Launching level ${widget.levelIndex}...';
   }
 
+  /// Builds the loading screen UI and painter.
   @override
   Widget build(BuildContext context) {
     final AppData appData = context.watch<AppData>();

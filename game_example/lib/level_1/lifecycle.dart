@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Level setup helpers for runtime references, spawn state, and camera defaults.
 extension _Level1Initialize on _Level1State {
+  /// Loads level data and initializes player, camera, and bindings.
   void _initializeLevel(AppData appData) {
     _runtimeGameData = cloneGameData(appData.gameData);
     _level = _runtimeGameData == null
@@ -78,6 +79,7 @@ extension _Level1Initialize on _Level1State {
     );
   }
 
+  /// Builds runtime path-binding descriptors for movable targets.
   void _initializePathBindings() {
     _pathBindings.clear();
     final Map<String, dynamic>? level = _level;
@@ -205,6 +207,7 @@ extension _Level1Initialize on _Level1State {
     }
   }
 
+  /// Applies bound path positions using current path motion time.
   void _applyPathBindingsAtCurrentTime(Level1UpdateState state) {
     if (_pathBindings.isEmpty) {
       return;
@@ -219,6 +222,7 @@ extension _Level1Initialize on _Level1State {
     }
   }
 
+  /// Snaps path-target transforms so first rendered frame is stable.
   void _snapPathBindingTransforms() {
     if (_pathBindings.isEmpty) {
       return;

@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Navigation logic for leaving loading and entering the selected level.
 extension _LoadingInteraction on _LoadingState {
+  /// Navigates back to menu unless navigation already happened.
   void _goBackToMenu() {
     if (_didNavigate) {
       return;
@@ -10,6 +11,7 @@ extension _LoadingInteraction on _LoadingState {
     navigateToMenuWithSlide(context);
   }
 
+  /// Requests level data loading through shared app state.
   void _requestLoad() {
     if (!mounted) {
       return;
@@ -26,12 +28,14 @@ extension _LoadingInteraction on _LoadingState {
     );
   }
 
+  /// Retries loading when tapping during an error state.
   void _onTap(AppData appData) {
     if (appData.loadingError != null) {
       _requestLoad();
     }
   }
 
+  /// Handles keyboard shortcuts for retry/back actions.
   KeyEventResult _onKeyEvent(KeyEvent event, AppData appData) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.handled;
@@ -56,6 +60,7 @@ extension _LoadingInteraction on _LoadingState {
     return KeyEventResult.ignored;
   }
 
+  /// Navigates to the selected level once all loading gates pass.
   void _maybeNavigate(AppData appData) {
     if (_didNavigate) {
       return;

@@ -1,6 +1,8 @@
 part of 'main.dart';
 
+/// Keyboard and pointer interaction handlers for the menu.
 extension _MenuInteraction on _MenuState {
+  /// Opens the loading screen for the selected level.
   void _startLevel(BuildContext context, AppData appData, int levelIndex) {
     pushReplacementCupertinoPage(
       context: context,
@@ -8,6 +10,7 @@ extension _MenuInteraction on _MenuState {
     );
   }
 
+  /// Updates selection and starts the chosen level.
   void _selectAndStart(BuildContext context, AppData appData, int index) {
     final int clamped = index.clamp(0, _menuOptions.length - 1);
     if (clamped != _selectedIndex) {
@@ -18,6 +21,7 @@ extension _MenuInteraction on _MenuState {
     _startLevel(context, appData, clamped);
   }
 
+  /// Moves selection up/down with wrap-around behavior.
   void _moveSelection(int delta) {
     _refreshMenu(() {
       _selectedIndex = (_selectedIndex + delta) % _menuOptions.length;
@@ -28,6 +32,7 @@ extension _MenuInteraction on _MenuState {
     });
   }
 
+  /// Handles keyboard navigation and confirmation keys.
   KeyEventResult _onKeyEvent(
     BuildContext context,
     KeyEvent event,
@@ -59,6 +64,7 @@ extension _MenuInteraction on _MenuState {
     return KeyEventResult.ignored;
   }
 
+  /// Resolves clicks against option rectangles and starts a level.
   void _onTapDown(
     TapDownDetails details,
     BuildContext context,

@@ -9,45 +9,53 @@
   "paths": [
     {
       "id": "path_1",
-      "name": "Platform Path",
+      "name": "Dragon Path",
       "points": [
         {
-          "x": 635,
-          "y": 458
+          "x": 550,
+          "y": 425
         },
         {
-          "x": 772,
-          "y": 459
-        },
-        {
-          "x": 772,
-          "y": 279
+          "x": 439,
+          "y": 425
         }
       ],
-      "color": "red",
+      "color": "yellow",
       "groupId": "__main__"
     },
     {
       "id": "path_2",
-      "name": "Dragon Path",
+      "name": "Platform Path",
       "points": [
         {
-          "x": 549,
-          "y": 423
+          "x": 641,
+          "y": 457
         },
         {
-          "x": 448,
-          "y": 423
+          "x": 737,
+          "y": 444
+        },
+        {
+          "x": 761,
+          "y": 432
+        },
+        {
+          "x": 773,
+          "y": 410
+        },
+        {
+          "x": 772,
+          "y": 270
         }
       ],
-      "color": "purple",
+      "color": "red",
       "groupId": "__main__"
     }
   ],
   "pathBindings": [
     {
-      "id": "path_binding_3",
-      "pathId": "path_2",
+      "id": "path_binding_1",
+      "pathId": "path_1",
       "targetType": "sprite",
       "targetIndex": 16,
       "behavior": "ping_pong",
@@ -56,8 +64,8 @@
       "durationMs": 2000
     },
     {
-      "id": "path_binding_1",
-      "pathId": "path_1",
+      "id": "path_binding_2",
+      "pathId": "path_2",
       "targetType": "layer",
       "targetIndex": 1,
       "behavior": "ping_pong",
@@ -66,8 +74,8 @@
       "durationMs": 5000
     },
     {
-      "id": "path_binding_2",
-      "pathId": "path_1",
+      "id": "path_binding_3",
+      "pathId": "path_2",
       "targetType": "zone",
       "targetIndex": 3,
       "behavior": "ping_pong",

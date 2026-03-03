@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Input and navigation rules for active gameplay and end states.
 extension _Level1Interaction on _Level1State {
+  /// Clears runtime/input state before leaving the level.
   void _clearRuntimeState() {
     _pressedKeys.clear();
     _jumpQueued = false;
@@ -16,6 +17,7 @@ extension _Level1Interaction on _Level1State {
     _pathBindings.clear();
   }
 
+  /// Returns to menu through shared transition flow.
   void _goBackToMenu() {
     goBackToMenu(
       context: context,
@@ -29,6 +31,7 @@ extension _Level1Interaction on _Level1State {
     );
   }
 
+  /// Routes key events to shared gameplay/end-state handling.
   KeyEventResult _onKeyEvent(KeyEvent event) {
     final Level1UpdateState? state = _updateState;
     return handleGameplayKeyEvent(
