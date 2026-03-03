@@ -1869,9 +1869,9 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    const double typeColumnWidth = 96;
+    const double typeColumnWidth = 82;
     const double behaviorColumnWidth = 104;
-    const double durationColumnWidth = 49;
+    const double durationColumnWidth = 72;
     const double toggleColumnWidth = 52;
     const double removeColumnWidth = 18;
     final double typeObjectGap = spacing.xs;
@@ -1882,7 +1882,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           option.label.length > maxLen ? option.label.length : maxLen,
     );
     final double objectColumnWidth =
-        (64 + (maxSpriteNameLength * 7.5)).clamp(140.0, 260.0);
+        ((64 + (maxSpriteNameLength * 7.5)) - 5).clamp(135.0, 255.0);
     final int objectLabelMaxChars =
         ((objectColumnWidth - 36.0) / 7.0).floor().clamp(8, 48);
     return EditorFormDialogScaffold(
