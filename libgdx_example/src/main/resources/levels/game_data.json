@@ -29,7 +29,7 @@
           "tilesSheetFile": "media/punyworld-overworld-tileset.png",
           "tilesWidth": 16,
           "tilesHeight": 16,
-          "visible": true,
+          "visible": false,
           "groupId": "__main__",
           "tileMapFile": "tilemaps/level_000_layer_001.json"
         },
