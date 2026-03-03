@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Per-frame simulation for platforming physics, combat, and win/lose state.
 extension _Level1Update on _Level1State {
+  /// Starts the fixed-step loop ticker for level 1.
   void _startLoop() {
     _ticker = restartGameLoopTicker(
       tickerProvider: this,
@@ -27,6 +28,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Advances one fixed simulation tick.
   void _tick(double dt) {
     final Level1UpdateState? state = _updateState;
     if (!mounted || state == null) {
@@ -59,6 +61,7 @@ extension _Level1Update on _Level1State {
     }
   }
 
+  /// Updates movement, collisions, combat, and end-state transitions.
   void _updatePhysics(Level1UpdateState state, double dt) {
     final Offset movingFloorDelta = _updateLinkedPathBindings(state, dt);
     if (movingFloorDelta.dx != 0 || movingFloorDelta.dy != 0) {
@@ -157,6 +160,7 @@ extension _Level1Update on _Level1State {
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
   }
 
+  /// Resolves camera focus from the player's anchor-aware pose.
   Offset _resolvePlayerCameraFocusPoint(Level1UpdateState state) {
     final int? playerSpriteIndex = _playerSpriteIndex;
     if (playerSpriteIndex == null) {
@@ -178,6 +182,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Advances all path bindings and returns floor carry delta for the player.
   Offset _updateLinkedPathBindings(Level1UpdateState state, double dt) {
     if (_pathBindings.isEmpty) {
       return Offset.zero;
@@ -243,6 +248,7 @@ extension _Level1Update on _Level1State {
     return carryDelta;
   }
 
+  /// Samples one binding world position at the provided time.
   Offset _bindingPositionAtTime(
     _Level1PathBindingRuntime binding,
     double timeSeconds,
@@ -263,6 +269,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Resolves normalized path progress for restart/ping-pong/once modes.
   double _pathProgressAtTime({
     required String behavior,
     required double durationSeconds,
@@ -292,6 +299,7 @@ extension _Level1Update on _Level1State {
     }
   }
 
+  /// Returns whether a zone should be treated as floor support.
   bool _isFloorZone(Map<String, dynamic> zone) {
     return _runtimeApi.gamesTool.zoneMatchesTypeOrName(
       zone,
@@ -299,6 +307,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Applies game-over state and clears active input.
   void _triggerGameOver(Level1UpdateState state) {
     state.isGameOver = true;
     state.endStateElapsedSeconds = 0;
@@ -310,6 +319,7 @@ extension _Level1Update on _Level1State {
     _pressedKeys.clear();
   }
 
+  /// Applies win state and clears active input.
   void _triggerWin(Level1UpdateState state) {
     state.isWin = true;
     state.endStateElapsedSeconds = 0;
@@ -321,6 +331,7 @@ extension _Level1Update on _Level1State {
     _pressedKeys.clear();
   }
 
+  /// Handles player-vs-dragon interactions and stomp/damage rules.
   void _handleDragonInteractions(Level1UpdateState state) {
     _pruneFinishedDragonDeaths(state);
     if (state.isGameOver) {
@@ -374,6 +385,7 @@ extension _Level1Update on _Level1State {
       ..addAll(touchingDragonsNow);
   }
 
+  /// Applies one dragon hit of damage to the player.
   void _applyDragonDamage(Level1UpdateState state) {
     state.lifePercent -= _level1DragonDamagePercent;
     if (state.lifePercent < 0) {
@@ -384,6 +396,7 @@ extension _Level1Update on _Level1State {
     }
   }
 
+  /// Removes dragons whose death animation has completed.
   void _pruneFinishedDragonDeaths(Level1UpdateState state) {
     if (state.dragonDeathStartSeconds.isEmpty) {
       return;
@@ -405,6 +418,7 @@ extension _Level1Update on _Level1State {
     }
   }
 
+  /// Resolves dragon death animation duration from runtime animation data.
   double _dragonDeathDurationSeconds() {
     final GamesToolApi gamesTool = _runtimeApi.gamesTool;
     final Map<String, dynamic> gameData = _runtimeApi.gameData;
@@ -424,6 +438,7 @@ extension _Level1Update on _Level1State {
     return duration;
   }
 
+  /// Returns true when any rect from set A overlaps set B.
   bool _rectsOverlapAny(List<Rect> a, List<Rect> b) {
     for (final Rect ra in a) {
       for (final Rect rb in b) {
@@ -435,6 +450,7 @@ extension _Level1Update on _Level1State {
     return false;
   }
 
+  /// Checks whether the player currently overlaps death zones.
   bool _isTouchingDeathZone(
     Level1UpdateState state, {
     required List<Rect> deathZones,
@@ -457,6 +473,7 @@ extension _Level1Update on _Level1State {
     return false;
   }
 
+  /// Checks whether player collision rects are currently grounded.
   bool _isStandingOnFloor(
     Level1UpdateState state, {
     required List<Rect> floors,
@@ -472,6 +489,7 @@ extension _Level1Update on _Level1State {
     return _isStandingOnFloorRects(playerRects, floors);
   }
 
+  /// Evaluates floor support by horizontal overlap and top-edge proximity.
   bool _isStandingOnFloorRects(List<Rect> playerRects, List<Rect> floors) {
     for (final Rect playerRect in playerRects) {
       for (final Rect floor in floors) {
@@ -489,6 +507,7 @@ extension _Level1Update on _Level1State {
     return false;
   }
 
+  /// Collects gems touched by player collision rects.
   void _collectTouchedGems(Level1UpdateState state) {
     final List<int> candidateGemIndices = _gemSpriteIndices()
         .where((index) => !state.collectedGemSpriteIndices.contains(index))
@@ -538,6 +557,7 @@ extension _Level1Update on _Level1State {
     }
   }
 
+  /// Resolves all gem sprite indices for this level.
   List<int> _gemSpriteIndices() {
     final Map<String, dynamic>? level = _level;
     return _runtimeApi.gamesTool.findSpriteIndicesByTypeOrName(
@@ -546,6 +566,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Resolves all dragon sprite indices for this level.
   List<int> _dragonSpriteIndices() {
     final Map<String, dynamic>? level = _level;
     return _runtimeApi.gamesTool.findSpriteIndicesByTypeOrName(
@@ -554,6 +575,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Resolves player collision rects for a given pose sample.
   List<Rect> _playerCollisionRectsForPose(
     Level1UpdateState state, {
     required double y,
@@ -578,6 +600,7 @@ extension _Level1Update on _Level1State {
     );
   }
 
+  /// Corrects downward floor penetration using swept and overlap checks.
   bool _resolveFloorPenetration(
     Level1UpdateState state, {
     required double previousX,

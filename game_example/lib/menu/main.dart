@@ -16,13 +16,17 @@ part 'interaction.dart';
 
 const List<String> _menuOptions = <String>['LEVEL 0', 'LEVEL 1'];
 
+/// Main level-selection screen.
 class Menu extends StatefulWidget {
+  /// Creates the menu screen widget.
   const Menu({super.key});
 
+  /// Creates mutable state for the menu screen.
   @override
   State<Menu> createState() => _MenuState();
 }
 
+/// Holds menu input, selection, and blink animation state.
 class _MenuState extends State<Menu> {
   final FocusNode _focusNode = FocusNode();
   int _selectedIndex = 0;
@@ -30,12 +34,14 @@ class _MenuState extends State<Menu> {
   Timer? _blinkTimer;
   List<Rect> _optionRects = const <Rect>[];
 
+  /// Starts cursor blinking after the first frame is ready.
   @override
   void initState() {
     super.initState();
     _startCursorBlinkTimer();
   }
 
+  /// Cleans up timer and focus resources.
   @override
   void dispose() {
     _stopCursorBlinkTimer();
@@ -43,6 +49,7 @@ class _MenuState extends State<Menu> {
     super.dispose();
   }
 
+  /// Safely triggers setState while mounted.
   void _refreshMenu(VoidCallback update) {
     if (!mounted) {
       return;
@@ -50,6 +57,7 @@ class _MenuState extends State<Menu> {
     setState(update);
   }
 
+  /// Computes the interactive rectangles for each menu option.
   List<Rect> _buildOptionRects(Size size) {
     final double width = math.min(math.max(size.width * 0.46, 220), 420);
     final double buttonHeight = 60;
@@ -67,6 +75,7 @@ class _MenuState extends State<Menu> {
     });
   }
 
+  /// Builds the interactive menu UI.
   @override
   Widget build(BuildContext context) {
     final AppData appData = context.watch<AppData>();

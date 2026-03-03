@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Painter for the loading screen retro-style title, progress bar, and status text.
 class _LoadingPainter extends CustomPainter {
+  /// Creates a painter for current loading progress and messages.
   const _LoadingPainter({
     required this.levelIndex,
     required this.progress,
@@ -19,6 +20,7 @@ class _LoadingPainter extends CustomPainter {
   static const Color _bgBar = Color(0xFF0B0B0B);
   static const Color _secondary = Color(0xFFB9F9CA);
 
+  /// Paints title, progress bar, status label, and retry hint.
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = _bg);
@@ -127,6 +129,7 @@ class _LoadingPainter extends CustomPainter {
     );
   }
 
+  /// Repaints whenever loading visual state changes.
   @override
   bool shouldRepaint(covariant _LoadingPainter oldDelegate) {
     return oldDelegate.levelIndex != levelIndex ||

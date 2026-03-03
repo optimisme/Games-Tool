@@ -33,6 +33,7 @@ Future<void> _configureDesktopWindow() async {
   const WindowOptions windowOptions = WindowOptions(
     title: 'Game Example',
   );
+  
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();

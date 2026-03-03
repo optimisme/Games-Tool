@@ -48,6 +48,7 @@ const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
   iconGap: 3 * kHudSpacingScaleX,
 );
 
+/// Builds a stable transform id for a path-bound runtime target.
 String _level1PathTargetTransformId({
   required String targetType,
   required int targetIndex,
@@ -55,6 +56,7 @@ String _level1PathTargetTransformId({
   return '$_level1PathTransformPrefix/$targetType/$targetIndex';
 }
 
+/// Chooses player animation/flip for the current platforming state.
 LevelSpriteRenderSelection _resolveLevel1PlayerRenderSelection(
   Level1RenderState state,
 ) {
@@ -81,6 +83,7 @@ LevelSpriteRenderSelection _resolveLevel1PlayerRenderSelection(
   );
 }
 
+/// Hides collected/removed sprites while keeping the player visible.
 bool _shouldSkipLevel1Sprite({
   required int spriteIndex,
   required bool isPlayer,
@@ -100,14 +103,17 @@ bool _shouldSkipLevel1Sprite({
 
 /// Platformer level with moving platforms, collectibles, and enemy interactions.
 class Level1 extends StatefulWidget {
+  /// Creates a level widget for the requested level index.
   const Level1({super.key, required this.levelIndex});
 
   final int levelIndex;
 
+  /// Creates mutable state for level runtime.
   @override
   State<Level1> createState() => _Level1State();
 }
 
+/// Owns level-1 lifecycle, simulation hooks, and render command assembly.
 class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   final FocusNode _focusNode = FocusNode();
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
@@ -122,6 +128,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _level;
   int? _playerSpriteIndex;
   Level1UpdateState? _updateState;
+  
   // Render interpolation alpha for the current vsync frame: [0, 1].
   double _renderAlpha = 1.0;
   bool _isLeavingLevel = false;
@@ -130,6 +137,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   final List<_Level1PathBindingRuntime> _pathBindings =
       <_Level1PathBindingRuntime>[];
 
+  /// Initializes level state once shared resources are ready.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -149,6 +157,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     _startLoop();
   }
 
+  /// Triggers repaint while storing frame interpolation alpha.
   void _refreshLevel1([VoidCallback? update, double alpha = 1.0]) {
     if (!mounted) {
       return;
@@ -157,6 +166,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     setState(update ?? () {});
   }
 
+  /// Disposes ticker/focus resources.
   @override
   void dispose() {
     _ticker?.dispose();
@@ -164,6 +174,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Builds the level scene and command-based painter inputs.
   @override
   Widget build(BuildContext context) {
     final AppData appData = context.watch<AppData>();
@@ -255,6 +266,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
 
 /// HUD helpers for screen-space interaction geometry.
 extension _Level1Hud on _Level1State {
+  /// Samples interpolated positions for path-bound render targets.
   Map<String, Offset> _resolvePathTargetRenderOffsets({
     required double alpha,
   }) {
@@ -284,6 +296,7 @@ extension _Level1Hud on _Level1State {
     return offsetsByTransformId;
   }
 
+  /// Builds sprite render commands for the current frame.
   List<LevelSpriteRenderCommand> _buildSpriteRenderCommands({
     required AppData appData,
     required Level1RenderState? renderState,
@@ -360,6 +373,7 @@ extension _Level1Hud on _Level1State {
     );
   }
 
+  /// Builds visible layer commands and applies interpolated world offsets.
   List<LayerRenderCommand> _buildLayerRenderCommands({
     required AppData appData,
     required Map<String, Offset> pathTargetRenderOffsets,
@@ -397,6 +411,7 @@ extension _Level1Hud on _Level1State {
     }).toList(growable: false);
   }
 
+  /// Builds HUD text/progress commands.
   List<HudRenderCommand> _buildHudRenderCommands({
     required Level1RenderState? renderState,
     required double hudRectWidth,
@@ -459,6 +474,7 @@ extension _Level1Hud on _Level1State {
     return commands;
   }
 
+  /// Builds win/lose overlays for end states.
   List<OverlayRenderCommand> _buildOverlayRenderCommands({
     required Level1RenderState? renderState,
   }) {
@@ -486,6 +502,7 @@ extension _Level1Hud on _Level1State {
     return const <OverlayRenderCommand>[];
   }
 
+  /// Builds HUD image commands.
   List<RenderImageCommand> _buildImageRenderCommands({
     required Size canvasSize,
   }) {
