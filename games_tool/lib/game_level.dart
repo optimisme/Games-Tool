@@ -1,5 +1,7 @@
 import 'game_layer.dart';
 import 'game_list_group.dart';
+import 'game_path.dart';
+import 'game_path_binding.dart';
 import 'game_zone.dart';
 import 'game_zone_group.dart';
 import 'game_sprite.dart';
@@ -37,6 +39,9 @@ class GameLevel {
   final List<GameZoneGroup> zoneGroups;
   final List<GameSprite> sprites;
   final List<GameListGroup> spriteGroups;
+  final List<GameListGroup> pathGroups;
+  final List<GamePath> paths;
+  final List<GamePathBinding> pathBindings;
   String groupId;
   int viewportWidth;
   int viewportHeight;
@@ -60,6 +65,9 @@ class GameLevel {
     List<GameZoneGroup>? zoneGroups,
     required this.sprites,
     List<GameListGroup>? spriteGroups,
+    List<GameListGroup>? pathGroups,
+    List<GamePath>? paths,
+    List<GamePathBinding>? pathBindings,
     this.viewportWidth = 320,
     this.viewportHeight = 180,
     this.viewportX = 0,
@@ -73,6 +81,9 @@ class GameLevel {
   })  : layerGroups = layerGroups ?? <GameListGroup>[GameListGroup.main()],
         zoneGroups = zoneGroups ?? <GameZoneGroup>[GameZoneGroup.main()],
         spriteGroups = spriteGroups ?? <GameListGroup>[GameListGroup.main()],
+        pathGroups = pathGroups ?? <GameListGroup>[GameListGroup.main()],
+        paths = paths ?? <GamePath>[],
+        pathBindings = pathBindings ?? <GamePathBinding>[],
         groupId = _normalizeGroupId(groupId),
         depthSensitivity = _normalizeDepthSensitivity(
           depthSensitivity,
@@ -129,6 +140,19 @@ class GameLevel {
     }
     if (parsedSpriteGroups.isEmpty) {
       parsedSpriteGroups.add(GameListGroup.main());
+    }
+    final List<GameListGroup> parsedPathGroups =
+        ((json['pathGroups'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map(GameListGroup.fromJson)
+            .toList(growable: true);
+    final bool hasMainPathGroup =
+        parsedPathGroups.any((group) => group.id == GameListGroup.mainId);
+    if (!hasMainPathGroup) {
+      parsedPathGroups.insert(0, GameListGroup.main());
+    }
+    if (parsedPathGroups.isEmpty) {
+      parsedPathGroups.add(GameListGroup.main());
     }
 
     final List<GameLayer> parsedLayers = (json['layers'] as List<dynamic>)
@@ -201,6 +225,41 @@ class GameLevel {
         knownSpriteGroupIds.add(trimmedGroupId);
       }
     }
+    final List<GamePath> parsedPaths =
+        ((json['paths'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map(GamePath.fromJson)
+            .toList(growable: true);
+    _normalizePathIds(parsedPaths);
+    final Set<String> knownPathGroupIds =
+        parsedPathGroups.map((group) => group.id).toSet();
+    for (final path in parsedPaths) {
+      final String trimmedGroupId = path.groupId.trim();
+      if (trimmedGroupId.isEmpty) {
+        path.groupId = GameListGroup.mainId;
+        continue;
+      }
+      path.groupId = trimmedGroupId;
+      if (!knownPathGroupIds.contains(trimmedGroupId)) {
+        parsedPathGroups.add(
+          GameListGroup(
+            id: trimmedGroupId,
+            name: trimmedGroupId,
+            collapsed: false,
+          ),
+        );
+        knownPathGroupIds.add(trimmedGroupId);
+      }
+    }
+    final Set<String> pathIds = parsedPaths.map((path) => path.id).toSet();
+
+    final List<GamePathBinding> parsedPathBindings =
+        ((json['pathBindings'] as List<dynamic>?) ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map(GamePathBinding.fromJson)
+            .where((binding) => pathIds.contains(binding.pathId))
+            .toList(growable: true);
+    _normalizePathBindingIds(parsedPathBindings);
 
     return GameLevel(
       name: json['name'] as String,
@@ -214,6 +273,9 @@ class GameLevel {
       zoneGroups: parsedGroups,
       sprites: parsedSprites,
       spriteGroups: parsedSpriteGroups,
+      pathGroups: parsedPathGroups,
+      paths: parsedPaths,
+      pathBindings: parsedPathBindings,
       groupId: json['groupId'] as String? ?? defaultGroupId,
       viewportWidth: (json['viewportWidth'] as int?) ?? 320,
       viewportHeight: (json['viewportHeight'] as int?) ?? 180,
@@ -247,6 +309,9 @@ class GameLevel {
       'zoneGroups': zoneGroups.map((group) => group.toJson()).toList(),
       'sprites': sprites.map((item) => item.toJson()).toList(),
       'spriteGroups': spriteGroups.map((group) => group.toJson()).toList(),
+      'pathGroups': pathGroups.map((group) => group.toJson()).toList(),
+      'paths': paths.map((path) => path.toJson()).toList(),
+      'pathBindings': pathBindings.map((binding) => binding.toJson()).toList(),
       'groupId': _normalizeGroupId(groupId),
       'viewportWidth': viewportWidth,
       'viewportHeight': viewportHeight,
@@ -270,7 +335,7 @@ class GameLevel {
 
   @override
   String toString() {
-    return 'GameLevel(name: $name, description: $description, gameplayData: $gameplayData, layers: $layers, layerGroups: $layerGroups, zones: $zones, zoneGroups: $zoneGroups, sprites: $sprites, spriteGroups: $spriteGroups, groupId: $groupId, viewport: ${viewportWidth}x$viewportHeight at ($viewportX,$viewportY) [$viewportAdaptation], background: $backgroundColorHex, depthSensitivity: $depthSensitivity)';
+    return 'GameLevel(name: $name, description: $description, gameplayData: $gameplayData, layers: $layers, layerGroups: $layerGroups, zones: $zones, zoneGroups: $zoneGroups, sprites: $sprites, spriteGroups: $spriteGroups, pathGroups: $pathGroups, paths: $paths, pathBindings: $pathBindings, groupId: $groupId, viewport: ${viewportWidth}x$viewportHeight at ($viewportX,$viewportY) [$viewportAdaptation], background: $backgroundColorHex, depthSensitivity: $depthSensitivity)';
   }
 
   static String _normalizeGroupId(String? rawGroupId) {
@@ -297,5 +362,58 @@ class GameLevel {
       return 0;
     }
     return raw;
+  }
+
+  static void _normalizePathIds(List<GamePath> paths) {
+    int pathIdCounter = 1;
+    final Set<String> usedIds = <String>{};
+
+    String nextPathId() {
+      while (usedIds.contains('path_$pathIdCounter')) {
+        pathIdCounter += 1;
+      }
+      final String id = 'path_$pathIdCounter';
+      usedIds.add(id);
+      pathIdCounter += 1;
+      return id;
+    }
+
+    for (final GamePath path in paths) {
+      final String raw = path.id.trim();
+      if (raw.isEmpty || usedIds.contains(raw)) {
+        path.id = nextPathId();
+      } else {
+        path.id = raw;
+        usedIds.add(raw);
+      }
+      if (path.name.trim().isEmpty) {
+        path.name = path.id;
+      }
+    }
+  }
+
+  static void _normalizePathBindingIds(List<GamePathBinding> bindings) {
+    int bindingIdCounter = 1;
+    final Set<String> usedIds = <String>{};
+
+    String nextBindingId() {
+      while (usedIds.contains('path_binding_$bindingIdCounter')) {
+        bindingIdCounter += 1;
+      }
+      final String id = 'path_binding_$bindingIdCounter';
+      usedIds.add(id);
+      bindingIdCounter += 1;
+      return id;
+    }
+
+    for (final GamePathBinding binding in bindings) {
+      final String raw = binding.id.trim();
+      if (raw.isEmpty || usedIds.contains(raw)) {
+        binding.id = nextBindingId();
+      } else {
+        binding.id = raw;
+        usedIds.add(raw);
+      }
+    }
   }
 }

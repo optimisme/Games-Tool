@@ -15,6 +15,8 @@ class EditorFormDialogScaffold extends StatelessWidget {
     this.onClose,
     this.closeLabel = 'Close',
     this.onDelete,
+    this.deleteLabel = 'Delete',
+    this.compactActionBar = false,
     this.minWidth = 360,
     this.maxWidth = 520,
   });
@@ -30,6 +32,8 @@ class EditorFormDialogScaffold extends StatelessWidget {
   final VoidCallback? onClose;
   final String closeLabel;
   final VoidCallback? onDelete;
+  final String deleteLabel;
+  final bool compactActionBar;
   final double minWidth;
   final double maxWidth;
 
@@ -57,20 +61,46 @@ class EditorFormDialogScaffold extends StatelessWidget {
               ],
               body,
               SizedBox(height: spacing.lg + spacing.sm),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (onDelete != null)
+              if (liveEditMode)
+                const SizedBox.shrink()
+              else if (compactActionBar)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (onDelete != null) ...[
+                      CDKButton(
+                        style: CDKButtonStyle.destructive,
+                        onPressed: onDelete,
+                        child: Text(deleteLabel),
+                      ),
+                      SizedBox(width: spacing.md),
+                    ],
                     CDKButton(
-                      style: CDKButtonStyle.destructive,
-                      onPressed: onDelete,
-                      child: const Text('Delete'),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  if (liveEditMode)
-                    const SizedBox.shrink()
-                  else
+                      style: CDKButtonStyle.normal,
+                      onPressed: onCancel,
+                      child: const Text('Cancel'),
+                    ),
+                    SizedBox(width: spacing.md),
+                    CDKButton(
+                      style: CDKButtonStyle.action,
+                      enabled: confirmEnabled,
+                      onPressed: onConfirm,
+                      child: Text(confirmLabel),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (onDelete != null)
+                      CDKButton(
+                        style: CDKButtonStyle.destructive,
+                        onPressed: onDelete,
+                        child: Text(deleteLabel),
+                      )
+                    else
+                      const SizedBox.shrink(),
                     Row(
                       children: [
                         CDKButton(
@@ -87,8 +117,8 @@ class EditorFormDialogScaffold extends StatelessWidget {
                         ),
                       ],
                     ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),

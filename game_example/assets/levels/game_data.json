@@ -101,7 +101,8 @@
       "viewportPreviewColor": "pink",
       "backgroundColorHex": "#000000",
       "depthSensitivity": 0.08,
-      "zonesFile": "zones/level_000_zones.json"
+      "zonesFile": "zones/level_000_zones.json",
+      "pathsFile": "paths/level_000_paths.json"
     },
     {
       "name": "Sideworld",
@@ -463,7 +464,7 @@
         },
         {
           "name": "Dragon",
-          "gameplayData": "",
+          "gameplayData": "Moving",
           "type": "Dragon",
           "animationId": "anim_1772439605687385",
           "x": 551,
@@ -500,11 +501,12 @@
       "viewportX": 23,
       "viewportY": 289,
       "viewportAdaptation": "letterbox",
-      "viewportInitialColor": "green",
+      "viewportInitialColor": "orange",
       "viewportPreviewColor": "blue",
       "backgroundColorHex": "#10659C",
       "depthSensitivity": 0.08,
-      "zonesFile": "zones/level_001_zones.json"
+      "zonesFile": "zones/level_001_zones.json",
+      "pathsFile": "paths/level_001_paths.json"
     }
   ],
   "levelGroups": [

@@ -110,6 +110,7 @@ extension _LayoutNavigation on _LayoutState {
 
     switch (appData.selectedSection) {
       case 'levels':
+      case 'paths':
       case 'viewport':
         addLevel();
         break;
@@ -230,6 +231,8 @@ extension _LayoutNavigation on _LayoutState {
         return LayoutAnimationRigs(key: layoutAnimationRigsKey);
       case 'sprites':
         return LayoutSprites(key: layoutSpritesKey);
+      case 'paths':
+        return const LayoutPaths();
       case 'viewport':
         return LayoutViewport(key: layoutViewportKey);
       case 'media':

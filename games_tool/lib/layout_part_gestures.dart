@@ -18,6 +18,8 @@ extension _LayoutGestures on _LayoutState {
     appData.dragStartDetails = details;
     if (appData.selectedSection == "levels") {
       // Levels section is preview-only: always pan.
+    } else if (appData.selectedSection == "paths") {
+      // Paths section is preview-only: always pan.
     } else if (appData.selectedSection == "viewport") {
       _isDraggingViewport = false;
       _isResizingViewport = false;
@@ -358,6 +360,11 @@ extension _LayoutGestures on _LayoutState {
   Future<void> _handlePanUpdate(
       AppData appData, DragUpdateDetails details) async {
     if (appData.selectedSection == "levels") {
+      if (_isPointerDown) {
+        appData.layersViewOffset += details.delta;
+        appData.update();
+      }
+    } else if (appData.selectedSection == "paths") {
       if (_isPointerDown) {
         appData.layersViewOffset += details.delta;
         appData.update();
