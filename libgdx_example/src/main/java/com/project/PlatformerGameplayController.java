@@ -13,8 +13,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private static final float GRAVITY_PER_SECOND_SQ = 2088f;
     private static final float JUMP_IMPULSE_PER_SECOND = 708f;
     private static final float MAX_FALL_SPEED_PER_SECOND = 840f;
-    private static final float FLOOR_PROBE_HEIGHT = 2f;
-    private static final float FLOOR_PROBE_INSET = 2f;
+    private static final float FLOOR_SUPPORT_DELTA = 1f;
     private static final float COLLISION_EPSILON = 1.2f;
     private static final float DRAGON_STOMP_MIN_FALL_SPEED = 25f;
     private static final float DRAGON_DAMAGE_PERCENT = 25f;
@@ -29,8 +28,6 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private final IntSet touchingDragonSpriteIndices = new IntSet();
     private final IntSet touchingDragonNowCache = new IntSet();
     private final Rectangle previousPlayerRectCache = new Rectangle();
-    private final Rectangle floorProbeRectCache = new Rectangle();
-
     private float velocityX = 0f;
     private float velocityY = 0f;
     private float lifePercent = START_LIFE_PERCENT;
@@ -92,6 +89,14 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
         setPlayerFlip(!facingRight, false);
 
+        boolean hasSupport = isStandingOnFloor();
+        if (hasSupport && velocityY >= 0f) {
+            velocityY = 0f;
+            onGround = true;
+        } else if (!hasSupport) {
+            onGround = false;
+        }
+
         if (jumpQueued && onGround) {
             velocityY = -JUMP_IMPULSE_PER_SECOND;
             onGround = false;
@@ -109,13 +114,13 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         playerX += velocityX * dtSeconds;
 
         playerY += velocityY * dtSeconds;
-        resolveVerticalCollisions(previousY);
-
-        if (velocityY >= 0f) {
-            onGround = isStandingOnFloor();
-            if (onGround) {
-                velocityY = 0f;
-            }
+        boolean landed = resolveVerticalCollisions(previousY);
+        boolean standingOnFloor = isStandingOnFloor();
+        if ((landed || standingOnFloor) && velocityY >= 0f) {
+            velocityY = 0f;
+            onGround = true;
+        } else {
+            onGround = false;
         }
 
         collectTouchedGems();
@@ -145,21 +150,19 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
     }
 
-    private void resolveVerticalCollisions(float previousY) {
+    private boolean resolveVerticalCollisions(float previousY) {
         if (floorZoneIndices.size <= 0) {
-            onGround = false;
-            return;
+            return false;
         }
 
         Rectangle playerRect = playerRect(rectCacheA);
         Rectangle previousRect = playerRectAt(playerX, previousY, previousPlayerRectCache);
 
-        onGround = false;
         // One-way floor behavior:
         // - Collide only when moving downward.
         // - Ignore floor collisions while moving upward (jump-through from below).
         if (velocityY <= 0f) {
-            return;
+            return false;
         }
 
         float previousBottom = previousRect.y + previousRect.height;
@@ -190,8 +193,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         if (Float.isFinite(bestLandingTop)) {
             playerY = bestLandingTop - playerBottomOffset;
             velocityY = 0f;
-            onGround = true;
-            return;
+            return true;
         }
 
         // Fallback: if already penetrating near a floor top, push back upward.
@@ -227,8 +229,9 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         if (landed) {
             playerY = correctedY;
             velocityY = 0f;
-            onGround = true;
+            return true;
         }
+        return false;
     }
 
     private boolean isStandingOnFloor() {
@@ -238,8 +241,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
 
         Rectangle playerRect = playerRect(rectCacheA);
         float testBottom = playerRect.y + playerRect.height + 0.5f;
-        float testLeft = playerRect.x + FLOOR_PROBE_INSET;
-        float testRight = playerRect.x + playerRect.width - FLOOR_PROBE_INSET;
+        float testLeft = playerRect.x;
+        float testRight = playerRect.x + playerRect.width;
 
         for (int i = 0; i < floorZoneIndices.size; i++) {
             Rectangle zoneRect = zoneRect(levelData.zones.get(floorZoneIndices.get(i)), rectCacheB);
@@ -248,7 +251,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
                 continue;
             }
             float bottomDelta = Math.abs(testBottom - zoneRect.y);
-            if (bottomDelta <= FLOOR_PROBE_HEIGHT) {
+            if (bottomDelta <= FLOOR_SUPPORT_DELTA) {
                 return true;
             }
         }
