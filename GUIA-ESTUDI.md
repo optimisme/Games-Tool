@@ -1,4 +1,4 @@
-# GUIA ESTUDI (actualitzada)
+# GUIA ESTUDI
 
 Aquesta guia esta pensada per entendre el codi actual de `game_example` i
 construir nous nivells sense trencar el runtime.
