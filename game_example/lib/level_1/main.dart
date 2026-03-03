@@ -27,21 +27,18 @@ const String _level1AnimFoxyWalk = 'Foxy Walk';
 const String _level1AnimFoxyJumpUp = 'Foxy Jump Up';
 const String _level1AnimFoxyJumpFall = 'Foxy Jump Fall';
 const String _level1AnimDragonDeath = 'Dragon Death';
-const String _level1MovingPlatformLayerName = 'Platform';
-const String _level1MovingPlatformFloorGameplayData = 'Platform Floor';
 const String _level1PlayerTransformId = 'level1/player';
 const String _level1CameraTransformId = 'level1/camera';
-const String _level1MovingPlatformTransformId = 'level1/platform';
 const int _level1InitialLifePercent = 100;
 const int _level1DragonDamagePercent = 25;
 const double _level1EndStateInputDelaySeconds = 1.0;
-const double _level1MovingPlatformLoopSeconds = 5;
-const double _level1MovingPlatformFloorYOffset = 5;
-const List<Offset> _level1MovingPlatformPath = <Offset>[
-  Offset(590, 440),
-  Offset(745, 470),
-  Offset(740, 340),
-];
+const String _level1PathTargetTypeLayer = 'layer';
+const String _level1PathTargetTypeZone = 'zone';
+const String _level1PathTargetTypeSprite = 'sprite';
+const String _level1PathBehaviorRestart = 'restart';
+const String _level1PathBehaviorPingPong = 'ping_pong';
+const String _level1PathBehaviorOnce = 'once';
+const int _level1PathDefaultDurationMs = 2000;
 const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
   hudX: 20 * kHudSpacingScaleX,
   hudY: 5 * kHudSpacingScaleY,
@@ -153,9 +150,8 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   bool _isLeavingLevel = false;
   double _cameraFollowOffsetX = 0;
   double _cameraFollowOffsetY = 0;
-  int? _movingPlatformLayerIndex;
-  Map<String, dynamic>? _movingPlatformLayer;
-  int? _movingPlatformFloorZoneIndex;
+  final List<_Level1PathBindingRuntime> _pathBindings =
+      <_Level1PathBindingRuntime>[];
 
   @override
   void didChangeDependencies() {
@@ -212,7 +208,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
             final List<LayerRenderCommand> layerCommands =
                 _buildLayerRenderCommands(
               appData: appData,
-              renderState: renderState,
             );
             final List<LevelSpriteRenderCommand> spriteCommands =
                 _buildSpriteRenderCommands(
@@ -349,7 +344,6 @@ extension _Level1Hud on _Level1State {
 
   List<LayerRenderCommand> _buildLayerRenderCommands({
     required AppData appData,
-    required Level1RenderState? renderState,
   }) {
     final Map<String, dynamic>? level = _level;
     if (level == null) {
@@ -357,17 +351,14 @@ extension _Level1Hud on _Level1State {
     }
     final List<Map<String, dynamic>> visibleLayers = appData.gamesTool
         .listLevelLayers(level, visibleOnly: true, painterOrder: true);
-    return visibleLayers.map((Map<String, dynamic> layer) {
-      final bool isMovingPlatformLayer = _movingPlatformLayer != null &&
-          identical(layer, _movingPlatformLayer);
-      return LayerRenderCommand(
-        layer: layer,
-        depth: appData.gamesTool.layerDepth(layer),
-        worldOffset: isMovingPlatformLayer && renderState != null
-            ? Offset(renderState.platformX, renderState.platformY)
-            : null,
-      );
-    }).toList(growable: false);
+    return visibleLayers
+        .map(
+          (Map<String, dynamic> layer) => LayerRenderCommand(
+            layer: layer,
+            depth: appData.gamesTool.layerDepth(layer),
+          ),
+        )
+        .toList(growable: false);
   }
 
   List<HudRenderCommand> _buildHudRenderCommands({

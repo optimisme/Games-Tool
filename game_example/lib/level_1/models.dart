@@ -7,8 +7,6 @@ class Level1UpdateState {
     required this.playerY,
     required this.cameraX,
     required this.cameraY,
-    required this.platformX,
-    required this.platformY,
     required this.playerWidth,
     required this.playerHeight,
     required this.gemsCount,
@@ -20,8 +18,6 @@ class Level1UpdateState {
   double playerY;
   double cameraX;
   double cameraY;
-  double platformX;
-  double platformY;
   double playerWidth;
   double playerHeight;
 
@@ -36,7 +32,7 @@ class Level1UpdateState {
   double fps = 60;
   int tickCounter = 0;
   double animationTimeSeconds = 0;
-  double platformMotionTimeSeconds = 0;
+  double pathMotionTimeSeconds = 0;
   final Set<int> collectedGemSpriteIndices = <int>{};
   final Set<int> removedDragonSpriteIndices = <int>{};
   final Map<int, double> dragonDeathStartSeconds = <int, double>{};
@@ -62,8 +58,6 @@ class Level1RenderState {
     required this.playerY,
     required this.cameraX,
     required this.cameraY,
-    required this.platformX,
-    required this.platformY,
     required this.playerWidth,
     required this.playerHeight,
     required this.velocityX,
@@ -100,20 +94,12 @@ class Level1RenderState {
       fallbackX: state.cameraX,
       fallbackY: state.cameraY,
     );
-    final Offset renderPlatform = runtimeApi.sampleTransform2D(
-      _level1MovingPlatformTransformId,
-      alpha: alpha,
-      fallbackX: state.platformX,
-      fallbackY: state.platformY,
-    );
     return Level1RenderState(
       renderRevision: state.tickCounter,
       playerX: renderPlayer.dx,
       playerY: renderPlayer.dy,
       cameraX: renderCamera.dx,
       cameraY: renderCamera.dy,
-      platformX: renderPlatform.dx,
-      platformY: renderPlatform.dy,
       playerWidth: state.playerWidth,
       playerHeight: state.playerHeight,
       velocityX: state.velocityX,
@@ -142,8 +128,6 @@ class Level1RenderState {
   final double playerY;
   final double cameraX;
   final double cameraY;
-  final double platformX;
-  final double platformY;
   final double playerWidth;
   final double playerHeight;
   final double velocityX;
@@ -161,4 +145,71 @@ class Level1RenderState {
   final Set<int> collectedGemSpriteIndices;
   final Set<int> removedDragonSpriteIndices;
   final Map<int, double> dragonDeathStartSeconds;
+}
+
+class _Level1PathRuntime {
+  const _Level1PathRuntime({
+    required this.id,
+    required this.points,
+    required this.cumulativeDistances,
+    required this.totalDistance,
+  });
+
+  final String id;
+  final List<Offset> points;
+  final List<double> cumulativeDistances;
+  final double totalDistance;
+
+  Offset get firstPoint => points.first;
+
+  Offset sampleAtProgress(double progress) {
+    if (points.length < 2 || totalDistance <= 0) {
+      return firstPoint;
+    }
+    final double normalized = progress.clamp(0.0, 1.0).toDouble();
+    final double targetDistance = totalDistance * normalized;
+    for (int i = 1; i < points.length; i++) {
+      final double segmentStart = cumulativeDistances[i - 1];
+      final double segmentEnd = cumulativeDistances[i];
+      if (targetDistance > segmentEnd && i < points.length - 1) {
+        continue;
+      }
+      final double segmentDistance = segmentEnd - segmentStart;
+      if (segmentDistance <= 0) {
+        return points[i];
+      }
+      final double localT =
+          ((targetDistance - segmentStart) / segmentDistance).clamp(0.0, 1.0);
+      return Offset.lerp(points[i - 1], points[i], localT) ?? points[i];
+    }
+    return points.last;
+  }
+}
+
+class _Level1PathBindingRuntime {
+  const _Level1PathBindingRuntime({
+    required this.path,
+    required this.targetObject,
+    required this.targetType,
+    required this.targetIndex,
+    required this.behavior,
+    required this.enabled,
+    required this.relativeToInitialPosition,
+    required this.durationSeconds,
+    required this.initialX,
+    required this.initialY,
+    required this.isFloorZone,
+  });
+
+  final _Level1PathRuntime path;
+  final Map<String, dynamic> targetObject;
+  final String targetType;
+  final int targetIndex;
+  final String behavior;
+  final bool enabled;
+  final bool relativeToInitialPosition;
+  final double durationSeconds;
+  final double initialX;
+  final double initialY;
+  final bool isFloorZone;
 }

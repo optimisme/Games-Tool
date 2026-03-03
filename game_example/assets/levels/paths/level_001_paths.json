@@ -63,7 +63,7 @@
       "behavior": "ping_pong",
       "enabled": true,
       "relativeToInitialPosition": true,
-      "durationMs": 5
+      "durationMs": 5000
     },
     {
       "id": "path_binding_2",
@@ -73,7 +73,7 @@
       "behavior": "ping_pong",
       "enabled": true,
       "relativeToInitialPosition": true,
-      "durationMs": 5
+      "durationMs": 5000
     }
   ]
 }
