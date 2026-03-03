@@ -26,6 +26,7 @@ class CanvasPainter extends CustomPainter {
         appData.selectedSection == 'tilemap' ||
         appData.selectedSection == 'zones' ||
         appData.selectedSection == 'sprites' ||
+        appData.selectedSection == 'paths' ||
         appData.selectedSection == 'viewport') {
       _paintWorldViewport(
         canvas,
@@ -34,9 +35,11 @@ class CanvasPainter extends CustomPainter {
         renderingSprites: appData.selectedSection == 'sprites' ||
             appData.selectedSection == 'layers' ||
             appData.selectedSection == 'levels' ||
+            appData.selectedSection == 'paths' ||
             appData.selectedSection == 'viewport',
         renderingLayersPreview: appData.selectedSection == 'layers' ||
             appData.selectedSection == 'levels' ||
+            appData.selectedSection == 'paths' ||
             appData.selectedSection == 'viewport',
         renderingViewport: appData.selectedSection == 'viewport',
       );

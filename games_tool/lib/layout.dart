@@ -23,12 +23,13 @@ import 'game_sprite.dart';
 import 'game_zone.dart';
 import 'layout_animation_rigs.dart';
 import 'layout_animations.dart';
-import 'layout_sprites.dart';
 import 'layout_layers.dart';
 import 'layout_levels.dart';
 import 'layout_media.dart';
+import 'layout_paths.dart';
 import 'layout_projects.dart';
 import 'layout_projects_main.dart';
+import 'layout_sprites.dart';
 import 'layout_tilemaps.dart';
 import 'layout_zones.dart';
 import 'layout_viewport.dart';
@@ -143,6 +144,7 @@ class _LayoutState extends State<Layout> {
     'tilemap',
     'zones',
     'sprites',
+    'paths',
     'viewport',
   ];
 
@@ -287,6 +289,10 @@ class _LayoutState extends State<Layout> {
         await LayoutUtils.preloadLayerImages(appData);
         image = await LayoutUtils.drawCanvasImageEmpty(appData);
       case 'sprites':
+        await LayoutUtils.preloadLayerImages(appData);
+        await LayoutUtils.preloadSpriteImages(appData);
+        image = await LayoutUtils.drawCanvasImageEmpty(appData);
+      case 'paths':
         await LayoutUtils.preloadLayerImages(appData);
         await LayoutUtils.preloadSpriteImages(appData);
         image = await LayoutUtils.drawCanvasImageEmpty(appData);
@@ -461,6 +467,8 @@ class _LayoutState extends State<Layout> {
                                               appData.selectedSection !=
                                                   "sprites" &&
                                               appData.selectedSection !=
+                                                  "paths" &&
+                                              appData.selectedSection !=
                                                   "viewport") {
                                             return;
                                           }
@@ -480,6 +488,8 @@ class _LayoutState extends State<Layout> {
                                                   "zones" &&
                                               appData.selectedSection !=
                                                   "sprites" &&
+                                              appData.selectedSection !=
+                                                  "paths" &&
                                               appData.selectedSection !=
                                                   "viewport") {
                                             return;

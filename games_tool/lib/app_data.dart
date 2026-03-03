@@ -70,9 +70,11 @@ class AppData extends ChangeNotifier {
   static const String mediaFolderName = "media";
   static const String tilemapsFolderName = "tilemaps";
   static const String zonesFolderName = "zones";
+  static const String pathsFolderName = "paths";
   static const String animationsFolderName = "animations";
   static const String tileMapFileFieldName = "tileMapFile";
   static const String zonesFileFieldName = "zonesFile";
+  static const String pathsFileFieldName = "pathsFile";
   static const String animationsFileFieldName = "animationsFile";
   static const Color defaultTilesetSelectionColor = Color(0xFFFFCC00);
   int frame = 0;
@@ -1027,6 +1029,11 @@ class AppData extends ChangeNotifier {
     return '$zonesFolderName/level_${level}_zones.json';
   }
 
+  String _defaultPathsRelativePath(int levelIndex) {
+    final String level = levelIndex.toString().padLeft(3, '0');
+    return '$pathsFolderName/level_${level}_paths.json';
+  }
+
   String _defaultAnimationsRelativePath() {
     return '$animationsFolderName/animations.json';
   }
@@ -1090,6 +1097,18 @@ class AppData extends ChangeNotifier {
       return normalized;
     }
     return _defaultZonesRelativePath(levelIndex);
+  }
+
+  String _normalizedPathsRelativePath(
+    dynamic rawValue, {
+    required int levelIndex,
+  }) {
+    final String candidate = rawValue is String ? rawValue : '';
+    final String normalized = _normalizeProjectRelativePath(candidate);
+    if (normalized.isNotEmpty && normalized.toLowerCase().endsWith('.json')) {
+      return normalized;
+    }
+    return _defaultPathsRelativePath(levelIndex);
   }
 
   String _normalizedAnimationsRelativePath(dynamic rawValue) {
@@ -1191,6 +1210,35 @@ class AppData extends ChangeNotifier {
     return <String, dynamic>{
       'zones': <Map<String, dynamic>>[],
       'zoneGroups': <Map<String, dynamic>>[],
+    };
+  }
+
+  Future<Map<String, dynamic>> _readExternalPathsData(
+      String absolutePath) async {
+    final File file = File(absolutePath);
+    if (!await file.exists()) {
+      throw Exception("Missing paths file: ${file.path}");
+    }
+    final dynamic decoded = jsonDecode(await file.readAsString());
+    if (decoded is Map<String, dynamic>) {
+      return <String, dynamic>{
+        'pathGroups': _parseObjectList(decoded['pathGroups']),
+        'paths': _parseObjectList(decoded['paths']),
+        'pathBindings': _parseObjectList(decoded['pathBindings']),
+      };
+    }
+    if (decoded is Map) {
+      final Map<String, dynamic> asMap = Map<String, dynamic>.from(decoded);
+      return <String, dynamic>{
+        'pathGroups': _parseObjectList(asMap['pathGroups']),
+        'paths': _parseObjectList(asMap['paths']),
+        'pathBindings': _parseObjectList(asMap['pathBindings']),
+      };
+    }
+    return <String, dynamic>{
+      'pathGroups': <Map<String, dynamic>>[],
+      'paths': <Map<String, dynamic>>[],
+      'pathBindings': <Map<String, dynamic>>[],
     };
   }
 
@@ -1552,6 +1600,69 @@ class AppData extends ChangeNotifier {
     }
   }
 
+  Future<bool> _hydrateExternalPathsIntoDecodedGameData({
+    required Map<String, dynamic> decoded,
+    required String projectDirectoryPath,
+  }) async {
+    final dynamic rawLevels = decoded['levels'];
+    if (rawLevels is! List) {
+      return false;
+    }
+
+    bool needsPathsExternalization = false;
+    for (int levelIndex = 0; levelIndex < rawLevels.length; levelIndex++) {
+      final dynamic rawLevel = rawLevels[levelIndex];
+      if (rawLevel is! Map<String, dynamic>) {
+        continue;
+      }
+
+      final dynamic rawReference = rawLevel[pathsFileFieldName];
+      if (rawReference is String) {
+        final String relativePath = _normalizeProjectRelativePath(rawReference);
+        if (relativePath.isEmpty ||
+            !relativePath.toLowerCase().endsWith('.json')) {
+          throw Exception(
+            'Invalid "$pathsFileFieldName" value for level $levelIndex.',
+          );
+        }
+        final Map<String, dynamic> pathsData = await _readExternalPathsData(
+          _projectAbsolutePathForRelativePath(
+            projectDirectoryPath,
+            relativePath,
+          ),
+        );
+        rawLevel[pathsFileFieldName] = relativePath;
+        rawLevel['pathGroups'] = pathsData['pathGroups'];
+        rawLevel['paths'] = pathsData['paths'];
+        rawLevel['pathBindings'] = pathsData['pathBindings'];
+        continue;
+      }
+
+      if (rawReference == null) {
+        final List<Map<String, dynamic>> pathGroups = _parseObjectList(
+          rawLevel['pathGroups'],
+        );
+        final List<Map<String, dynamic>> paths = _parseObjectList(
+          rawLevel['paths'],
+        );
+        final List<Map<String, dynamic>> pathBindings = _parseObjectList(
+          rawLevel['pathBindings'],
+        );
+        rawLevel[pathsFileFieldName] = _defaultPathsRelativePath(levelIndex);
+        rawLevel['pathGroups'] = pathGroups;
+        rawLevel['paths'] = paths;
+        rawLevel['pathBindings'] = pathBindings;
+        needsPathsExternalization = true;
+        continue;
+      }
+
+      throw Exception(
+        'Unsupported project format: "$pathsFileFieldName" must be a string.',
+      );
+    }
+    return needsPathsExternalization;
+  }
+
   Future<bool> _hydrateExternalAnimationsIntoDecodedGameData({
     required Map<String, dynamic> decoded,
     required String projectDirectoryPath,
@@ -1684,6 +1795,59 @@ class AppData extends ChangeNotifier {
     return writtenRelativePaths;
   }
 
+  Future<Set<String>> _writeExternalPathsAndStripInlineFromGameData({
+    required Map<String, dynamic> encoded,
+    required String projectDirectoryPath,
+  }) async {
+    final Set<String> writtenRelativePaths = <String>{};
+    final dynamic rawLevels = encoded['levels'];
+    if (rawLevels is! List) {
+      return writtenRelativePaths;
+    }
+
+    for (int levelIndex = 0; levelIndex < rawLevels.length; levelIndex++) {
+      final dynamic rawLevel = rawLevels[levelIndex];
+      if (rawLevel is! Map<String, dynamic>) {
+        continue;
+      }
+
+      final List<Map<String, dynamic>> pathGroups = _parseObjectList(
+        rawLevel['pathGroups'],
+      );
+      final List<Map<String, dynamic>> paths = _parseObjectList(
+        rawLevel['paths'],
+      );
+      final List<Map<String, dynamic>> pathBindings = _parseObjectList(
+        rawLevel['pathBindings'],
+      );
+      final String relativePath = _normalizedPathsRelativePath(
+        rawLevel[pathsFileFieldName],
+        levelIndex: levelIndex,
+      );
+      final String absolutePath = _projectAbsolutePathForRelativePath(
+        projectDirectoryPath,
+        relativePath,
+      );
+      final File pathsFile = File(absolutePath);
+      await pathsFile.parent.create(recursive: true);
+      final String pathsOutput = await _formatMapAsGameJson(
+        <String, dynamic>{
+          'pathGroups': pathGroups,
+          'paths': paths,
+          'pathBindings': pathBindings,
+        },
+      );
+      await pathsFile.writeAsString(pathsOutput);
+      writtenRelativePaths.add(relativePath);
+      rawLevel[pathsFileFieldName] = relativePath;
+      rawLevel.remove('pathGroups');
+      rawLevel.remove('paths');
+      rawLevel.remove('pathBindings');
+    }
+
+    return writtenRelativePaths;
+  }
+
   Future<String> _writeExternalAnimationsAndStripInlineFromGameData({
     required Map<String, dynamic> encoded,
     required String projectDirectoryPath,
@@ -1757,6 +1921,37 @@ class AppData extends ChangeNotifier {
     }
     await for (final FileSystemEntity entity
         in zonesDirectory.list(recursive: true, followLinks: false)) {
+      if (entity is! File) {
+        continue;
+      }
+      if (!entity.path.toLowerCase().endsWith('.json')) {
+        continue;
+      }
+      final String relativePath = _relativePathFromProjectAbsolutePath(
+        projectDirectoryPath,
+        entity.path,
+      );
+      if (relativePath.isEmpty || keepRelativePaths.contains(relativePath)) {
+        continue;
+      }
+      try {
+        await entity.delete();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _cleanupStaleExternalPathFiles({
+    required String projectDirectoryPath,
+    required Set<String> keepRelativePaths,
+  }) async {
+    final Directory pathsDirectory = Directory(
+      '$projectDirectoryPath${Platform.pathSeparator}$pathsFolderName',
+    );
+    if (!await pathsDirectory.exists()) {
+      return;
+    }
+    await for (final FileSystemEntity entity
+        in pathsDirectory.list(recursive: true, followLinks: false)) {
       if (entity is! File) {
         continue;
       }
@@ -2462,6 +2657,11 @@ class AppData extends ChangeNotifier {
         decoded: decoded,
         projectDirectoryPath: projectPath,
       );
+      final bool needsPathsExternalization =
+          await _hydrateExternalPathsIntoDecodedGameData(
+        decoded: decoded,
+        projectDirectoryPath: projectPath,
+      );
       final bool needsAnimationsExternalization =
           await _hydrateExternalAnimationsIntoDecodedGameData(
         decoded: decoded,
@@ -2473,7 +2673,8 @@ class AppData extends ChangeNotifier {
       );
 
       gameData = GameData.fromJson(decoded);
-      final bool migratedStructure = needsAnimationsExternalization ||
+      final bool migratedStructure = needsPathsExternalization ||
+          needsAnimationsExternalization ||
           needsGameplayDataMigration ||
           _projectNeedsStructureMigration(
             decoded: decoded,
@@ -2729,6 +2930,11 @@ class AppData extends ChangeNotifier {
       encoded: encoded,
       projectDirectoryPath: filePath,
     );
+    final Set<String> pathPaths =
+        await _writeExternalPathsAndStripInlineFromGameData(
+      encoded: encoded,
+      projectDirectoryPath: filePath,
+    );
     final String animationsPath =
         await _writeExternalAnimationsAndStripInlineFromGameData(
       encoded: encoded,
@@ -2743,6 +2949,10 @@ class AppData extends ChangeNotifier {
     await _cleanupStaleExternalZoneFiles(
       projectDirectoryPath: filePath,
       keepRelativePaths: zonePaths,
+    );
+    await _cleanupStaleExternalPathFiles(
+      projectDirectoryPath: filePath,
+      keepRelativePaths: pathPaths,
     );
     await _cleanupStaleExternalAnimationFiles(
       projectDirectoryPath: filePath,

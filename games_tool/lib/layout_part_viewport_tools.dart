@@ -8,7 +8,8 @@ extension _LayoutViewportTools on _LayoutState {
     if (appData.selectedSection != 'layers' &&
         appData.selectedSection != 'tilemap' &&
         appData.selectedSection != 'zones' &&
-        appData.selectedSection != 'sprites') {
+        appData.selectedSection != 'sprites' &&
+        appData.selectedSection != 'paths') {
       return;
     }
     if (appData.layersViewScale != 1.0 ||
@@ -27,7 +28,8 @@ extension _LayoutViewportTools on _LayoutState {
       if (latestAppData.selectedSection != 'layers' &&
           latestAppData.selectedSection != 'tilemap' &&
           latestAppData.selectedSection != 'zones' &&
-          latestAppData.selectedSection != 'sprites') {
+          latestAppData.selectedSection != 'sprites' &&
+          latestAppData.selectedSection != 'paths') {
         return;
       }
       if (latestAppData.layersViewScale != 1.0 ||
@@ -214,7 +216,8 @@ extension _LayoutViewportTools on _LayoutState {
     final bool showToolPicker = appData.selectedSection == 'layers' ||
         appData.selectedSection == 'tilemap' ||
         appData.selectedSection == 'zones' ||
-        appData.selectedSection == 'sprites';
+        appData.selectedSection == 'sprites' ||
+        appData.selectedSection == 'paths';
     final bool showReset = _usesWorldViewportSection(appData.selectedSection);
     if (!showToolPicker && !showReset) {
       return const SizedBox.shrink();
@@ -247,6 +250,7 @@ extension _LayoutViewportTools on _LayoutState {
         section == 'tilemap' ||
         section == 'zones' ||
         section == 'sprites' ||
+        section == 'paths' ||
         section == 'viewport';
   }
 

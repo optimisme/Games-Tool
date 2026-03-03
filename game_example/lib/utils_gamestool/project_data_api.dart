@@ -46,7 +46,7 @@ class GamesToolApi {
     return 'assets/${toRelativeAssetKey(relativePath)}';
   }
 
-  /// Loads exported game data and enriches it with tilemaps, zones, and animations.
+  /// Loads exported game data and enriches it with tilemaps, zones, paths, and animations.
   Future<Map<String, dynamic>> loadGameData(AssetBundle bundle) async {
     final ({String projectRoot, String jsonString}) loaded =
         await _loadGameDataJsonString(bundle);
@@ -56,6 +56,7 @@ class GamesToolApi {
         jsonDecode(jsonString) as Map<String, dynamic>;
     await _attachTileMaps(bundle, parsed);
     await _attachZones(bundle, parsed);
+    await _attachPaths(bundle, parsed);
     await _attachAnimations(bundle, parsed);
     return parsed;
   }
@@ -780,6 +781,45 @@ class GamesToolApi {
       final Object? zoneGroups = zonesData['zoneGroups'];
       if (zoneGroups is List<dynamic>) {
         level['zoneGroups'] = zoneGroups;
+      }
+    }
+  }
+
+  Future<void> _attachPaths(
+    AssetBundle bundle,
+    Map<String, dynamic> gameData,
+  ) async {
+    final List<dynamic> levels =
+        (gameData['levels'] as List<dynamic>?) ?? const <dynamic>[];
+
+    for (final dynamic level in levels) {
+      if (level is! Map<String, dynamic>) {
+        continue;
+      }
+
+      final Object? pathsFile = level['pathsFile'];
+      if (pathsFile is! String || pathsFile.isEmpty) {
+        continue;
+      }
+
+      final String pathsJson =
+          await bundle.loadString(toBundleAssetPath(pathsFile));
+      final Map<String, dynamic> pathsData =
+          jsonDecode(pathsJson) as Map<String, dynamic>;
+
+      final Object? paths = pathsData['paths'];
+      if (paths is List<dynamic>) {
+        level['paths'] = paths;
+      }
+
+      final Object? pathGroups = pathsData['pathGroups'];
+      if (pathGroups is List<dynamic>) {
+        level['pathGroups'] = pathGroups;
+      }
+
+      final Object? pathBindings = pathsData['pathBindings'];
+      if (pathBindings is List<dynamic>) {
+        level['pathBindings'] = pathBindings;
       }
     }
   }

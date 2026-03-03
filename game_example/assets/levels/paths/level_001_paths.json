@@ -1,0 +1,42 @@
+{
+  "pathGroups": [
+    {
+      "id": "__main__",
+      "name": "Main",
+      "collapsed": false
+    }
+  ],
+  "paths": [
+    {
+      "id": "path_1",
+      "name": "Path 0",
+      "points": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 64,
+          "y": 64
+        },
+        {
+          "x": 128,
+          "y": 128
+        }
+      ],
+      "color": "red",
+      "groupId": "__main__"
+    }
+  ],
+  "pathBindings": [
+    {
+      "id": "path_binding_1",
+      "pathId": "path_1",
+      "targetType": "sprite",
+      "targetIndex": 15,
+      "behavior": "ping_pong",
+      "enabled": true,
+      "relativeToInitialPosition": true
+    }
+  ]
+}
