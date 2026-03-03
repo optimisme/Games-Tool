@@ -20,7 +20,8 @@ public final class LevelRenderer {
         AssetManager assets,
         SpriteBatch batch,
         OrthographicCamera camera,
-        Array<SpriteRuntimeState> spriteRuntimeStates
+        Array<SpriteRuntimeState> spriteRuntimeStates,
+        boolean[] layerVisibilityStates
     ) {
         FloatArray depths = collectDepths(level);
         depths.sort();
@@ -34,7 +35,7 @@ public final class LevelRenderer {
             camera.update();
             batch.setProjectionMatrix(camera.combined);
 
-            renderLayersAtDepth(level.layers, depth, assets, batch, level.worldHeight);
+            renderLayersAtDepth(level.layers, depth, assets, batch, level.worldHeight, layerVisibilityStates);
             renderSpritesAtDepth(level.sprites, spriteRuntimeStates, depth, assets, batch, level.worldHeight);
         }
 
@@ -65,12 +66,17 @@ public final class LevelRenderer {
         float depth,
         AssetManager assets,
         SpriteBatch batch,
-        float worldHeight
+        float worldHeight,
+        boolean[] layerVisibilityStates
     ) {
         // Keep the same painter order as games_tool: reversed layer list per depth.
         for (int i = layers.size - 1; i >= 0; i--) {
             LevelData.LevelLayer layer = layers.get(i);
-            if (!layer.visible || !sameDepth(layer.depth, depth)) {
+            boolean visible = layer.visible;
+            if (layerVisibilityStates != null && i >= 0 && i < layerVisibilityStates.length) {
+                visible = layerVisibilityStates[i];
+            }
+            if (!visible || !sameDepth(layer.depth, depth)) {
                 continue;
             }
             drawLayer(layer, assets, batch, worldHeight);
@@ -137,6 +143,9 @@ public final class LevelRenderer {
         SpriteBatch batch,
         float worldHeight
     ) {
+        if (runtimeState != null && !runtimeState.visible) {
+            return;
+        }
         if (!assets.isLoaded(sprite.texturePath, Texture.class)) {
             return;
         }
@@ -144,9 +153,13 @@ public final class LevelRenderer {
         int frameIndex = runtimeState == null ? sprite.frameIndex : runtimeState.frameIndex;
         float anchorX = runtimeState == null ? sprite.anchorX : runtimeState.anchorX;
         float anchorY = runtimeState == null ? sprite.anchorY : runtimeState.anchorY;
+        float worldX = runtimeState == null ? sprite.x : runtimeState.worldX;
+        float worldY = runtimeState == null ? sprite.y : runtimeState.worldY;
+        boolean flipX = runtimeState == null ? sprite.flipX : runtimeState.flipX;
+        boolean flipY = runtimeState == null ? sprite.flipY : runtimeState.flipY;
         Texture texture = assets.get(sprite.texturePath, Texture.class);
-        float leftDown = sprite.x - sprite.width * anchorX;
-        float topDown = sprite.y - sprite.height * anchorY;
+        float leftDown = worldX - sprite.width * anchorX;
+        float topDown = worldY - sprite.height * anchorY;
         float x = leftDown;
         float y = worldHeight - topDown - sprite.height;
         int frameWidth = Math.max(1, Math.round(sprite.width));
@@ -175,8 +188,8 @@ public final class LevelRenderer {
             sprite.height * 0.5f,
             sprite.width,
             sprite.height,
-            sprite.flipX ? -1f : 1f,
-            sprite.flipY ? -1f : 1f,
+            flipX ? -1f : 1f,
+            flipY ? -1f : 1f,
             0f
         );
     }
@@ -215,11 +228,30 @@ public final class LevelRenderer {
         public int frameIndex;
         public float anchorX;
         public float anchorY;
+        public float worldX;
+        public float worldY;
+        public boolean visible;
+        public boolean flipX;
+        public boolean flipY;
 
-        public SpriteRuntimeState(int frameIndex, float anchorX, float anchorY) {
+        public SpriteRuntimeState(
+            int frameIndex,
+            float anchorX,
+            float anchorY,
+            float worldX,
+            float worldY,
+            boolean visible,
+            boolean flipX,
+            boolean flipY
+        ) {
             this.frameIndex = frameIndex;
             this.anchorX = anchorX;
             this.anchorY = anchorY;
+            this.worldX = worldX;
+            this.worldY = worldY;
+            this.visible = visible;
+            this.flipX = flipX;
+            this.flipY = flipY;
         }
     }
 }

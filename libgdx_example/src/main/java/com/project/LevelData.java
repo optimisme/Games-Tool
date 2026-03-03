@@ -93,6 +93,7 @@ public final class LevelData {
 
     public static final class LevelSprite {
         public final String name;
+        public final String type;
         public final float depth;
         public final float x;
         public final float y;
@@ -108,6 +109,7 @@ public final class LevelData {
 
         public LevelSprite(
             String name,
+            String type,
             float depth,
             float x,
             float y,
@@ -122,6 +124,7 @@ public final class LevelData {
             String animationId
         ) {
             this.name = name;
+            this.type = type;
             this.depth = depth;
             this.x = x;
             this.y = y;
@@ -140,6 +143,8 @@ public final class LevelData {
     public static final class LevelZone {
         public final String name;
         public final String type;
+        public final String gameplayData;
+        public final String groupId;
         public final float x;
         public final float y;
         public final float width;
@@ -149,6 +154,8 @@ public final class LevelData {
         public LevelZone(
             String name,
             String type,
+            String gameplayData,
+            String groupId,
             float x,
             float y,
             float width,
@@ -157,6 +164,8 @@ public final class LevelData {
         ) {
             this.name = name;
             this.type = type;
+            this.gameplayData = gameplayData;
+            this.groupId = groupId;
             this.x = x;
             this.y = y;
             this.width = width;
