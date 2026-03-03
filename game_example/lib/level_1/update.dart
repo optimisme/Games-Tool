@@ -60,12 +60,10 @@ extension _Level1Update on _Level1State {
   }
 
   void _updatePhysics(Level1UpdateState state, double dt) {
-    final bool wasStandingOnMovingPlatform = _isStandingOnMovingPlatform(state);
-    final Offset movingPlatformDelta = _updateMovingPlatformPath(state, dt);
-    if ((movingPlatformDelta.dx != 0 || movingPlatformDelta.dy != 0) &&
-        wasStandingOnMovingPlatform) {
-      state.playerX += movingPlatformDelta.dx;
-      state.playerY += movingPlatformDelta.dy;
+    final Offset movingFloorDelta = _updateLinkedPathBindings(state, dt);
+    if (movingFloorDelta.dx != 0 || movingFloorDelta.dy != 0) {
+      state.playerX += movingFloorDelta.dx;
+      state.playerY += movingFloorDelta.dy;
     }
 
     final bool moveLeft = _pressedKeys.contains(LogicalKeyboardKey.arrowLeft) ||
@@ -160,84 +158,119 @@ extension _Level1Update on _Level1State {
     );
   }
 
-  Offset _updateMovingPlatformPath(Level1UpdateState state, double dt) {
-    if (_movingPlatformLayerIndex == null ||
-        _movingPlatformFloorZoneIndex == null) {
+  Offset _updateLinkedPathBindings(Level1UpdateState state, double dt) {
+    if (_pathBindings.isEmpty) {
       return Offset.zero;
     }
-    final Offset previousPosition = _movingPlatformPositionAtTime(
-      state.platformMotionTimeSeconds,
+    final double previousTime = state.pathMotionTimeSeconds;
+    final double nextTime = previousTime + dt;
+    state.pathMotionTimeSeconds = nextTime;
+    final List<Rect> playerRectsBefore = _playerCollisionRectsForPose(
+      state,
+      y: state.playerY + 0.5,
+      elapsedSeconds: state.animationTimeSeconds,
     );
-    state.platformMotionTimeSeconds += dt;
-    final Offset platformPosition = _movingPlatformPositionAtTime(
-      state.platformMotionTimeSeconds,
-    );
-    state.platformX = platformPosition.dx;
-    state.platformY = platformPosition.dy;
-    _runtimeApi.setTransform2D(
-      id: _level1MovingPlatformTransformId,
-      x: state.platformX,
-      y: state.platformY,
-    );
-    _applyMovingPlatformPose(platformPosition);
-    return platformPosition - previousPosition;
+    Offset carryDelta = Offset.zero;
+    double carryDeltaMagnitudeSq = 0;
+
+    for (final _Level1PathBindingRuntime binding in _pathBindings) {
+      if (!binding.enabled) {
+        continue;
+      }
+      final Offset previousPosition =
+          _bindingPositionAtTime(binding, previousTime);
+      final Offset nextPosition = _bindingPositionAtTime(binding, nextTime);
+      binding.targetObject['x'] = nextPosition.dx;
+      binding.targetObject['y'] = nextPosition.dy;
+
+      if (!binding.isFloorZone) {
+        continue;
+      }
+      final double width =
+          (binding.targetObject['width'] as num?)?.toDouble() ?? 0;
+      final double height =
+          (binding.targetObject['height'] as num?)?.toDouble() ?? 0;
+      if (width <= 0 || height <= 0) {
+        continue;
+      }
+      final Rect previousFloorRect = Rect.fromLTWH(
+        previousPosition.dx,
+        previousPosition.dy,
+        width,
+        height,
+      );
+      if (!_isStandingOnFloorRects(
+          playerRectsBefore, <Rect>[previousFloorRect])) {
+        continue;
+      }
+      final Offset candidateDelta = nextPosition - previousPosition;
+      final double candidateMagnitudeSq = candidateDelta.distanceSquared;
+      if (candidateMagnitudeSq <= carryDeltaMagnitudeSq) {
+        continue;
+      }
+      carryDelta = candidateDelta;
+      carryDeltaMagnitudeSq = candidateMagnitudeSq;
+    }
+
+    return carryDelta;
   }
 
-  Offset _movingPlatformPositionAtTime(double timeSeconds) {
-    if (_level1MovingPlatformPath.length < 3 ||
-        _level1MovingPlatformLoopSeconds <= 0) {
-      return _level1MovingPlatformPath.first;
+  Offset _bindingPositionAtTime(
+    _Level1PathBindingRuntime binding,
+    double timeSeconds,
+  ) {
+    final double progress = _pathProgressAtTime(
+      behavior: binding.behavior,
+      durationSeconds: binding.durationSeconds,
+      timeSeconds: timeSeconds,
+    );
+    final Offset pathPosition = binding.path.sampleAtProgress(progress);
+    if (!binding.relativeToInitialPosition) {
+      return pathPosition;
     }
-    // Motion follows a looping triangle path A->B->C->A at constant speed.
-    final Offset a = _level1MovingPlatformPath[0];
-    final Offset b = _level1MovingPlatformPath[1];
-    final Offset c = _level1MovingPlatformPath[2];
-    final double ab = (b - a).distance;
-    final double bc = (c - b).distance;
-    final double ca = (a - c).distance;
-    final double totalDistance = ab + bc + ca;
-    if (totalDistance <= 0) {
-      return a;
-    }
-
-    final double loopTime = timeSeconds % _level1MovingPlatformLoopSeconds;
-    double travelled =
-        (loopTime / _level1MovingPlatformLoopSeconds) * totalDistance;
-
-    if (travelled <= ab) {
-      return Offset.lerp(a, b, ab == 0 ? 0 : travelled / ab) ?? a;
-    }
-    travelled -= ab;
-    if (travelled <= bc) {
-      return Offset.lerp(b, c, bc == 0 ? 0 : travelled / bc) ?? b;
-    }
-    travelled -= bc;
-    return Offset.lerp(c, a, ca == 0 ? 0 : travelled / ca) ?? c;
+    final Offset offset = pathPosition - binding.path.firstPoint;
+    return Offset(
+      binding.initialX + offset.dx,
+      binding.initialY + offset.dy,
+    );
   }
 
-  void _applyMovingPlatformPose(Offset platformPosition) {
-    final int? layerIndex = _movingPlatformLayerIndex;
-    final int? zoneIndex = _movingPlatformFloorZoneIndex;
-    if (layerIndex == null || zoneIndex == null) {
-      return;
+  double _pathProgressAtTime({
+    required String behavior,
+    required double durationSeconds,
+    required double timeSeconds,
+  }) {
+    if (!durationSeconds.isFinite || durationSeconds <= 0) {
+      return 0;
     }
+    final double t = timeSeconds < 0 ? 0 : timeSeconds;
+    switch (behavior) {
+      case _level1PathBehaviorPingPong:
+        final double cycle = durationSeconds * 2;
+        if (cycle <= 0) {
+          return 0;
+        }
+        final double cycleTime = t % cycle;
+        if (cycleTime <= durationSeconds) {
+          return cycleTime / durationSeconds;
+        }
+        final double backwardsTime = cycleTime - durationSeconds;
+        return 1 - (backwardsTime / durationSeconds);
+      case _level1PathBehaviorOnce:
+        return (t / durationSeconds).clamp(0.0, 1.0);
+      case _level1PathBehaviorRestart:
+      default:
+        return (t % durationSeconds) / durationSeconds;
+    }
+  }
 
-    _runtimeApi.gameDataSet(
-      <Object>['levels', widget.levelIndex, 'layers', layerIndex, 'x'],
-      platformPosition.dx,
-    );
-    _runtimeApi.gameDataSet(
-      <Object>['levels', widget.levelIndex, 'layers', layerIndex, 'y'],
-      platformPosition.dy,
-    );
-    _runtimeApi.gameDataSet(
-      <Object>['levels', widget.levelIndex, 'zones', zoneIndex, 'x'],
-      platformPosition.dx,
-    );
-    _runtimeApi.gameDataSet(
-      <Object>['levels', widget.levelIndex, 'zones', zoneIndex, 'y'],
-      platformPosition.dy + _level1MovingPlatformFloorYOffset,
-    );
+  bool _isFloorZone(Map<String, dynamic> zone) {
+    final String target = _level1FloorZoneName.toLowerCase();
+    final String zoneType =
+        ((zone['type'] as String?) ?? '').trim().toLowerCase();
+    final String zoneName =
+        ((zone['name'] as String?) ?? '').trim().toLowerCase();
+    return zoneType == target || zoneName == target;
   }
 
   void _triggerGameOver(Level1UpdateState state) {
@@ -412,6 +445,10 @@ extension _Level1Update on _Level1State {
       y: state.playerY + 0.5,
       elapsedSeconds: state.animationTimeSeconds,
     );
+    return _isStandingOnFloorRects(playerRects, floors);
+  }
+
+  bool _isStandingOnFloorRects(List<Rect> playerRects, List<Rect> floors) {
     for (final Rect playerRect in playerRects) {
       for (final Rect floor in floors) {
         final bool overlapsHorizontally =
@@ -426,56 +463,6 @@ extension _Level1Update on _Level1State {
       }
     }
     return false;
-  }
-
-  bool _isStandingOnMovingPlatform(Level1UpdateState state) {
-    final List<Rect> floors = _movingPlatformFloorRects();
-    if (floors.isEmpty) {
-      return false;
-    }
-    final List<Rect> playerRects = _playerCollisionRectsForPose(
-      state,
-      y: state.playerY + 0.5,
-      elapsedSeconds: state.animationTimeSeconds,
-    );
-    for (final Rect playerRect in playerRects) {
-      for (final Rect floor in floors) {
-        final bool overlapsHorizontally =
-            playerRect.right > floor.left && playerRect.left < floor.right;
-        if (!overlapsHorizontally) {
-          continue;
-        }
-        final double bottomDelta = (playerRect.bottom - floor.top).abs();
-        if (bottomDelta <= 1.0) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  List<Rect> _movingPlatformFloorRects() {
-    final int? zoneIndex = _movingPlatformFloorZoneIndex;
-    final Map<String, dynamic>? level = _level;
-    if (zoneIndex == null || level == null) {
-      return const <Rect>[];
-    }
-    final List<Map<String, dynamic>> zones =
-        ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
-            .whereType<Map<String, dynamic>>()
-            .toList(growable: false);
-    if (zoneIndex < 0 || zoneIndex >= zones.length) {
-      return const <Rect>[];
-    }
-    final Map<String, dynamic> zone = zones[zoneIndex];
-    final double x = (zone['x'] as num?)?.toDouble() ?? 0;
-    final double y = (zone['y'] as num?)?.toDouble() ?? 0;
-    final double width = (zone['width'] as num?)?.toDouble() ?? 0;
-    final double height = (zone['height'] as num?)?.toDouble() ?? 0;
-    if (width <= 0 || height <= 0) {
-      return const <Rect>[];
-    }
-    return <Rect>[Rect.fromLTWH(x, y, width, height)];
   }
 
   void _collectTouchedGems(Level1UpdateState state) {
