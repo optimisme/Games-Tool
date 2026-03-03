@@ -247,9 +247,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
           builder: (BuildContext context, BoxConstraints constraints) {
             final Size canvasSize =
                 Size(constraints.maxWidth, constraints.maxHeight);
-            final Rect backLabelRect = _backLabelScreenRect(
-              canvasSize: canvasSize,
-            );
             final Level1RenderState? renderState = state == null
                 ? null
                 : Level1RenderState.from(
@@ -287,9 +284,11 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (TapDownDetails details) {
                   _focusNode.requestFocus();
-                  if (backLabelRect.contains(details.localPosition)) {
-                    _goBackToMenu();
-                  }
+                  _onHudTapDown(
+                    screenPosition: details.localPosition,
+                    canvasSize: canvasSize,
+                    hudCommands: hudCommands,
+                  );
                 },
                 child: CustomPaint(
                   painter: LevelPainter<Level1RenderState>(
@@ -310,8 +309,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                       );
                     },
                     loadingLabel: 'Loading level 1...',
-                    backLabel: _level1BackLabel,
-                    backLayout: _level1BackHudLayout,
                     renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
@@ -429,8 +426,23 @@ extension _Level1Hud on _Level1State {
     required Level1RenderState? renderState,
     required double hudRectWidth,
   }) {
+    final List<HudRenderCommand> commands = <HudRenderCommand>[
+      HudRenderCommand.text(
+        text: _level1BackLabel,
+        offsetInHud: Offset(
+          _level1BackHudLayout.textX,
+          _level1BackHudLayout.hudY,
+        ),
+        interactionId: kHudInteractionBack,
+        interactionBoundsInHud: resolveBackLabelRectInHudLocal(
+          label: _level1BackLabel,
+          layout: _level1BackHudLayout,
+          textStyle: kHudTextStyle,
+        ),
+      ),
+    ];
     if (renderState == null) {
-      return const <HudRenderCommand>[];
+      return commands;
     }
     final double hudRowTop = kHudRowTopSecondary;
     final String lifeText = 'Life: ${renderState.lifePercent}%';
@@ -441,7 +453,7 @@ extension _Level1Hud on _Level1State {
     final double lifeBarTopInHud =
         hudRowTop + (lifePainter.height - hudUnits(6)) / 2;
 
-    return <HudRenderCommand>[
+    commands.addAll(<HudRenderCommand>[
       HudRenderCommand.bottomLeftText(
         text:
             'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
@@ -468,7 +480,8 @@ extension _Level1Hud on _Level1State {
         text: 'FPS: ${renderState.fps.toStringAsFixed(1)}',
         top: kHudRowTopSecondary,
       ),
-    ];
+    ]);
+    return commands;
   }
 
   List<OverlayRenderCommand> _buildOverlayRenderCommands({
@@ -518,17 +531,18 @@ extension _Level1Hud on _Level1State {
     ];
   }
 
-  Rect _backLabelScreenRect({
+  void _onHudTapDown({
+    required Offset screenPosition,
     required Size canvasSize,
+    required List<HudRenderCommand> hudCommands,
   }) {
-    final Rect hudRect = resolveScreenHudRect(
+    final String? interactionId = hitTestHudInteractionId(
       canvasSize: canvasSize,
+      screenPosition: screenPosition,
+      commands: hudCommands,
     );
-    return resolveBackLabelRectInHud(
-      hudRect: hudRect,
-      label: _level1BackLabel,
-      layout: _level1BackHudLayout,
-      textStyle: kHudTextStyle,
-    );
+    if (interactionId == kHudInteractionBack) {
+      _goBackToMenu();
+    }
   }
 }

@@ -70,18 +70,28 @@ Rect resolveBackLabelRectInHud({
   if (hudRect.width <= 0 || hudRect.height <= 0) {
     return Rect.zero;
   }
+  final Rect localRect = resolveBackLabelRectInHudLocal(
+    label: label,
+    layout: layout,
+    textStyle: textStyle,
+  );
+  return localRect.shift(Offset(hudRect.left, hudRect.top));
+}
+
+Rect resolveBackLabelRectInHudLocal({
+  required String label,
+  required HudBackButtonLayout layout,
+  TextStyle textStyle = kHudTextStyle,
+}) {
   final TextPainter labelPainter = buildTextPainter(label, textStyle);
-  final double labelLeft = hudRect.left + layout.hudX;
-  final double labelTop = hudRect.top + layout.hudY;
   final double labelWidth =
       layout.iconWidth + layout.iconGap + labelPainter.width;
   final double labelHeight = layout.iconHeight > labelPainter.height
       ? layout.iconHeight
       : labelPainter.height;
-
   return Rect.fromLTWH(
-    labelLeft - layout.hitPadding.left,
-    labelTop - layout.hitPadding.top,
+    layout.hudX - layout.hitPadding.left,
+    layout.hudY - layout.hitPadding.top,
     labelWidth + layout.hitPadding.left + layout.hitPadding.right,
     labelHeight + layout.hitPadding.top + layout.hitPadding.bottom,
   );

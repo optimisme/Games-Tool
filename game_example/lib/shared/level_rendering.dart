@@ -69,8 +69,6 @@ class LevelPainter<TState> extends CustomPainter {
     required this.imageCommands,
     required this.resolveRuntimeCamera,
     required this.loadingLabel,
-    required this.backLabel,
-    required this.backLayout,
     required this.renderRevision,
     this.loadingBackgroundColor = const ui.Color(0xFF000000),
     this.worldBackgroundFallback = const ui.Color(0xFF000000),
@@ -89,8 +87,6 @@ class LevelPainter<TState> extends CustomPainter {
   final String loadingLabel;
   final ui.Color loadingBackgroundColor;
   final ui.Color worldBackgroundFallback;
-  final String backLabel;
-  final HudBackButtonLayout backLayout;
   final Object? renderRevision;
 
   @override
@@ -109,8 +105,6 @@ class LevelPainter<TState> extends CustomPainter {
       spriteCommands: spriteCommands,
       imageCommands: imageCommands,
       worldBackgroundFallback: worldBackgroundFallback,
-      backLabel: backLabel,
-      backLayout: backLayout,
       hudCommands: hudCommands,
       overlayCommands: overlayCommands,
     );
@@ -268,6 +262,9 @@ class HudRenderCommand {
     required this.offsetInHud,
     this.textStyle = kHudTextStyle,
     this.maxWidth,
+    this.interactionId,
+    this.interactionBoundsInHud,
+    this.interactionPadding = EdgeInsets.zero,
   })  : type = HudRenderCommandType.text,
         top = null,
         rightPadding = null,
@@ -289,6 +286,9 @@ class HudRenderCommand {
     required this.bottomInHud,
     this.textStyle = kHudTextStyle,
     this.maxWidth,
+    this.interactionId,
+    this.interactionBoundsInHud,
+    this.interactionPadding = EdgeInsets.zero,
   })  : type = HudRenderCommandType.bottomLeftText,
         offsetInHud = null,
         top = null,
@@ -308,6 +308,9 @@ class HudRenderCommand {
     required this.top,
     this.textStyle = kHudTextStyle,
     this.rightPadding = 20 * kHudSpacingScaleX,
+    this.interactionId,
+    this.interactionBoundsInHud,
+    this.interactionPadding = EdgeInsets.zero,
   })  : type = HudRenderCommandType.topRightText,
         offsetInHud = null,
         maxWidth = null,
@@ -334,6 +337,9 @@ class HudRenderCommand {
     this.fillToColor = const ui.Color(0xFF3BCB77),
     this.strokeColor = const ui.Color(0xFFB9D8E8),
     this.strokeWidth = 1 * kHudScale,
+    this.interactionId,
+    this.interactionBoundsInHud,
+    this.interactionPadding = EdgeInsets.zero,
   })  : type = HudRenderCommandType.progressBar,
         text = null,
         textStyle = null,
@@ -361,7 +367,12 @@ class HudRenderCommand {
   final ui.Color? fillToColor;
   final ui.Color? strokeColor;
   final double? strokeWidth;
+  final String? interactionId;
+  final ui.Rect? interactionBoundsInHud;
+  final EdgeInsets interactionPadding;
 }
+
+const String kHudInteractionBack = 'hud.back';
 
 enum OverlayRenderCommandType {
   centeredEndOverlay,
@@ -414,8 +425,6 @@ TState? paintLevelFrameWithCommands<TState>({
   required List<LevelSpriteRenderCommand> spriteCommands,
   required List<RenderImageCommand> imageCommands,
   required ui.Color worldBackgroundFallback,
-  required String backLabel,
-  required HudBackButtonLayout backLayout,
   required List<HudRenderCommand> hudCommands,
   List<OverlayRenderCommand> overlayCommands = const <OverlayRenderCommand>[],
 }) {
@@ -454,8 +463,6 @@ TState? paintLevelFrameWithCommands<TState>({
   drawCommonLevelHud(
     canvas: canvas,
     hudRect: screenHudRect,
-    backLabel: backLabel,
-    backLayout: backLayout,
     commands: hudCommands,
   );
   _drawOverlayCommands(
@@ -505,22 +512,142 @@ void _drawOverlayCommands({
 void drawCommonLevelHud({
   required ui.Canvas canvas,
   required ui.Rect hudRect,
-  required String backLabel,
-  required HudBackButtonLayout backLayout,
   List<HudRenderCommand> commands = const <HudRenderCommand>[],
 }) {
-  drawBackToMenuHud(
-    canvas: canvas,
-    hudRect: hudRect,
-    label: backLabel,
-    layout: backLayout,
-  );
   for (final HudRenderCommand command in commands) {
     _drawHudCommand(
       canvas: canvas,
       hudRect: hudRect,
       command: command,
     );
+  }
+}
+
+String? hitTestHudInteractionId({
+  required ui.Size canvasSize,
+  required ui.Offset screenPosition,
+  required List<HudRenderCommand> commands,
+}) {
+  final ui.Rect hudRect = resolveScreenHudRect(canvasSize: canvasSize);
+  for (int i = commands.length - 1; i >= 0; i--) {
+    final HudRenderCommand command = commands[i];
+    final String? interactionId = command.interactionId;
+    if (interactionId == null) {
+      continue;
+    }
+    final ui.Rect? hitRect = _resolveHudCommandHitRect(
+      hudRect: hudRect,
+      command: command,
+    );
+    if (hitRect != null && hitRect.contains(screenPosition)) {
+      return interactionId;
+    }
+  }
+  return null;
+}
+
+ui.Rect? _resolveHudCommandHitRect({
+  required ui.Rect hudRect,
+  required HudRenderCommand command,
+}) {
+  ui.Rect? rect = command.interactionBoundsInHud == null
+      ? _resolveHudCommandScreenRectFromGeometry(
+          hudRect: hudRect,
+          command: command,
+        )
+      : command.interactionBoundsInHud!.shift(
+          ui.Offset(hudRect.left, hudRect.top),
+        );
+  if (rect == null) {
+    return null;
+  }
+  final EdgeInsets padding = command.interactionPadding;
+  return ui.Rect.fromLTRB(
+    rect.left - padding.left,
+    rect.top - padding.top,
+    rect.right + padding.right,
+    rect.bottom + padding.bottom,
+  );
+}
+
+ui.Rect? _resolveHudCommandScreenRectFromGeometry({
+  required ui.Rect hudRect,
+  required HudRenderCommand command,
+}) {
+  switch (command.type) {
+    case HudRenderCommandType.text:
+      final String? text = command.text;
+      final ui.Offset? offsetInHud = command.offsetInHud;
+      final TextStyle? style = command.textStyle;
+      if (text == null || offsetInHud == null || style == null) {
+        return null;
+      }
+      final TextPainter painter = buildTextPainter(
+        text,
+        style,
+        maxWidth: command.maxWidth,
+      );
+      return ui.Rect.fromLTWH(
+        hudRect.left + offsetInHud.dx,
+        hudRect.top + offsetInHud.dy,
+        painter.width,
+        painter.height,
+      );
+    case HudRenderCommandType.bottomLeftText:
+      final String? text = command.text;
+      final double? leftInHud = command.leftInHud;
+      final double? bottomInHud = command.bottomInHud;
+      final TextStyle? style = command.textStyle;
+      if (text == null ||
+          leftInHud == null ||
+          bottomInHud == null ||
+          style == null) {
+        return null;
+      }
+      final TextPainter painter = buildTextPainter(
+        text,
+        style,
+        maxWidth: command.maxWidth,
+      );
+      return ui.Rect.fromLTWH(
+        hudRect.left + leftInHud,
+        hudRect.bottom - bottomInHud,
+        painter.width,
+        painter.height,
+      );
+    case HudRenderCommandType.topRightText:
+      final String? text = command.text;
+      final double? top = command.top;
+      final TextStyle? style = command.textStyle;
+      if (text == null || top == null || style == null) {
+        return null;
+      }
+      final TextPainter painter = buildTextPainter(text, style);
+      final double rightPadding =
+          command.rightPadding ?? (20 * kHudSpacingScaleX);
+      return ui.Rect.fromLTWH(
+        hudRect.right - painter.width - rightPadding,
+        hudRect.top + top,
+        painter.width,
+        painter.height,
+      );
+    case HudRenderCommandType.progressBar:
+      final double? leftInHud = command.leftInHud;
+      final double? topInHud = command.topInHud;
+      final double? width = command.barWidth;
+      final double? height = command.barHeight;
+      if (leftInHud == null ||
+          topInHud == null ||
+          width == null ||
+          height == null) {
+        return null;
+      }
+      return ui.Rect.fromLTWH(
+        hudRect.left + leftInHud,
+        hudRect.top + topInHud,
+        width,
+        height,
+      );
   }
 }
 

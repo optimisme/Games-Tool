@@ -276,9 +276,6 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
           builder: (BuildContext context, BoxConstraints constraints) {
             final Size canvasSize =
                 Size(constraints.maxWidth, constraints.maxHeight);
-            final Rect backLabelRect = _backLabelScreenRect(
-              canvasSize: canvasSize,
-            );
             final Level0RenderState? renderState = state == null
                 ? null
                 : Level0RenderState.from(
@@ -313,9 +310,11 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (TapDownDetails details) {
                   _focusNode.requestFocus();
-                  if (backLabelRect.contains(details.localPosition)) {
-                    _goBackToMenu();
-                  }
+                  _onHudTapDown(
+                    screenPosition: details.localPosition,
+                    canvasSize: canvasSize,
+                    hudCommands: hudCommands,
+                  );
                 },
                 child: CustomPaint(
                   painter: LevelPainter<Level0RenderState>(
@@ -336,8 +335,6 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                       );
                     },
                     loadingLabel: 'Loading level 0...',
-                    backLabel: _level0BackLabel,
-                    backLayout: _level0BackHudLayout,
                     renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
@@ -421,10 +418,25 @@ extension _Level0Hud on _Level0State {
     required Level0RenderState? renderState,
     required double hudRectWidth,
   }) {
-    if (renderState == null) {
-      return const <HudRenderCommand>[];
-    }
     final List<HudRenderCommand> commands = <HudRenderCommand>[
+      HudRenderCommand.text(
+        text: _level0BackLabel,
+        offsetInHud: Offset(
+          _level0BackHudLayout.textX,
+          _level0BackHudLayout.hudY,
+        ),
+        interactionId: kHudInteractionBack,
+        interactionBoundsInHud: resolveBackLabelRectInHudLocal(
+          label: _level0BackLabel,
+          layout: _level0BackHudLayout,
+          textStyle: kHudTextStyle,
+        ),
+      ),
+    ];
+    if (renderState == null) {
+      return commands;
+    }
+    commands.addAll(<HudRenderCommand>[
       HudRenderCommand.bottomLeftText(
         text: 'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
         leftInHud: kHudFooterLeft,
@@ -440,10 +452,10 @@ extension _Level0Hud on _Level0State {
         text: 'FPS: ${renderState.fps.toStringAsFixed(1)}',
         top: kHudRowTopSecondary,
       ),
-    ];
+    ]);
     if (renderState.isOnPont) {
       commands.insert(
-        0,
+        1,
         HudRenderCommand.text(
           text: 'Caminant pel pont',
           offsetInHud: Offset(hudSpacingX(20), kHudRowTopSecondary),
@@ -496,17 +508,18 @@ extension _Level0Hud on _Level0State {
     ];
   }
 
-  Rect _backLabelScreenRect({
+  void _onHudTapDown({
+    required Offset screenPosition,
     required Size canvasSize,
+    required List<HudRenderCommand> hudCommands,
   }) {
-    final Rect hudRect = resolveScreenHudRect(
+    final String? interactionId = hitTestHudInteractionId(
       canvasSize: canvasSize,
+      screenPosition: screenPosition,
+      commands: hudCommands,
     );
-    return resolveBackLabelRectInHud(
-      hudRect: hudRect,
-      label: _level0BackLabel,
-      layout: _level0BackHudLayout,
-      textStyle: kHudTextStyle,
-    );
+    if (interactionId == kHudInteractionBack) {
+      _goBackToMenu();
+    }
   }
 }
