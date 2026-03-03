@@ -55,6 +55,17 @@ The API is designed for 2D gameplay runtime access:
 - `currentFrameId`
 - `resetFrameState()`
 - `beginFrame(frameId?)`
+- `beginTick()`
+
+### Runtime transform interpolation
+
+- `hasTransform2D(id)`
+- `transform2D(id)`
+- `setTransform2D(id, x, y)`
+- `snapTransform2D(id, x, y)`
+- `removeTransform2D(id)`
+- `clearTransform2D()`
+- `sampleTransform2D(id, alpha?, fallbackX?, fallbackY?)`
 
 ### Strict path get/set
 
@@ -239,8 +250,14 @@ Each transition is `CollisionTransition<String>`:
 
 Call pattern:
 
-1. `beginFrame()` once per game frame.
+1. `beginFrame()` once per game frame when you are consuming `updateFrameDeltaForSprite(...)`.
 2. `updateFrameDeltaForSprite(...)` for each sprite you track.
+
+Interpolation note:
+
+- For fixed-step gameplay loops that render with interpolation, call `beginTick()`
+  once per simulation tick before mutating transforms, then `setTransform2D(...)`
+  and `sampleTransform2D(alpha: ...)` during rendering.
 
 ## Path and key conventions
 

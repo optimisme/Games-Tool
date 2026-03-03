@@ -40,8 +40,12 @@ flutter run -d macos # linux or windows
 - `lib/app.dart`: initial route to `Menu`.
 - `lib/app_data.dart`: central loading/cache state for game data and images.
 - `lib/shared/camera.dart`: mutable camera model + conversion to `RuntimeCamera2D`.
+- `lib/shared/level_rendering.dart`: shared command-based world/HUD/overlay renderer
+  (`LayerRenderCommand`, `LevelSpriteRenderCommand`, `HudRenderCommand`,
+  `OverlayRenderCommand`, `RenderImageCommand`) and shared `LevelPainter`.
 - `lib/shared/utils_level.dart`: reusable level flow/lifecycle helpers
-  (navigation, fixed-step loop ticker bootstrap with frame callback, viewport bootstrap).
+  (navigation, fixed-step loop ticker bootstrap with frame callback, viewport bootstrap,
+  cloned runtime game-data helpers).
 - `lib/shared/utils_painter.dart`: reusable HUD/text painter helpers,
   including shared centered end-state overlays (win/game-over style layers).
 
@@ -49,7 +53,6 @@ flutter run -d macos # linux or windows
 
 - `lib/menu/main.dart`: menu widget and orchestration of module parts.
 - `lib/menu/lifecycle.dart`: menu setup/teardown lifecycle.
-- `lib/menu/layout.dart`: layout math and UI geometry.
 - `lib/menu/interaction.dart`: keyboard/mouse input and navigation.
 - `lib/menu/drawing.dart`: `CustomPainter` render logic.
 
@@ -57,8 +60,7 @@ flutter run -d macos # linux or windows
 
 - `lib/loading/main.dart`: loading screen state + navigation to target level.
 - `lib/loading/lifecycle.dart`: loading startup and animation lifecycle.
-- `lib/loading/layout.dart`: progress/label composition helpers.
-- `lib/loading/interaction.dart`: level routing decision logic.
+- `lib/loading/interaction.dart`: loading input/retry/back navigation and level routing.
 - `lib/loading/drawing.dart`: loading painter.
 
 ### Level 0 module
@@ -68,7 +70,8 @@ flutter run -d macos # linux or windows
 - `lib/level_0/models.dart`: update/render state models.
 - `lib/level_0/interaction.dart`: input handling and menu return actions.
 - `lib/level_0/update.dart`: gameplay simulation/update tick logic.
-- `lib/level_0/drawing.dart`: world and sprite rendering.
+- Rendering is built as command lists in `main.dart` and executed by shared
+  `lib/shared/level_rendering.dart`.
 - Win flow: collecting all `Arbre` zones triggers a `TU GUANYES` end-state
   overlay and delayed "press any key" return behavior (aligned with level 1).
 
@@ -79,8 +82,10 @@ flutter run -d macos # linux or windows
 - `lib/level_1/models.dart`: update/render state models.
 - `lib/level_1/interaction.dart`: input handling and end-state actions.
 - `lib/level_1/update.dart`: platforming physics/combat/gameplay tick logic.
-- `lib/level_1/drawing.dart`: layered world + character rendering.
-- End-state overlays reuse shared painter helpers from `lib/shared/utils_painter.dart`.
+- Rendering is built as command lists in `main.dart` and executed by shared
+  `lib/shared/level_rendering.dart`.
+- End-state overlays are command-driven (`OverlayRenderCommand`) and rendered by
+  shared pipeline code.
 
 ## 4. Game flow
 
@@ -107,7 +112,10 @@ Most-used methods when integrating gameplay:
   tilemaps, zones, animations.
 - `GamesToolApi.collectReferencedImageFiles(gameData)`: gather all referenced
   image paths.
-- `GameDataRuntimeApi.beginFrame(frameId?)`: start a collision/frame tick.
+- `GameDataRuntimeApi.beginTick()`: advance tracked transform interpolation for a fixed simulation tick.
+- `GameDataRuntimeApi.beginFrame(frameId?)`: start/update collision frame id (for delta-collision workflows).
+- `GameDataRuntimeApi.setTransform2D(...)` / `snapTransform2D(...)` / `sampleTransform2D(...)`:
+  runtime transform interpolation pipeline used by level render states.
 - `GameDataRuntimeApi.updateFrameDeltaForSprite(...)`: compute entered/exited/
   staying contacts for a sprite.
 - `GameDataRuntimeApi.collideSpriteWithZones(...)`: sprite vs zone collisions.
