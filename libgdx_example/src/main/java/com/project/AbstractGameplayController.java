@@ -384,8 +384,8 @@ public abstract class AbstractGameplayController implements GameplayController {
         float worldY,
         Rectangle out
     ) {
-        float left = worldX - sprite.width * runtime.anchorX;
-        float top = worldY - sprite.height * runtime.anchorY;
+        float left = worldX - sprite.width * sprite.anchorX;
+        float top = worldY - sprite.height * sprite.anchorY;
         out.set(left, top, sprite.width, sprite.height);
     }
 
@@ -397,8 +397,8 @@ public abstract class AbstractGameplayController implements GameplayController {
         LevelData.HitBox hitBox,
         Rectangle out
     ) {
-        float left = worldX - sprite.width * runtime.anchorX;
-        float top = worldY - sprite.height * runtime.anchorY;
+        float left = worldX - sprite.width * sprite.anchorX;
+        float top = worldY - sprite.height * sprite.anchorY;
 
         float normalizedX = hitBox.x;
         float normalizedY = hitBox.y;

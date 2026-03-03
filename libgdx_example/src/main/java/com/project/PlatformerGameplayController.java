@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.IntSet;
 
 public final class PlatformerGameplayController extends AbstractGameplayController {
 
-    private static final float MOVE_SPEED_PER_SECOND = 204f;
+    private static final float MOVE_SPEED_PER_SECOND = 110f;
     private static final float GRAVITY_PER_SECOND_SQ = 2088f;
     private static final float JUMP_IMPULSE_PER_SECOND = 708f;
     private static final float MAX_FALL_SPEED_PER_SECOND = 840f;
@@ -56,11 +56,6 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
 
     @Override
     public void handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            resetRuntimeState();
-            return;
-        }
-
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
             || Gdx.input.isKeyJustPressed(Input.Keys.W)
             || Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
@@ -110,9 +105,10 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             }
         }
 
+        float previousX = playerX;
         float previousY = playerY;
         playerX += velocityX * dtSeconds;
-        resolveHorizontalCollisions();
+        resolveHorizontalCollisions(previousX);
 
         playerY += velocityY * dtSeconds;
         resolveVerticalCollisions(previousY);
@@ -151,14 +147,13 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
     }
 
-    private void resolveHorizontalCollisions() {
-        if (floorZoneIndices.size <= 0) {
+    private void resolveHorizontalCollisions(float previousX) {
+        if (floorZoneIndices.size <= 0 || Math.abs(velocityX) <= 0.0001f) {
             return;
         }
 
-        LevelData.LevelSprite sprite = playerSprite();
-        LevelRenderer.SpriteRuntimeState state = playerState();
         Rectangle playerRect = playerRect(rectCacheA);
+        Rectangle previousRect = playerRectAt(previousX, playerY, previousPlayerRectCache);
 
         for (int i = 0; i < floorZoneIndices.size; i++) {
             LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(i));
@@ -168,20 +163,24 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             }
 
             if (velocityX > 0f) {
-                playerX = zoneRect.x - sprite.width * (1f - state.anchorX);
-            } else if (velocityX < 0f) {
-                playerX = zoneRect.x + zoneRect.width + sprite.width * state.anchorX;
-            } else {
-                float pushLeft = (zoneRect.x + zoneRect.width) - playerRect.x;
-                float pushRight = (playerRect.x + playerRect.width) - zoneRect.x;
-                if (pushLeft < pushRight) {
-                    playerX += pushLeft;
-                } else {
-                    playerX -= pushRight;
+                float previousRight = previousRect.x + previousRect.width;
+                if (previousRight > zoneRect.x + COLLISION_EPSILON) {
+                    continue;
                 }
+                float playerRightOffset = (playerRect.x + playerRect.width) - playerX;
+                playerX = zoneRect.x - playerRightOffset;
+            } else if (velocityX < 0f) {
+                float previousLeft = previousRect.x;
+                float zoneRight = zoneRect.x + zoneRect.width;
+                if (previousLeft < zoneRight - COLLISION_EPSILON) {
+                    continue;
+                }
+                float playerLeftOffset = playerRect.x - playerX;
+                playerX = zoneRect.x + zoneRect.width - playerLeftOffset;
             }
             velocityX = 0f;
             playerRectAt(playerX, playerY, playerRect);
+            previousRect.set(playerRect);
         }
     }
 
@@ -211,11 +210,13 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             float zoneBottom = zoneRect.y + zoneRect.height;
 
             if (velocityY > 0f && previousBottom <= zoneTop + COLLISION_EPSILON) {
-                playerY = zoneTop - sprite.height * (1f - state.anchorY);
+                float playerBottomOffset = (playerRect.y + playerRect.height) - playerY;
+                playerY = zoneTop - playerBottomOffset;
                 velocityY = 0f;
                 onGround = true;
             } else if (velocityY < 0f && previousTop >= zoneBottom - COLLISION_EPSILON) {
-                playerY = zoneBottom + sprite.height * state.anchorY;
+                float playerTopOffset = playerRect.y - playerY;
+                playerY = zoneBottom - playerTopOffset;
                 velocityY = 0f;
             } else {
                 float pushDown = (zoneRect.y + zoneRect.height) - playerRect.y;

@@ -55,6 +55,13 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     @Override
+    public void show() {
+        // Play screen uses polling (isKeyPressed/isKeyJustPressed), so no InputProcessor is needed.
+        // Clear MenuScreen processor so keys like SPACE are not handled by menu actions.
+        Gdx.input.setInputProcessor(null);
+    }
+
+    @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.unloadReferencedAssetsForLevel(levelIndex);
