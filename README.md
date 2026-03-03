@@ -33,6 +33,8 @@ design content with the editor, then run/validate that content in a game app.
   - Detailed runtime API reference for `utils_gamestool`.
   - Documents `GamesToolApi`, `GameDataRuntimeApi`, rendering helpers, math,
     collisions, and frame-delta behavior.
+  - Includes generic zone lookup helpers (`type` OR `name`) and hot-loop
+    guidance for resolving zone rects once per simulation tick.
 
 - `GUIA-ESTUDI.md`
   - Learning guide in Catalan for students.

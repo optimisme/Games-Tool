@@ -196,6 +196,116 @@ class GamesToolApi {
     return null;
   }
 
+  bool zoneMatchesTypeOrName(
+    Map<String, dynamic> zone,
+    String value, {
+    bool caseInsensitive = true,
+  }) {
+    final String targetRaw = value.trim();
+    if (targetRaw.isEmpty) {
+      return false;
+    }
+    final String zoneType = ((zone['type'] as String?) ?? '').trim();
+    final String zoneName = ((zone['name'] as String?) ?? '').trim();
+    if (caseInsensitive) {
+      final String target = targetRaw.toLowerCase();
+      return zoneType.toLowerCase() == target ||
+          zoneName.toLowerCase() == target;
+    }
+    return zoneType == targetRaw || zoneName == targetRaw;
+  }
+
+  List<int> findZoneIndicesByTypeOrName(
+    Map<String, dynamic>? level,
+    String value, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return const <int>[];
+    }
+    final List<Map<String, dynamic>> zones = levelZones(level);
+    final List<int> indices = <int>[];
+    for (int i = 0; i < zones.length; i++) {
+      if (!zoneMatchesTypeOrName(
+        zones[i],
+        value,
+        caseInsensitive: caseInsensitive,
+      )) {
+        continue;
+      }
+      indices.add(i);
+    }
+    return indices;
+  }
+
+  List<Map<String, dynamic>> findZonesByTypeOrName(
+    Map<String, dynamic>? level,
+    String value, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    final List<Map<String, dynamic>> zones = levelZones(level);
+    return zones.where((Map<String, dynamic> zone) {
+      return zoneMatchesTypeOrName(
+        zone,
+        value,
+        caseInsensitive: caseInsensitive,
+      );
+    }).toList(growable: false);
+  }
+
+  Rect? zoneRect(
+    Map<String, dynamic> zone, {
+    bool requirePositiveSize = true,
+  }) {
+    final double x = _finiteDouble(zone['x'], 0);
+    final double y = _finiteDouble(zone['y'], 0);
+    final double width = _finiteDouble(zone['width'], 0);
+    final double height = _finiteDouble(zone['height'], 0);
+    if (requirePositiveSize && (width <= 0 || height <= 0)) {
+      return null;
+    }
+    return Rect.fromLTWH(
+      x,
+      y,
+      math.max(0, width),
+      math.max(0, height),
+    );
+  }
+
+  List<Rect> zoneRectsByTypeOrName(
+    Map<String, dynamic>? level,
+    String value, {
+    bool caseInsensitive = true,
+    bool requirePositiveSize = true,
+  }) {
+    if (level == null) {
+      return const <Rect>[];
+    }
+    final List<Map<String, dynamic>> zones = findZonesByTypeOrName(
+      level,
+      value,
+      caseInsensitive: caseInsensitive,
+    );
+    if (zones.isEmpty) {
+      return const <Rect>[];
+    }
+    final List<Rect> zoneRects = <Rect>[];
+    for (final Map<String, dynamic> zone in zones) {
+      final Rect? zoneRectValue = zoneRect(
+        zone,
+        requirePositiveSize: requirePositiveSize,
+      );
+      if (zoneRectValue == null) {
+        continue;
+      }
+      zoneRects.add(zoneRectValue);
+    }
+    return zoneRects;
+  }
+
   int? findSpriteIndexByTypeOrName(
     Map<String, dynamic>? level,
     String value, {

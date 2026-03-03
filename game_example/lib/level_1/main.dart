@@ -90,37 +90,6 @@ bool _shouldSkipLevel1Sprite({
   return false;
 }
 
-List<Rect> _resolveLevel1ZonesByTypeOrName(
-  Map<String, dynamic>? level,
-  String zoneTypeOrName,
-) {
-  if (level == null) {
-    return const <Rect>[];
-  }
-  final List<Map<String, dynamic>> zones =
-      ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  final String target = zoneTypeOrName.toLowerCase();
-  final List<Rect> floors = <Rect>[];
-  for (final Map<String, dynamic> zone in zones) {
-    final String zoneType = ((zone['type'] as String?) ?? '').trim();
-    final String zoneName = ((zone['name'] as String?) ?? '').trim();
-    if (zoneType.toLowerCase() != target && zoneName.toLowerCase() != target) {
-      continue;
-    }
-    final double x = (zone['x'] as num?)?.toDouble() ?? 0;
-    final double y = (zone['y'] as num?)?.toDouble() ?? 0;
-    final double width = (zone['width'] as num?)?.toDouble() ?? 0;
-    final double height = (zone['height'] as num?)?.toDouble() ?? 0;
-    if (width <= 0 || height <= 0) {
-      continue;
-    }
-    floors.add(Rect.fromLTWH(x, y, width, height));
-  }
-  return floors;
-}
-
 /// Platformer level with moving platforms, collectibles, and enemy interactions.
 class Level1 extends StatefulWidget {
   const Level1({super.key, required this.levelIndex});

@@ -126,28 +126,10 @@ Set<String> _collectLevel0ArbreTileKeys({
   final double layerX = gamesTool.layerX(decoracionsLayer);
   final double layerY = gamesTool.layerY(decoracionsLayer);
 
-  final List<Map<String, dynamic>> zones =
-      ((level['zones'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  final String arbreTarget = _level0ArbreZoneName.toLowerCase();
-  final List<Rect> arbreZoneRects = <Rect>[];
-  for (final Map<String, dynamic> zone in zones) {
-    final String zoneType = ((zone['type'] as String?) ?? '').trim();
-    final String zoneName = ((zone['name'] as String?) ?? '').trim();
-    if (zoneType.toLowerCase() != arbreTarget &&
-        zoneName.toLowerCase() != arbreTarget) {
-      continue;
-    }
-    final double zoneX = (zone['x'] as num?)?.toDouble() ?? 0;
-    final double zoneY = (zone['y'] as num?)?.toDouble() ?? 0;
-    final double zoneWidth = (zone['width'] as num?)?.toDouble() ?? 0;
-    final double zoneHeight = (zone['height'] as num?)?.toDouble() ?? 0;
-    if (zoneWidth <= 0 || zoneHeight <= 0) {
-      continue;
-    }
-    arbreZoneRects.add(Rect.fromLTWH(zoneX, zoneY, zoneWidth, zoneHeight));
-  }
+  final List<Rect> arbreZoneRects = gamesTool.zoneRectsByTypeOrName(
+    level,
+    _level0ArbreZoneName,
+  );
   if (arbreZoneRects.isEmpty) {
     return <String>{};
   }
