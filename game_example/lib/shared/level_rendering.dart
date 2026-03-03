@@ -22,6 +22,10 @@ class LevelRenderFrameContext<TState> {
   final RuntimeCamera2D runtimeCamera;
 }
 
+typedef LevelRuntimeCameraResolver<TState> = RuntimeCamera2D Function(
+  TState state,
+);
+
 class LevelSpriteRenderCommand {
   const LevelSpriteRenderCommand({
     required this.sprite,
@@ -50,6 +54,73 @@ class LevelSpriteRenderCommand {
   final double? drawHeightWorld;
   final double fallbackFps;
   final bool cullWhenOffscreen;
+}
+
+class LevelPainter<TState> extends CustomPainter {
+  const LevelPainter({
+    required this.appData,
+    required this.gameData,
+    required this.level,
+    required this.renderState,
+    required this.layerCommands,
+    required this.spriteCommands,
+    required this.hudCommands,
+    required this.overlayCommands,
+    required this.imageCommands,
+    required this.resolveRuntimeCamera,
+    required this.loadingLabel,
+    required this.backLabel,
+    required this.backLayout,
+    required this.renderRevision,
+    this.loadingBackgroundColor = const ui.Color(0xFF000000),
+    this.worldBackgroundFallback = const ui.Color(0xFF000000),
+  });
+
+  final AppData appData;
+  final Map<String, dynamic> gameData;
+  final Map<String, dynamic>? level;
+  final TState? renderState;
+  final List<LayerRenderCommand> layerCommands;
+  final List<LevelSpriteRenderCommand> spriteCommands;
+  final List<HudRenderCommand> hudCommands;
+  final List<OverlayRenderCommand> overlayCommands;
+  final List<RenderImageCommand> imageCommands;
+  final LevelRuntimeCameraResolver<TState> resolveRuntimeCamera;
+  final String loadingLabel;
+  final ui.Color loadingBackgroundColor;
+  final ui.Color worldBackgroundFallback;
+  final String backLabel;
+  final HudBackButtonLayout backLayout;
+  final Object? renderRevision;
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    paintLevelFrameWithCommands<TState>(
+      canvas: canvas,
+      canvasSize: size,
+      appData: appData,
+      gameData: gameData,
+      level: level,
+      renderState: renderState,
+      resolveRuntimeCamera: resolveRuntimeCamera,
+      loadingLabel: loadingLabel,
+      loadingBackgroundColor: loadingBackgroundColor,
+      layerCommands: layerCommands,
+      spriteCommands: spriteCommands,
+      imageCommands: imageCommands,
+      worldBackgroundFallback: worldBackgroundFallback,
+      backLabel: backLabel,
+      backLayout: backLayout,
+      hudCommands: hudCommands,
+      overlayCommands: overlayCommands,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant LevelPainter<TState> oldDelegate) {
+    return oldDelegate.renderRevision != renderRevision ||
+        oldDelegate.level != level;
+  }
 }
 
 class LevelSpriteRenderSelection {
@@ -292,6 +363,33 @@ class HudRenderCommand {
   final double? strokeWidth;
 }
 
+enum OverlayRenderCommandType {
+  centeredEndOverlay,
+}
+
+class OverlayRenderCommand {
+  const OverlayRenderCommand.centeredEndOverlay({
+    required this.title,
+    required this.showHint,
+    required this.hintText,
+    this.titleStyle,
+    this.hintStyle,
+    this.titleCenterYOffset = -12 * kHudSpacingScaleY,
+    this.hintCenterYOffset = 16 * kHudSpacingScaleY,
+    this.scrimColor = const ui.Color(0xB3000000),
+  }) : type = OverlayRenderCommandType.centeredEndOverlay;
+
+  final OverlayRenderCommandType type;
+  final String title;
+  final bool showHint;
+  final String hintText;
+  final TextStyle? titleStyle;
+  final TextStyle? hintStyle;
+  final double titleCenterYOffset;
+  final double hintCenterYOffset;
+  final ui.Color scrimColor;
+}
+
 void drawLevelLoadingPlaceholder({
   required ui.Canvas canvas,
   required ui.Size size,
@@ -300,6 +398,108 @@ void drawLevelLoadingPlaceholder({
 }) {
   canvas.drawRect(ui.Offset.zero & size, ui.Paint()..color = backgroundColor);
   drawHudText(canvas, label, const ui.Offset(20, 20));
+}
+
+TState? paintLevelFrameWithCommands<TState>({
+  required ui.Canvas canvas,
+  required ui.Size canvasSize,
+  required AppData appData,
+  required Map<String, dynamic> gameData,
+  required Map<String, dynamic>? level,
+  required TState? renderState,
+  required RuntimeCamera2D Function(TState state) resolveRuntimeCamera,
+  required String loadingLabel,
+  required ui.Color loadingBackgroundColor,
+  required List<LayerRenderCommand> layerCommands,
+  required List<LevelSpriteRenderCommand> spriteCommands,
+  required List<RenderImageCommand> imageCommands,
+  required ui.Color worldBackgroundFallback,
+  required String backLabel,
+  required HudBackButtonLayout backLayout,
+  required List<HudRenderCommand> hudCommands,
+  List<OverlayRenderCommand> overlayCommands = const <OverlayRenderCommand>[],
+}) {
+  final Map<String, dynamic>? levelData = level;
+  final TState? state = renderState;
+  if (levelData == null || state == null) {
+    drawLevelLoadingPlaceholder(
+      canvas: canvas,
+      size: canvasSize,
+      label: loadingLabel,
+      backgroundColor: loadingBackgroundColor,
+    );
+    return null;
+  }
+
+  final LevelRenderFrameContext<TState> frame = LevelRenderFrameContext<TState>(
+    appData: appData,
+    gameData: gameData,
+    level: levelData,
+    renderState: state,
+    runtimeCamera: resolveRuntimeCamera(state),
+  );
+  drawLevelWorldWithCommands<TState>(
+    canvas: canvas,
+    canvasSize: canvasSize,
+    frame: frame,
+    layerCommands: layerCommands,
+    spriteCommands: spriteCommands,
+    imageCommands: imageCommands,
+    backgroundFallback: worldBackgroundFallback,
+  );
+
+  final ui.Rect screenHudRect = resolveScreenHudRect(
+    canvasSize: canvasSize,
+  );
+  drawCommonLevelHud(
+    canvas: canvas,
+    hudRect: screenHudRect,
+    backLabel: backLabel,
+    backLayout: backLayout,
+    commands: hudCommands,
+  );
+  _drawOverlayCommands(
+    canvas: canvas,
+    canvasSize: canvasSize,
+    commands: overlayCommands,
+  );
+  return state;
+}
+
+void _drawOverlayCommands({
+  required ui.Canvas canvas,
+  required ui.Size canvasSize,
+  required List<OverlayRenderCommand> commands,
+}) {
+  for (final OverlayRenderCommand command in commands) {
+    switch (command.type) {
+      case OverlayRenderCommandType.centeredEndOverlay:
+        drawCenteredEndOverlay(
+          canvas: canvas,
+          viewportSize: canvasSize,
+          title: command.title,
+          showHint: command.showHint,
+          hintText: command.hintText,
+          titleStyle: command.titleStyle ??
+              const TextStyle(
+                color: Color(0xFFFFFFFF),
+                fontSize: 20 * kHudScale,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5 * kHudScale,
+              ),
+          hintStyle: command.hintStyle ??
+              const TextStyle(
+                color: Color(0xFFE0F2FF),
+                fontSize: 8.5 * kHudScale,
+                fontWeight: FontWeight.w600,
+              ),
+          titleCenterYOffset: command.titleCenterYOffset,
+          hintCenterYOffset: command.hintCenterYOffset,
+          scrimColor: command.scrimColor,
+        );
+        break;
+    }
+  }
 }
 
 void drawCommonLevelHud({

@@ -268,6 +268,14 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
               appData: appData,
               renderState: renderState,
             );
+            final List<HudRenderCommand> hudCommands = _buildHudRenderCommands(
+              renderState: renderState,
+              hudRectWidth: resolveScreenHudRect(canvasSize: canvasSize).width,
+            );
+            final List<OverlayRenderCommand> overlayCommands =
+                _buildOverlayRenderCommands(
+              renderState: renderState,
+            );
             final List<RenderImageCommand> imageCommands =
                 _buildImageRenderCommands(canvasSize: canvasSize);
 
@@ -285,15 +293,27 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                   }
                 },
                 child: CustomPaint(
-                  painter: Level1Painter(
+                  painter: LevelPainter<Level1RenderState>(
                     appData: appData,
                     gameData: appData.gameData,
                     level: _level,
-                    camera: _camera,
                     renderState: renderState,
                     layerCommands: layerCommands,
                     spriteCommands: spriteCommands,
+                    hudCommands: hudCommands,
+                    overlayCommands: overlayCommands,
                     imageCommands: imageCommands,
+                    resolveRuntimeCamera: (Level1RenderState state) {
+                      return RuntimeCamera2D(
+                        x: state.cameraX,
+                        y: state.cameraY,
+                        focal: _camera.focal,
+                      );
+                    },
+                    loadingLabel: 'Loading level 1...',
+                    backLabel: _level1BackLabel,
+                    backLayout: _level1BackHudLayout,
+                    renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -404,6 +424,79 @@ extension _Level1Hud on _Level1State {
             : null,
       );
     }).toList(growable: false);
+  }
+
+  List<HudRenderCommand> _buildHudRenderCommands({
+    required Level1RenderState? renderState,
+    required double hudRectWidth,
+  }) {
+    if (renderState == null) {
+      return const <HudRenderCommand>[];
+    }
+    final double hudRowTop = kHudRowTopSecondary;
+    final String lifeText = 'Life: ${renderState.lifePercent}%';
+    final TextPainter lifePainter = buildTextPainter(lifeText, kHudTextStyle);
+    final double lifeLeftInHud = _level1BackHudLayout.hudX;
+    final double lifeBarLeftInHud =
+        lifeLeftInHud + lifePainter.width + hudSpacingX(10);
+    final double lifeBarTopInHud =
+        hudRowTop + (lifePainter.height - hudUnits(6)) / 2;
+
+    return <HudRenderCommand>[
+      HudRenderCommand.bottomLeftText(
+        text:
+            'LEVEL 1: PLATFORMER  |  MOVE: A/D OR ARROWS  |  JUMP: SPACE/W/UP',
+        leftInHud: kHudFooterLeft,
+        bottomInHud: kHudFooterBottom,
+        maxWidth: resolveHudFooterMaxWidth(hudRectWidth),
+      ),
+      HudRenderCommand.topRightText(
+        text: 'Gems: ${renderState.gemsCount}',
+        top: kHudRowTopPrimary,
+      ),
+      HudRenderCommand.text(
+        text: lifeText,
+        offsetInHud: Offset(lifeLeftInHud, hudRowTop),
+      ),
+      HudRenderCommand.progressBar(
+        leftInHud: lifeBarLeftInHud,
+        topInHud: lifeBarTopInHud,
+        barWidth: hudUnits(62),
+        barHeight: hudUnits(6),
+        progress: renderState.lifePercent / 100.0,
+      ),
+      HudRenderCommand.topRightText(
+        text: 'FPS: ${renderState.fps.toStringAsFixed(1)}',
+        top: kHudRowTopSecondary,
+      ),
+    ];
+  }
+
+  List<OverlayRenderCommand> _buildOverlayRenderCommands({
+    required Level1RenderState? renderState,
+  }) {
+    if (renderState == null) {
+      return const <OverlayRenderCommand>[];
+    }
+    if (renderState.isGameOver) {
+      return <OverlayRenderCommand>[
+        OverlayRenderCommand.centeredEndOverlay(
+          title: 'GAME OVER',
+          showHint: renderState.canExitEndState,
+          hintText: 'Press any key to return to menu',
+        ),
+      ];
+    }
+    if (renderState.isWin) {
+      return <OverlayRenderCommand>[
+        OverlayRenderCommand.centeredEndOverlay(
+          title: 'YOU WIN',
+          showHint: renderState.canExitEndState,
+          hintText: 'Press any key to return to menu',
+        ),
+      ];
+    }
+    return const <OverlayRenderCommand>[];
   }
 
   List<RenderImageCommand> _buildImageRenderCommands({

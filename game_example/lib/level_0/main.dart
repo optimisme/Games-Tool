@@ -296,6 +296,14 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
               appData: appData,
               renderState: renderState,
             );
+            final List<HudRenderCommand> hudCommands = _buildHudRenderCommands(
+              renderState: renderState,
+              hudRectWidth: resolveScreenHudRect(canvasSize: canvasSize).width,
+            );
+            final List<OverlayRenderCommand> overlayCommands =
+                _buildOverlayRenderCommands(
+              renderState: renderState,
+            );
 
             return Focus(
               autofocus: true,
@@ -311,15 +319,27 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                   }
                 },
                 child: CustomPaint(
-                  painter: Level0Painter(
+                  painter: LevelPainter<Level0RenderState>(
                     appData: appData,
                     gameData: _runtimeGameData ?? appData.gameData,
                     level: _level,
-                    camera: _camera,
                     renderState: renderState,
                     layerCommands: layerCommands,
                     spriteCommands: spriteCommands,
+                    hudCommands: hudCommands,
+                    overlayCommands: overlayCommands,
                     imageCommands: imageCommands,
+                    resolveRuntimeCamera: (Level0RenderState state) {
+                      return RuntimeCamera2D(
+                        x: state.cameraX,
+                        y: state.cameraY,
+                        focal: _camera.focal,
+                      );
+                    },
+                    loadingLabel: 'Loading level 0...',
+                    backLabel: _level0BackLabel,
+                    backLayout: _level0BackHudLayout,
+                    renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -396,6 +416,65 @@ extension _Level0Hud on _Level0State {
         depth: appData.gamesTool.layerDepth(layer),
       );
     }).toList(growable: false);
+  }
+
+  List<HudRenderCommand> _buildHudRenderCommands({
+    required Level0RenderState? renderState,
+    required double hudRectWidth,
+  }) {
+    if (renderState == null) {
+      return const <HudRenderCommand>[];
+    }
+    final List<HudRenderCommand> commands = <HudRenderCommand>[
+      HudRenderCommand.bottomLeftText(
+        text: 'LEVEL 0: TOP-DOWN  |  MOVE: ARROWS/WASD',
+        leftInHud: kHudFooterLeft,
+        bottomInHud: kHudFooterBottom,
+        maxWidth: resolveHudFooterMaxWidth(hudRectWidth),
+      ),
+      HudRenderCommand.topRightText(
+        text:
+            'Arbres: ${renderState.arbresRemovedCount}/${renderState.totalArbres}',
+        top: kHudRowTopPrimary,
+      ),
+      HudRenderCommand.topRightText(
+        text: 'FPS: ${renderState.fps.toStringAsFixed(1)}',
+        top: kHudRowTopSecondary,
+      ),
+    ];
+    if (renderState.isOnPont) {
+      commands.insert(
+        0,
+        HudRenderCommand.text(
+          text: 'Caminant pel pont',
+          offsetInHud: Offset(hudSpacingX(20), kHudRowTopSecondary),
+        ),
+      );
+    }
+    return commands;
+  }
+
+  List<OverlayRenderCommand> _buildOverlayRenderCommands({
+    required Level0RenderState? renderState,
+  }) {
+    if (renderState == null || !renderState.isWin) {
+      return const <OverlayRenderCommand>[];
+    }
+    return <OverlayRenderCommand>[
+      OverlayRenderCommand.centeredEndOverlay(
+        title: 'TU GUANYES',
+        showHint: renderState.canExitEndState,
+        hintText: 'Prem qualsevol tecla',
+        hintStyle: const TextStyle(
+          color: Color(0xFFE8F3FF),
+          fontSize: 10 * kHudScale,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.8 * kHudScale,
+        ),
+        titleCenterYOffset: -20 * kHudSpacingScaleY,
+        hintCenterYOffset: 6 * kHudSpacingScaleY,
+      ),
+    ];
   }
 
   List<RenderImageCommand> _buildImageRenderCommands({
