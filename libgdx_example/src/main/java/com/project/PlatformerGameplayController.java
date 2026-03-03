@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.IntSet;
 
 public final class PlatformerGameplayController extends AbstractGameplayController {
 
-    private static final float MOVE_SPEED_PER_SECOND = 110f;
+    private static final float MOVE_SPEED_PER_SECOND = 150f;
     private static final float GRAVITY_PER_SECOND_SQ = 2088f;
     private static final float JUMP_IMPULSE_PER_SECOND = 708f;
     private static final float MAX_FALL_SPEED_PER_SECOND = 840f;
@@ -105,10 +105,8 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             }
         }
 
-        float previousX = playerX;
         float previousY = playerY;
         playerX += velocityX * dtSeconds;
-        resolveHorizontalCollisions(previousX);
 
         playerY += velocityY * dtSeconds;
         resolveVerticalCollisions(previousY);
@@ -147,91 +145,89 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
     }
 
-    private void resolveHorizontalCollisions(float previousX) {
-        if (floorZoneIndices.size <= 0 || Math.abs(velocityX) <= 0.0001f) {
-            return;
-        }
-
-        Rectangle playerRect = playerRect(rectCacheA);
-        Rectangle previousRect = playerRectAt(previousX, playerY, previousPlayerRectCache);
-
-        for (int i = 0; i < floorZoneIndices.size; i++) {
-            LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(i));
-            Rectangle zoneRect = zoneRect(zone, rectCacheB);
-            if (!playerRect.overlaps(zoneRect)) {
-                continue;
-            }
-
-            if (velocityX > 0f) {
-                float previousRight = previousRect.x + previousRect.width;
-                if (previousRight > zoneRect.x + COLLISION_EPSILON) {
-                    continue;
-                }
-                float playerRightOffset = (playerRect.x + playerRect.width) - playerX;
-                playerX = zoneRect.x - playerRightOffset;
-            } else if (velocityX < 0f) {
-                float previousLeft = previousRect.x;
-                float zoneRight = zoneRect.x + zoneRect.width;
-                if (previousLeft < zoneRight - COLLISION_EPSILON) {
-                    continue;
-                }
-                float playerLeftOffset = playerRect.x - playerX;
-                playerX = zoneRect.x + zoneRect.width - playerLeftOffset;
-            }
-            velocityX = 0f;
-            playerRectAt(playerX, playerY, playerRect);
-            previousRect.set(playerRect);
-        }
-    }
-
     private void resolveVerticalCollisions(float previousY) {
         if (floorZoneIndices.size <= 0) {
             onGround = false;
             return;
         }
 
-        LevelData.LevelSprite sprite = playerSprite();
-        LevelRenderer.SpriteRuntimeState state = playerState();
         Rectangle playerRect = playerRect(rectCacheA);
         Rectangle previousRect = playerRectAt(playerX, previousY, previousPlayerRectCache);
 
         onGround = false;
+        // One-way floor behavior:
+        // - Collide only when moving downward.
+        // - Ignore floor collisions while moving upward (jump-through from below).
+        if (velocityY <= 0f) {
+            return;
+        }
+
+        float previousBottom = previousRect.y + previousRect.height;
+        float currentBottom = playerRect.y + playerRect.height;
+        float playerBottomOffset = currentBottom - playerY;
+        float bestCrossDistance = Float.POSITIVE_INFINITY;
+        float bestLandingTop = Float.NaN;
 
         for (int i = 0; i < floorZoneIndices.size; i++) {
             LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(i));
             Rectangle zoneRect = zoneRect(zone, rectCacheB);
-            if (!playerRect.overlaps(zoneRect)) {
+            float zoneTop = zoneRect.y;
+
+            if (!overlapsHorizontallyForSweep(previousRect, playerRect, zoneRect)) {
+                continue;
+            }
+            if (!crossedZoneTop(previousBottom, currentBottom, zoneTop)) {
                 continue;
             }
 
-            float previousBottom = previousRect.y + previousRect.height;
-            float previousTop = previousRect.y;
-            float zoneTop = zoneRect.y;
-            float zoneBottom = zoneRect.y + zoneRect.height;
-
-            if (velocityY > 0f && previousBottom <= zoneTop + COLLISION_EPSILON) {
-                float playerBottomOffset = (playerRect.y + playerRect.height) - playerY;
-                playerY = zoneTop - playerBottomOffset;
-                velocityY = 0f;
-                onGround = true;
-            } else if (velocityY < 0f && previousTop >= zoneBottom - COLLISION_EPSILON) {
-                float playerTopOffset = playerRect.y - playerY;
-                playerY = zoneBottom - playerTopOffset;
-                velocityY = 0f;
-            } else {
-                float pushDown = (zoneRect.y + zoneRect.height) - playerRect.y;
-                float pushUp = (playerRect.y + playerRect.height) - zoneRect.y;
-                if (pushDown < pushUp) {
-                    playerY += pushDown;
-                } else {
-                    playerY -= pushUp;
-                    onGround = true;
-                }
-                velocityY = 0f;
+            float crossDistance = zoneTop - previousBottom;
+            if (crossDistance < bestCrossDistance) {
+                bestCrossDistance = crossDistance;
+                bestLandingTop = zoneTop;
             }
+        }
 
-            playerRectAt(playerX, playerY, playerRect);
-            previousRect.set(playerRect);
+        if (Float.isFinite(bestLandingTop)) {
+            playerY = bestLandingTop - playerBottomOffset;
+            velocityY = 0f;
+            onGround = true;
+            return;
+        }
+
+        // Fallback: if already penetrating near a floor top, push back upward.
+        float correctedY = playerY;
+        boolean landed = false;
+        for (int i = 0; i < 4; i++) {
+            Rectangle correctedRect = playerRectAt(playerX, correctedY, rectCacheA);
+            float maxPenetration = 0f;
+            for (int z = 0; z < floorZoneIndices.size; z++) {
+                LevelData.LevelZone zone = levelData.zones.get(floorZoneIndices.get(z));
+                Rectangle zoneRect = zoneRect(zone, rectCacheB);
+                if (!overlapsHorizontallyForSweep(correctedRect, correctedRect, zoneRect)) {
+                    continue;
+                }
+                float zoneTop = zoneRect.y;
+                boolean crossedTop = correctedRect.y + correctedRect.height > zoneTop
+                    && correctedRect.y < zoneTop + 4f;
+                if (!crossedTop) {
+                    continue;
+                }
+                float penetration = correctedRect.y + correctedRect.height - zoneTop;
+                if (penetration > maxPenetration) {
+                    maxPenetration = penetration;
+                }
+            }
+            if (maxPenetration <= 0f) {
+                break;
+            }
+            correctedY -= maxPenetration + 0.01f;
+            landed = true;
+        }
+
+        if (landed) {
+            playerY = correctedY;
+            velocityY = 0f;
+            onGround = true;
         }
     }
 
@@ -241,14 +237,22 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
 
         Rectangle playerRect = playerRect(rectCacheA);
-        float probeWidth = Math.max(1f, playerRect.width - FLOOR_PROBE_INSET * 2f);
-        floorProbeRectCache.set(
-            playerRect.x + FLOOR_PROBE_INSET,
-            playerRect.y + playerRect.height,
-            probeWidth,
-            FLOOR_PROBE_HEIGHT
-        );
-        return overlapsAnyZone(floorProbeRectCache, floorZoneIndices);
+        float testBottom = playerRect.y + playerRect.height + 0.5f;
+        float testLeft = playerRect.x + FLOOR_PROBE_INSET;
+        float testRight = playerRect.x + playerRect.width - FLOOR_PROBE_INSET;
+
+        for (int i = 0; i < floorZoneIndices.size; i++) {
+            Rectangle zoneRect = zoneRect(levelData.zones.get(floorZoneIndices.get(i)), rectCacheB);
+            boolean overlapsHorizontally = testRight > zoneRect.x && testLeft < zoneRect.x + zoneRect.width;
+            if (!overlapsHorizontally) {
+                continue;
+            }
+            float bottomDelta = Math.abs(testBottom - zoneRect.y);
+            if (bottomDelta <= FLOOR_PROBE_HEIGHT) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isTouchingDeathZone() {
@@ -400,6 +404,18 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         for (int i = 0; i < indices.size; i++) {
             setSpriteVisible(indices.get(i), true);
         }
+    }
+
+    private boolean overlapsHorizontallyForSweep(Rectangle previousRect, Rectangle currentRect, Rectangle zoneRect) {
+        float sweepLeft = Math.min(previousRect.x, currentRect.x);
+        float sweepRight = Math.max(previousRect.x + previousRect.width, currentRect.x + currentRect.width);
+        return sweepRight > zoneRect.x + COLLISION_EPSILON
+            && sweepLeft < zoneRect.x + zoneRect.width - COLLISION_EPSILON;
+    }
+
+    private boolean crossedZoneTop(float previousBottom, float currentBottom, float zoneTop) {
+        return previousBottom <= zoneTop + COLLISION_EPSILON
+            && currentBottom >= zoneTop - COLLISION_EPSILON;
     }
 
     private void updatePlayerAnimationSelection() {

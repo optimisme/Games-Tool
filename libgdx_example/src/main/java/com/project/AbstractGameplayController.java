@@ -418,11 +418,11 @@ public abstract class AbstractGameplayController implements GameplayController {
     }
 
     private Array<LevelData.HitBox> activeHitBoxes(int spriteIndex) {
-        if (spriteIndex < 0 || spriteIndex >= spriteRuntimeStates.size) {
+        if (spriteIndex < 0 || spriteIndex >= spriteRuntimeStates.size || spriteIndex >= levelData.sprites.size) {
             return null;
         }
-        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
-        String animationId = runtime.animationId;
+        LevelData.LevelSprite sprite = levelData.sprites.get(spriteIndex);
+        String animationId = sprite.animationId;
         if (animationId == null || animationId.isEmpty()) {
             return null;
         }
@@ -430,6 +430,7 @@ public abstract class AbstractGameplayController implements GameplayController {
         if (clip == null) {
             return null;
         }
+        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
         LevelData.FrameRig frameRig = clip.frameRigs.get(runtime.frameIndex);
         if (frameRig != null && frameRig.hitBoxes != null && frameRig.hitBoxes.size > 0) {
             return frameRig.hitBoxes;
