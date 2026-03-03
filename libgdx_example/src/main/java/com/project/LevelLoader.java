@@ -40,7 +40,7 @@ public final class LevelLoader {
             }
 
             ObjectMap<String, MediaFrameSize> mediaFrameSizes = loadMediaFrameSizes(root);
-            ObjectMap<String, LevelData.AnimationClip> animationClips = loadAnimationClips(root);
+            ObjectMap<String, LevelData.AnimationClip> animationClips = loadAnimationClips(root, mediaFrameSizes);
             return parseLevel(levelNode, animationClips, mediaFrameSizes);
         } catch (Exception ex) {
             Gdx.app.error("LevelLoader", "Failed to load level data", ex);
@@ -89,7 +89,9 @@ public final class LevelLoader {
         String zonesFile = levelNode.getString("zonesFile", null);
         String pathsFile = levelNode.getString("pathsFile", null);
         Array<LevelData.LevelZone> zones = loadZones(zonesFile == null ? null : "levels/" + zonesFile);
-        Array<LevelData.LevelPath> paths = loadPaths(pathsFile == null ? null : "levels/" + pathsFile);
+        PathData pathData = loadPathData(pathsFile == null ? null : "levels/" + pathsFile);
+        Array<LevelData.LevelPath> paths = pathData.paths;
+        Array<LevelData.LevelPathBinding> pathBindings = pathData.bindings;
 
         float worldWidth = viewportX + viewportWidth;
         float worldHeight = viewportY + viewportHeight;
@@ -147,6 +149,7 @@ public final class LevelLoader {
             sprites,
             zones,
             paths,
+            pathBindings,
             animationClips
         );
     }
@@ -265,7 +268,10 @@ public final class LevelLoader {
         return mapping;
     }
 
-    private static ObjectMap<String, LevelData.AnimationClip> loadAnimationClips(JsonValue root) {
+    private static ObjectMap<String, LevelData.AnimationClip> loadAnimationClips(
+        JsonValue root,
+        ObjectMap<String, MediaFrameSize> mediaFrameSizes
+    ) {
         ObjectMap<String, LevelData.AnimationClip> mapping = new ObjectMap<>();
         String animationsFilePath = root.getString("animationsFile", null);
         if (animationsFilePath == null || animationsFilePath.isEmpty()) {
@@ -290,6 +296,9 @@ public final class LevelLoader {
                 if (id != null && !id.isEmpty()) {
                     String mediaFile = animation.getString("mediaFile", null);
                     String texturePath = mediaFile == null || mediaFile.isEmpty() ? null : "levels/" + mediaFile;
+                    MediaFrameSize mediaSize = texturePath == null ? null : mediaFrameSizes.get(texturePath);
+                    int frameWidth = mediaSize == null ? 0 : Math.max(0, Math.round(mediaSize.width));
+                    int frameHeight = mediaSize == null ? 0 : Math.max(0, Math.round(mediaSize.height));
                     float anchorX = anchorOrDefault(animation.getFloat("anchorX", 0.5f), 0.5f);
                     float anchorY = anchorOrDefault(animation.getFloat("anchorY", 0.5f), 0.5f);
                     int endFrame = Math.max(startFrame, animation.getInt("endFrame", startFrame));
@@ -318,6 +327,8 @@ public final class LevelLoader {
                             id,
                             animation.getString("name", id),
                             texturePath,
+                            frameWidth,
+                            frameHeight,
                             startFrame,
                             endFrame,
                             fps,
@@ -385,52 +396,74 @@ public final class LevelLoader {
         return zones;
     }
 
-    private static Array<LevelData.LevelPath> loadPaths(String pathsPath) {
-        Array<LevelData.LevelPath> paths = new Array<>();
+    private static PathData loadPathData(String pathsPath) {
+        PathData output = new PathData();
         if (pathsPath == null || pathsPath.isEmpty()) {
-            return paths;
+            return output;
         }
 
         FileHandle file = Gdx.files.internal(pathsPath);
         if (!file.exists()) {
-            return paths;
+            return output;
         }
 
         try {
             JsonValue root = new JsonReader().parse(file);
             JsonValue pathsNode = root.get("paths");
-            if (pathsNode == null || !pathsNode.isArray()) {
-                return paths;
+            if (pathsNode != null && pathsNode.isArray()) {
+                for (JsonValue pathNode = pathsNode.child; pathNode != null; pathNode = pathNode.next) {
+                    Array<Vector2> points = new Array<>();
+                    JsonValue pointsNode = pathNode.get("points");
+                    if (pointsNode != null && pointsNode.isArray()) {
+                        for (JsonValue pointNode = pointsNode.child; pointNode != null; pointNode = pointNode.next) {
+                            float x = pointNode.getFloat("x", Float.NaN);
+                            float y = pointNode.getFloat("y", Float.NaN);
+                            if (!Float.isFinite(x) || !Float.isFinite(y)) {
+                                continue;
+                            }
+                            points.add(new Vector2(x, y));
+                        }
+                    }
+                    if (points.size <= 0) {
+                        continue;
+                    }
+
+                    output.paths.add(new LevelData.LevelPath(
+                        pathNode.getString("id", ""),
+                        pathNode.getString("name", "Path"),
+                        parseColor(pathNode.getString("color", "yellow")),
+                        points
+                    ));
+                }
             }
 
-            for (JsonValue pathNode = pathsNode.child; pathNode != null; pathNode = pathNode.next) {
-                Array<Vector2> points = new Array<>();
-                JsonValue pointsNode = pathNode.get("points");
-                if (pointsNode != null && pointsNode.isArray()) {
-                    for (JsonValue pointNode = pointsNode.child; pointNode != null; pointNode = pointNode.next) {
-                        float x = pointNode.getFloat("x", Float.NaN);
-                        float y = pointNode.getFloat("y", Float.NaN);
-                        if (!Float.isFinite(x) || !Float.isFinite(y)) {
-                            continue;
-                        }
-                        points.add(new Vector2(x, y));
+            JsonValue bindingsNode = root.get("pathBindings");
+            if (bindingsNode != null && bindingsNode.isArray()) {
+                for (JsonValue bindingNode = bindingsNode.child; bindingNode != null; bindingNode = bindingNode.next) {
+                    String pathId = bindingNode.getString("pathId", "").trim();
+                    String targetType = bindingNode.getString("targetType", "").trim().toLowerCase();
+                    int targetIndex = bindingNode.getInt("targetIndex", -1);
+                    if (pathId.isEmpty() || targetIndex < 0) {
+                        continue;
                     }
+                    int durationMs = bindingNode.getInt("durationMs", 2000);
+                    float durationSeconds = durationMs > 0 ? durationMs / 1000f : 2f;
+                    output.bindings.add(new LevelData.LevelPathBinding(
+                        bindingNode.getString("id", ""),
+                        pathId,
+                        targetType,
+                        targetIndex,
+                        bindingNode.getString("behavior", "restart").trim().toLowerCase(),
+                        bindingNode.getBoolean("enabled", true),
+                        bindingNode.getBoolean("relativeToInitialPosition", true),
+                        durationSeconds
+                    ));
                 }
-                if (points.size <= 0) {
-                    continue;
-                }
-
-                paths.add(new LevelData.LevelPath(
-                    pathNode.getString("id", ""),
-                    pathNode.getString("name", "Path"),
-                    parseColor(pathNode.getString("color", "yellow")),
-                    points
-                ));
             }
         } catch (Exception ex) {
             Gdx.app.error("LevelLoader", "Failed to parse paths file " + pathsPath, ex);
         }
-        return paths;
+        return output;
     }
 
     private static int[][] loadTileMap(String tileMapPath) {
@@ -525,6 +558,7 @@ public final class LevelLoader {
             DEFAULT_DEPTH_SENSITIVITY,
             DEFAULT_VIEWPORT_WIDTH,
             DEFAULT_VIEWPORT_HEIGHT,
+            new Array<>(),
             new Array<>(),
             new Array<>(),
             new Array<>(),
@@ -629,6 +663,11 @@ public final class LevelLoader {
             this.width = width;
             this.height = height;
         }
+    }
+
+    private static final class PathData {
+        final Array<LevelData.LevelPath> paths = new Array<>();
+        final Array<LevelData.LevelPathBinding> bindings = new Array<>();
     }
 
 }

@@ -22,6 +22,8 @@ public class GameApp extends Game {
     private final Array<Array<String>> referencedImageFilesByLevel = new Array<>();
     private final ObjectSet<String> queuedAssets = new ObjectSet<>();
     private final ObjectMap<String, String> animationMediaById = new ObjectMap<>();
+    private final ObjectMap<String, String> animationGroupById = new ObjectMap<>();
+    private final ObjectMap<String, Array<String>> animationMediaByGroup = new ObjectMap<>();
     private final Array<AnimationMediaEntry> animationMediaEntries = new Array<>();
 
     private SpriteBatch batch;
@@ -100,6 +102,8 @@ public class GameApp extends Game {
         levelNames.clear();
         referencedImageFilesByLevel.clear();
         animationMediaById.clear();
+        animationGroupById.clear();
+        animationMediaByGroup.clear();
         animationMediaEntries.clear();
 
         FileHandle gameDataFile = Gdx.files.internal("levels/game_data.json");
@@ -166,10 +170,22 @@ public class GameApp extends Game {
                 String id = animation.getString("id", null);
                 String name = animation.getString("name", null);
                 String mediaFile = animation.getString("mediaFile", null);
+                String groupId = animation.getString("groupId", "");
                 if (id == null || mediaFile == null || !looksLikeImageFile(mediaFile)) {
                     continue;
                 }
                 animationMediaById.put(id, mediaFile);
+                animationGroupById.put(id, groupId == null ? "" : groupId);
+                if (groupId != null && !groupId.isEmpty()) {
+                    Array<String> groupMedia = animationMediaByGroup.get(groupId);
+                    if (groupMedia == null) {
+                        groupMedia = new Array<>();
+                        animationMediaByGroup.put(groupId, groupMedia);
+                    }
+                    if (!groupMedia.contains(mediaFile, false)) {
+                        groupMedia.add(mediaFile);
+                    }
+                }
                 String normalizedName = normalize(name);
                 animationMediaEntries.add(new AnimationMediaEntry(
                     normalizedName,
@@ -188,6 +204,7 @@ public class GameApp extends Game {
         }
 
         ObjectSet<String> spriteTokens = new ObjectSet<>();
+        ObjectSet<String> animationGroups = new ObjectSet<>();
         for (JsonValue sprite = sprites.child; sprite != null; sprite = sprite.next) {
             String animationId = sprite.getString("animationId", null);
             if (animationId == null) {
@@ -198,9 +215,26 @@ public class GameApp extends Game {
             if (mediaFile != null && !levelImageFiles.contains(mediaFile, false)) {
                 levelImageFiles.add(mediaFile);
             }
+            String groupId = animationGroupById.get(animationId);
+            if (groupId != null && !groupId.isEmpty()) {
+                animationGroups.add(groupId);
+            }
 
             addTokens(spriteTokens, sprite.getString("type", ""));
             addTokens(spriteTokens, sprite.getString("name", ""));
+        }
+
+        for (String groupId : animationGroups) {
+            Array<String> groupMedia = animationMediaByGroup.get(groupId);
+            if (groupMedia == null || groupMedia.size <= 0) {
+                continue;
+            }
+            for (int i = 0; i < groupMedia.size; i++) {
+                String mediaFile = groupMedia.get(i);
+                if (mediaFile != null && !levelImageFiles.contains(mediaFile, false)) {
+                    levelImageFiles.add(mediaFile);
+                }
+            }
         }
 
         if (spriteTokens.size <= 0 || animationMediaEntries.size <= 0) {

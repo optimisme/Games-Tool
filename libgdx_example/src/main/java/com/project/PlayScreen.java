@@ -7,9 +7,11 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -29,17 +31,23 @@ public class PlayScreen extends ScreenAdapter {
     private final LevelRenderer levelRenderer = new LevelRenderer();
     private final DebugOverlayRenderer debugOverlayRenderer = new DebugOverlayRenderer();
     private final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates = new Array<>();
+    private final Array<RuntimeTransform> layerRuntimeStates = new Array<>();
+    private final Array<RuntimeTransform> zoneRuntimeStates = new Array<>();
+    private final Array<RuntimeTransform> zonePreviousRuntimeStates = new Array<>();
+    private final Array<PathBindingRuntime> pathBindingRuntimes = new Array<>();
     private final FloatArray spriteAnimationElapsed = new FloatArray();
     private final IntArray spriteTotalFrames = new IntArray();
-    private String[] spriteTotalFramesTexturePath = new String[0];
+    private String[] spriteTotalFramesCacheKey = new String[0];
     private String[] spriteCurrentAnimationId = new String[0];
 
     private final LevelData levelData;
     private final boolean[] layerVisibilityStates;
     private final GameplayController gameplayController;
+    private final Vector2 samplePointCache = new Vector2();
 
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
     private float fixedStepAccumulator = 0f;
+    private float pathMotionTimeSeconds = 0f;
 
     public PlayScreen(GameApp game, int levelIndex) {
         this.game = game;
@@ -51,6 +59,8 @@ public class PlayScreen extends ScreenAdapter {
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
         applyInitialCameraFromLevel();
         initializeAnimationRuntimeState();
+        initializeTransformRuntimeState();
+        initializePathBindingRuntimes();
         this.gameplayController = createGameplayController();
     }
 
@@ -85,7 +95,8 @@ public class PlayScreen extends ScreenAdapter {
             batch,
             camera,
             spriteRuntimeStates,
-            layerVisibilityStates
+            layerVisibilityStates,
+            layerRuntimeStates
         );
         batch.end();
 
@@ -93,7 +104,8 @@ public class PlayScreen extends ScreenAdapter {
             levelData,
             camera,
             debugOverlayMode == DebugOverlayMode.ZONES || debugOverlayMode == DebugOverlayMode.BOTH,
-            debugOverlayMode == DebugOverlayMode.PATHS || debugOverlayMode == DebugOverlayMode.BOTH
+            debugOverlayMode == DebugOverlayMode.PATHS || debugOverlayMode == DebugOverlayMode.BOTH,
+            zoneRuntimeStates
         );
     }
 
@@ -113,6 +125,8 @@ public class PlayScreen extends ScreenAdapter {
         fixedStepAccumulator += clampedDelta;
 
         while (fixedStepAccumulator >= FIXED_STEP_SECONDS) {
+            snapshotPreviousZoneTransforms();
+            advancePathBindings(FIXED_STEP_SECONDS);
             gameplayController.fixedUpdate(FIXED_STEP_SECONDS);
             updateAnimations(FIXED_STEP_SECONDS);
             fixedStepAccumulator -= FIXED_STEP_SECONDS;
@@ -136,14 +150,184 @@ public class PlayScreen extends ScreenAdapter {
                 true,
                 sprite.flipX,
                 sprite.flipY,
+                Math.max(1, Math.round(sprite.width)),
+                Math.max(1, Math.round(sprite.height)),
                 sprite.texturePath,
                 sprite.animationId
             ));
             spriteTotalFrames.set(i, 0);
             spriteAnimationElapsed.set(i, 0f);
         }
-        spriteTotalFramesTexturePath = new String[levelData.sprites.size];
+        spriteTotalFramesCacheKey = new String[levelData.sprites.size];
         spriteCurrentAnimationId = new String[levelData.sprites.size];
+    }
+
+    private void initializeTransformRuntimeState() {
+        layerRuntimeStates.clear();
+        zoneRuntimeStates.clear();
+        zonePreviousRuntimeStates.clear();
+
+        for (int i = 0; i < levelData.layers.size; i++) {
+            LevelData.LevelLayer layer = levelData.layers.get(i);
+            layerRuntimeStates.add(new RuntimeTransform(layer.x, layer.y));
+        }
+        for (int i = 0; i < levelData.zones.size; i++) {
+            LevelData.LevelZone zone = levelData.zones.get(i);
+            RuntimeTransform current = new RuntimeTransform(zone.x, zone.y);
+            zoneRuntimeStates.add(current);
+            zonePreviousRuntimeStates.add(new RuntimeTransform(zone.x, zone.y));
+        }
+        pathMotionTimeSeconds = 0f;
+    }
+
+    private void initializePathBindingRuntimes() {
+        pathBindingRuntimes.clear();
+        if (levelData.pathBindings == null || levelData.pathBindings.size <= 0 || levelData.paths == null || levelData.paths.size <= 0) {
+            return;
+        }
+
+        ObjectMap<String, PathRuntime> pathById = new ObjectMap<>();
+        for (int i = 0; i < levelData.paths.size; i++) {
+            LevelData.LevelPath path = levelData.paths.get(i);
+            if (path == null || path.id == null || path.id.isEmpty() || path.points == null || path.points.size < 2) {
+                continue;
+            }
+            PathRuntime runtime = PathRuntime.from(path);
+            if (runtime != null) {
+                pathById.put(path.id, runtime);
+            }
+        }
+
+        for (int i = 0; i < levelData.pathBindings.size; i++) {
+            LevelData.LevelPathBinding binding = levelData.pathBindings.get(i);
+            if (binding == null || !binding.enabled) {
+                continue;
+            }
+            PathRuntime path = pathById.get(binding.pathId);
+            if (path == null) {
+                continue;
+            }
+
+            float initialX;
+            float initialY;
+            if ("layer".equals(binding.targetType)) {
+                if (binding.targetIndex < 0 || binding.targetIndex >= layerRuntimeStates.size) {
+                    continue;
+                }
+                RuntimeTransform target = layerRuntimeStates.get(binding.targetIndex);
+                initialX = target.x;
+                initialY = target.y;
+            } else if ("zone".equals(binding.targetType)) {
+                if (binding.targetIndex < 0 || binding.targetIndex >= zoneRuntimeStates.size) {
+                    continue;
+                }
+                RuntimeTransform target = zoneRuntimeStates.get(binding.targetIndex);
+                initialX = target.x;
+                initialY = target.y;
+            } else if ("sprite".equals(binding.targetType)) {
+                if (binding.targetIndex < 0 || binding.targetIndex >= spriteRuntimeStates.size) {
+                    continue;
+                }
+                LevelRenderer.SpriteRuntimeState target = spriteRuntimeStates.get(binding.targetIndex);
+                initialX = target.worldX;
+                initialY = target.worldY;
+            } else {
+                continue;
+            }
+
+            pathBindingRuntimes.add(new PathBindingRuntime(binding, path, initialX, initialY));
+        }
+    }
+
+    private void snapshotPreviousZoneTransforms() {
+        for (int i = 0; i < zoneRuntimeStates.size && i < zonePreviousRuntimeStates.size; i++) {
+            RuntimeTransform current = zoneRuntimeStates.get(i);
+            RuntimeTransform previous = zonePreviousRuntimeStates.get(i);
+            previous.x = current.x;
+            previous.y = current.y;
+        }
+    }
+
+    private void advancePathBindings(float dt) {
+        if (pathBindingRuntimes.size <= 0) {
+            return;
+        }
+        pathMotionTimeSeconds += Math.max(0f, dt);
+        for (int i = 0; i < pathBindingRuntimes.size; i++) {
+            PathBindingRuntime runtime = pathBindingRuntimes.get(i);
+            if (runtime == null || runtime.binding == null || !runtime.binding.enabled) {
+                continue;
+            }
+
+            float progress = pathProgressAtTime(
+                runtime.binding.behavior,
+                runtime.binding.durationSeconds,
+                pathMotionTimeSeconds
+            );
+            runtime.path.sampleAtProgress(progress, samplePointCache);
+
+            float targetX;
+            float targetY;
+            if (runtime.binding.relativeToInitialPosition) {
+                targetX = runtime.initialX + (samplePointCache.x - runtime.path.firstPointX);
+                targetY = runtime.initialY + (samplePointCache.y - runtime.path.firstPointY);
+            } else {
+                targetX = samplePointCache.x;
+                targetY = samplePointCache.y;
+            }
+
+            applyPathTarget(runtime.binding.targetType, runtime.binding.targetIndex, targetX, targetY);
+        }
+    }
+
+    private void applyPathTarget(String targetType, int targetIndex, float x, float y) {
+        if ("layer".equals(targetType)) {
+            if (targetIndex >= 0 && targetIndex < layerRuntimeStates.size) {
+                RuntimeTransform target = layerRuntimeStates.get(targetIndex);
+                target.x = x;
+                target.y = y;
+            }
+            return;
+        }
+        if ("zone".equals(targetType)) {
+            if (targetIndex >= 0 && targetIndex < zoneRuntimeStates.size) {
+                RuntimeTransform target = zoneRuntimeStates.get(targetIndex);
+                target.x = x;
+                target.y = y;
+            }
+            return;
+        }
+        if ("sprite".equals(targetType)) {
+            if (targetIndex >= 0 && targetIndex < spriteRuntimeStates.size) {
+                LevelRenderer.SpriteRuntimeState target = spriteRuntimeStates.get(targetIndex);
+                target.worldX = x;
+                target.worldY = y;
+            }
+        }
+    }
+
+    private float pathProgressAtTime(String behavior, float durationSeconds, float timeSeconds) {
+        if (!Float.isFinite(durationSeconds) || durationSeconds <= 0f) {
+            return 0f;
+        }
+        float t = Math.max(0f, timeSeconds);
+        String normalizedBehavior = behavior == null ? "" : behavior.trim().toLowerCase();
+        if ("ping_pong".equals(normalizedBehavior)) {
+            float cycle = durationSeconds * 2f;
+            if (cycle <= 0f) {
+                return 0f;
+            }
+            float cycleTime = t % cycle;
+            if (cycleTime <= durationSeconds) {
+                return cycleTime / durationSeconds;
+            }
+            float backwardsTime = cycleTime - durationSeconds;
+            return 1f - (backwardsTime / durationSeconds);
+        }
+        if ("once".equals(normalizedBehavior)) {
+            return MathUtils.clamp(t / durationSeconds, 0f, 1f);
+        }
+        return (t % durationSeconds) / durationSeconds;
     }
 
     private void updateAnimations(float delta) {
@@ -181,7 +365,9 @@ public class PlayScreen extends ScreenAdapter {
         if (animationId == null || animationId.isEmpty()) {
             runtimeState.animationId = null;
             runtimeState.texturePath = sprite.texturePath;
-            int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
+            runtimeState.frameWidth = Math.max(1, Math.round(sprite.width));
+            runtimeState.frameHeight = Math.max(1, Math.round(sprite.height));
+            int totalFrames = resolveTotalFrames(spriteIndex, runtimeState.texturePath, runtimeState.frameWidth, runtimeState.frameHeight);
             runtimeState.frameIndex = totalFrames > 0
                 ? Math.max(0, Math.min(totalFrames - 1, sprite.frameIndex))
                 : sprite.frameIndex;
@@ -194,7 +380,9 @@ public class PlayScreen extends ScreenAdapter {
         if (clip == null) {
             runtimeState.animationId = null;
             runtimeState.texturePath = sprite.texturePath;
-            int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
+            runtimeState.frameWidth = Math.max(1, Math.round(sprite.width));
+            runtimeState.frameHeight = Math.max(1, Math.round(sprite.height));
+            int totalFrames = resolveTotalFrames(spriteIndex, runtimeState.texturePath, runtimeState.frameWidth, runtimeState.frameHeight);
             runtimeState.frameIndex = totalFrames > 0
                 ? Math.max(0, Math.min(totalFrames - 1, sprite.frameIndex))
                 : sprite.frameIndex;
@@ -206,7 +394,14 @@ public class PlayScreen extends ScreenAdapter {
         runtimeState.animationId = animationId;
         runtimeState.texturePath =
             clip.texturePath == null || clip.texturePath.isEmpty() ? sprite.texturePath : clip.texturePath;
-        int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
+        runtimeState.frameWidth = clip.frameWidth > 0 ? clip.frameWidth : Math.max(1, Math.round(sprite.width));
+        runtimeState.frameHeight = clip.frameHeight > 0 ? clip.frameHeight : Math.max(1, Math.round(sprite.height));
+        int totalFrames = resolveTotalFrames(
+            spriteIndex,
+            runtimeState.texturePath,
+            runtimeState.frameWidth,
+            runtimeState.frameHeight
+        );
         if (totalFrames <= 0) {
             runtimeState.frameIndex = sprite.frameIndex;
             runtimeState.anchorX = clip.anchorX;
@@ -236,14 +431,15 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private int resolveTotalFrames(int spriteIndex, LevelData.LevelSprite sprite, String texturePath) {
+    private int resolveTotalFrames(int spriteIndex, String texturePath, int frameWidth, int frameHeight) {
         if (spriteIndex < 0 || spriteIndex >= spriteTotalFrames.size) {
             return 0;
         }
         int cached = spriteTotalFrames.get(spriteIndex);
-        String cachedTexturePath =
-            spriteIndex >= 0 && spriteIndex < spriteTotalFramesTexturePath.length ? spriteTotalFramesTexturePath[spriteIndex] : null;
-        if (cached > 0 && texturePath != null && texturePath.equals(cachedTexturePath)) {
+        String cacheKey = buildFrameCacheKey(texturePath, frameWidth, frameHeight);
+        String cachedKey =
+            spriteIndex >= 0 && spriteIndex < spriteTotalFramesCacheKey.length ? spriteTotalFramesCacheKey[spriteIndex] : null;
+        if (cached > 0 && cacheKey.equals(cachedKey)) {
             return cached;
         }
 
@@ -251,16 +447,21 @@ public class PlayScreen extends ScreenAdapter {
             return 0;
         }
         Texture texture = game.getAssetManager().get(texturePath, Texture.class);
-        int frameWidth = Math.max(1, Math.round(sprite.width));
-        int frameHeight = Math.max(1, Math.round(sprite.height));
-        int cols = Math.max(1, texture.getWidth() / frameWidth);
-        int rows = Math.max(1, texture.getHeight() / frameHeight);
+        int safeFrameWidth = Math.max(1, Math.min(frameWidth, texture.getWidth()));
+        int safeFrameHeight = Math.max(1, Math.min(frameHeight, texture.getHeight()));
+        int cols = Math.max(1, texture.getWidth() / safeFrameWidth);
+        int rows = Math.max(1, texture.getHeight() / safeFrameHeight);
         int total = Math.max(1, cols * rows);
         spriteTotalFrames.set(spriteIndex, total);
-        if (spriteIndex >= 0 && spriteIndex < spriteTotalFramesTexturePath.length) {
-            spriteTotalFramesTexturePath[spriteIndex] = texturePath;
+        if (spriteIndex >= 0 && spriteIndex < spriteTotalFramesCacheKey.length) {
+            spriteTotalFramesCacheKey[spriteIndex] = cacheKey;
         }
         return total;
+    }
+
+    private String buildFrameCacheKey(String texturePath, int frameWidth, int frameHeight) {
+        String safeTexturePath = texturePath == null ? "" : texturePath;
+        return safeTexturePath + "#" + Math.max(1, frameWidth) + "x" + Math.max(1, frameHeight);
     }
 
     private void handleDebugOverlayInput() {
@@ -317,10 +518,22 @@ public class PlayScreen extends ScreenAdapter {
     private GameplayController createGameplayController() {
         if (isPlatformerLevel(levelData)) {
             Gdx.app.log("PlayScreen", "Gameplay mode: platformer");
-            return new PlatformerGameplayController(levelData, spriteRuntimeStates, layerVisibilityStates);
+            return new PlatformerGameplayController(
+                levelData,
+                spriteRuntimeStates,
+                layerVisibilityStates,
+                zoneRuntimeStates,
+                zonePreviousRuntimeStates
+            );
         }
         Gdx.app.log("PlayScreen", "Gameplay mode: topdown");
-        return new TopDownGameplayController(levelData, spriteRuntimeStates, layerVisibilityStates);
+        return new TopDownGameplayController(
+            levelData,
+            spriteRuntimeStates,
+            layerVisibilityStates,
+            zoneRuntimeStates,
+            zonePreviousRuntimeStates
+        );
     }
 
     private static boolean isPlatformerLevel(LevelData levelData) {
@@ -392,6 +605,94 @@ public class PlayScreen extends ScreenAdapter {
         }
         int mod = value % divisor;
         return mod < 0 ? mod + divisor : mod;
+    }
+
+    private static final class PathBindingRuntime {
+        final LevelData.LevelPathBinding binding;
+        final PathRuntime path;
+        final float initialX;
+        final float initialY;
+
+        PathBindingRuntime(LevelData.LevelPathBinding binding, PathRuntime path, float initialX, float initialY) {
+            this.binding = binding;
+            this.path = path;
+            this.initialX = initialX;
+            this.initialY = initialY;
+        }
+    }
+
+    private static final class PathRuntime {
+        final Array<Vector2> points;
+        final FloatArray cumulativeDistances;
+        final float totalDistance;
+        final float firstPointX;
+        final float firstPointY;
+
+        private PathRuntime(
+            Array<Vector2> points,
+            FloatArray cumulativeDistances,
+            float totalDistance,
+            float firstPointX,
+            float firstPointY
+        ) {
+            this.points = points;
+            this.cumulativeDistances = cumulativeDistances;
+            this.totalDistance = totalDistance;
+            this.firstPointX = firstPointX;
+            this.firstPointY = firstPointY;
+        }
+
+        static PathRuntime from(LevelData.LevelPath path) {
+            if (path == null || path.points == null || path.points.size < 2) {
+                return null;
+            }
+            FloatArray cumulative = new FloatArray();
+            cumulative.add(0f);
+            float total = 0f;
+            for (int i = 1; i < path.points.size; i++) {
+                Vector2 prev = path.points.get(i - 1);
+                Vector2 curr = path.points.get(i);
+                total += curr.dst(prev);
+                cumulative.add(total);
+            }
+            Vector2 first = path.points.first();
+            return new PathRuntime(path.points, cumulative, total, first.x, first.y);
+        }
+
+        void sampleAtProgress(float progress, Vector2 out) {
+            if (out == null) {
+                return;
+            }
+            if (points == null || points.size <= 0) {
+                out.set(0f, 0f);
+                return;
+            }
+            if (points.size < 2 || totalDistance <= 0f) {
+                out.set(points.first());
+                return;
+            }
+
+            float clampedProgress = MathUtils.clamp(progress, 0f, 1f);
+            float targetDistance = totalDistance * clampedProgress;
+            for (int i = 1; i < points.size; i++) {
+                float segmentStart = cumulativeDistances.get(i - 1);
+                float segmentEnd = cumulativeDistances.get(i);
+                if (targetDistance > segmentEnd && i < points.size - 1) {
+                    continue;
+                }
+                float segmentDistance = segmentEnd - segmentStart;
+                if (segmentDistance <= 0f) {
+                    out.set(points.get(i));
+                    return;
+                }
+                float localT = MathUtils.clamp((targetDistance - segmentStart) / segmentDistance, 0f, 1f);
+                Vector2 a = points.get(i - 1);
+                Vector2 b = points.get(i);
+                out.set(a.x + (b.x - a.x) * localT, a.y + (b.y - a.y) * localT);
+                return;
+            }
+            out.set(points.peek());
+        }
     }
 
     private enum DebugOverlayMode {

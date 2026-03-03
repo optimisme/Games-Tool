@@ -21,6 +21,7 @@ public final class LevelData {
     public final Array<LevelSprite> sprites;
     public final Array<LevelZone> zones;
     public final Array<LevelPath> paths;
+    public final Array<LevelPathBinding> pathBindings;
     public final ObjectMap<String, AnimationClip> animationClips;
 
     public LevelData(
@@ -38,6 +39,7 @@ public final class LevelData {
         Array<LevelSprite> sprites,
         Array<LevelZone> zones,
         Array<LevelPath> paths,
+        Array<LevelPathBinding> pathBindings,
         ObjectMap<String, AnimationClip> animationClips
     ) {
         this.name = name;
@@ -54,6 +56,7 @@ public final class LevelData {
         this.sprites = sprites;
         this.zones = zones;
         this.paths = paths;
+        this.pathBindings = pathBindings;
         this.animationClips = animationClips;
     }
 
@@ -193,10 +196,43 @@ public final class LevelData {
         }
     }
 
+    public static final class LevelPathBinding {
+        public final String id;
+        public final String pathId;
+        public final String targetType;
+        public final int targetIndex;
+        public final String behavior;
+        public final boolean enabled;
+        public final boolean relativeToInitialPosition;
+        public final float durationSeconds;
+
+        public LevelPathBinding(
+            String id,
+            String pathId,
+            String targetType,
+            int targetIndex,
+            String behavior,
+            boolean enabled,
+            boolean relativeToInitialPosition,
+            float durationSeconds
+        ) {
+            this.id = id;
+            this.pathId = pathId;
+            this.targetType = targetType;
+            this.targetIndex = targetIndex;
+            this.behavior = behavior;
+            this.enabled = enabled;
+            this.relativeToInitialPosition = relativeToInitialPosition;
+            this.durationSeconds = durationSeconds;
+        }
+    }
+
     public static final class AnimationClip {
         public final String id;
         public final String name;
         public final String texturePath;
+        public final int frameWidth;
+        public final int frameHeight;
         public final int startFrame;
         public final int endFrame;
         public final float fps;
@@ -210,6 +246,8 @@ public final class LevelData {
             String id,
             String name,
             String texturePath,
+            int frameWidth,
+            int frameHeight,
             int startFrame,
             int endFrame,
             float fps,
@@ -222,6 +260,8 @@ public final class LevelData {
             this.id = id;
             this.name = name;
             this.texturePath = texturePath;
+            this.frameWidth = frameWidth;
+            this.frameHeight = frameHeight;
             this.startFrame = startFrame;
             this.endFrame = endFrame;
             this.fps = fps;

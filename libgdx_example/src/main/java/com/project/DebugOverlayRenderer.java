@@ -17,7 +17,13 @@ public final class DebugOverlayRenderer implements Disposable {
 
     private final ShapeRenderer shapes = new ShapeRenderer();
 
-    public void render(LevelData level, OrthographicCamera camera, boolean showZones, boolean showPaths) {
+    public void render(
+        LevelData level,
+        OrthographicCamera camera,
+        boolean showZones,
+        boolean showPaths,
+        com.badlogic.gdx.utils.Array<RuntimeTransform> zoneRuntimeStates
+    ) {
         if (level == null || (!showZones && !showPaths)) {
             return;
         }
@@ -27,7 +33,7 @@ public final class DebugOverlayRenderer implements Disposable {
         shapes.setProjectionMatrix(camera.combined);
 
         if (showZones) {
-            renderZones(level);
+            renderZones(level, zoneRuntimeStates);
         }
         if (showPaths) {
             renderPaths(level);
@@ -36,22 +42,32 @@ public final class DebugOverlayRenderer implements Disposable {
         Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
-    private void renderZones(LevelData level) {
+    private void renderZones(LevelData level, com.badlogic.gdx.utils.Array<RuntimeTransform> zoneRuntimeStates) {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < level.zones.size; i++) {
             LevelData.LevelZone zone = level.zones.get(i);
-            float yUp = toYUp(level.worldHeight, zone.y, zone.height);
+            RuntimeTransform runtime = zoneRuntimeStates != null && i >= 0 && i < zoneRuntimeStates.size
+                ? zoneRuntimeStates.get(i)
+                : null;
+            float zoneX = runtime == null ? zone.x : runtime.x;
+            float zoneY = runtime == null ? zone.y : runtime.y;
+            float yUp = toYUp(level.worldHeight, zoneY, zone.height);
             shapes.setColor(zone.color.r, zone.color.g, zone.color.b, ZONE_FILL_ALPHA);
-            shapes.rect(zone.x, yUp, zone.width, zone.height);
+            shapes.rect(zoneX, yUp, zone.width, zone.height);
         }
         shapes.end();
 
         shapes.begin(ShapeRenderer.ShapeType.Line);
         for (int i = 0; i < level.zones.size; i++) {
             LevelData.LevelZone zone = level.zones.get(i);
-            float yUp = toYUp(level.worldHeight, zone.y, zone.height);
+            RuntimeTransform runtime = zoneRuntimeStates != null && i >= 0 && i < zoneRuntimeStates.size
+                ? zoneRuntimeStates.get(i)
+                : null;
+            float zoneX = runtime == null ? zone.x : runtime.x;
+            float zoneY = runtime == null ? zone.y : runtime.y;
+            float yUp = toYUp(level.worldHeight, zoneY, zone.height);
             shapes.setColor(zone.color.r, zone.color.g, zone.color.b, ZONE_STROKE_ALPHA);
-            shapes.rect(zone.x, yUp, zone.width, zone.height);
+            shapes.rect(zoneX, yUp, zone.width, zone.height);
         }
         shapes.end();
     }
