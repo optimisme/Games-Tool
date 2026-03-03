@@ -31,6 +31,8 @@ public class PlayScreen extends ScreenAdapter {
     private final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates = new Array<>();
     private final FloatArray spriteAnimationElapsed = new FloatArray();
     private final IntArray spriteTotalFrames = new IntArray();
+    private String[] spriteTotalFramesTexturePath = new String[0];
+    private String[] spriteCurrentAnimationId = new String[0];
 
     private final LevelData levelData;
     private final boolean[] layerVisibilityStates;
@@ -104,8 +106,8 @@ public class PlayScreen extends ScreenAdapter {
         fixedStepAccumulator += clampedDelta;
 
         while (fixedStepAccumulator >= FIXED_STEP_SECONDS) {
-            updateAnimations(FIXED_STEP_SECONDS);
             gameplayController.fixedUpdate(FIXED_STEP_SECONDS);
+            updateAnimations(FIXED_STEP_SECONDS);
             fixedStepAccumulator -= FIXED_STEP_SECONDS;
         }
     }
@@ -126,11 +128,15 @@ public class PlayScreen extends ScreenAdapter {
                 sprite.y,
                 true,
                 sprite.flipX,
-                sprite.flipY
+                sprite.flipY,
+                sprite.texturePath,
+                sprite.animationId
             ));
             spriteTotalFrames.set(i, 0);
             spriteAnimationElapsed.set(i, 0f);
         }
+        spriteTotalFramesTexturePath = new String[levelData.sprites.size];
+        spriteCurrentAnimationId = new String[levelData.sprites.size];
     }
 
     private void updateAnimations(float delta) {
@@ -148,8 +154,27 @@ public class PlayScreen extends ScreenAdapter {
         int spriteIndex,
         float delta
     ) {
-        if (sprite.animationId == null || sprite.animationId.isEmpty()) {
-            int totalFrames = resolveTotalFrames(spriteIndex, sprite);
+        String animationId = gameplayController.animationOverrideForSprite(spriteIndex);
+        if (animationId == null || animationId.isEmpty()) {
+            animationId = sprite.animationId;
+        }
+
+        String previousAnimationId =
+            spriteIndex >= 0 && spriteIndex < spriteCurrentAnimationId.length ? spriteCurrentAnimationId[spriteIndex] : null;
+        if ((previousAnimationId == null && animationId != null)
+            || (previousAnimationId != null && !previousAnimationId.equals(animationId))) {
+            if (spriteIndex >= 0 && spriteIndex < spriteAnimationElapsed.size) {
+                spriteAnimationElapsed.set(spriteIndex, 0f);
+            }
+            if (spriteIndex >= 0 && spriteIndex < spriteCurrentAnimationId.length) {
+                spriteCurrentAnimationId[spriteIndex] = animationId;
+            }
+        }
+
+        if (animationId == null || animationId.isEmpty()) {
+            runtimeState.animationId = null;
+            runtimeState.texturePath = sprite.texturePath;
+            int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
             runtimeState.frameIndex = totalFrames > 0
                 ? Math.max(0, Math.min(totalFrames - 1, sprite.frameIndex))
                 : sprite.frameIndex;
@@ -158,9 +183,11 @@ public class PlayScreen extends ScreenAdapter {
             return;
         }
 
-        LevelData.AnimationClip clip = levelData.animationClips.get(sprite.animationId);
+        LevelData.AnimationClip clip = levelData.animationClips.get(animationId);
         if (clip == null) {
-            int totalFrames = resolveTotalFrames(spriteIndex, sprite);
+            runtimeState.animationId = null;
+            runtimeState.texturePath = sprite.texturePath;
+            int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
             runtimeState.frameIndex = totalFrames > 0
                 ? Math.max(0, Math.min(totalFrames - 1, sprite.frameIndex))
                 : sprite.frameIndex;
@@ -169,7 +196,10 @@ public class PlayScreen extends ScreenAdapter {
             return;
         }
 
-        int totalFrames = resolveTotalFrames(spriteIndex, sprite);
+        runtimeState.animationId = animationId;
+        runtimeState.texturePath =
+            clip.texturePath == null || clip.texturePath.isEmpty() ? sprite.texturePath : clip.texturePath;
+        int totalFrames = resolveTotalFrames(spriteIndex, sprite, runtimeState.texturePath);
         if (totalFrames <= 0) {
             runtimeState.frameIndex = sprite.frameIndex;
             runtimeState.anchorX = clip.anchorX;
@@ -199,25 +229,30 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private int resolveTotalFrames(int spriteIndex, LevelData.LevelSprite sprite) {
+    private int resolveTotalFrames(int spriteIndex, LevelData.LevelSprite sprite, String texturePath) {
         if (spriteIndex < 0 || spriteIndex >= spriteTotalFrames.size) {
             return 0;
         }
         int cached = spriteTotalFrames.get(spriteIndex);
-        if (cached > 0) {
+        String cachedTexturePath =
+            spriteIndex >= 0 && spriteIndex < spriteTotalFramesTexturePath.length ? spriteTotalFramesTexturePath[spriteIndex] : null;
+        if (cached > 0 && texturePath != null && texturePath.equals(cachedTexturePath)) {
             return cached;
         }
 
-        if (!game.getAssetManager().isLoaded(sprite.texturePath, Texture.class)) {
+        if (texturePath == null || texturePath.isEmpty() || !game.getAssetManager().isLoaded(texturePath, Texture.class)) {
             return 0;
         }
-        Texture texture = game.getAssetManager().get(sprite.texturePath, Texture.class);
+        Texture texture = game.getAssetManager().get(texturePath, Texture.class);
         int frameWidth = Math.max(1, Math.round(sprite.width));
         int frameHeight = Math.max(1, Math.round(sprite.height));
         int cols = Math.max(1, texture.getWidth() / frameWidth);
         int rows = Math.max(1, texture.getHeight() / frameHeight);
         int total = Math.max(1, cols * rows);
         spriteTotalFrames.set(spriteIndex, total);
+        if (spriteIndex >= 0 && spriteIndex < spriteTotalFramesTexturePath.length) {
+            spriteTotalFramesTexturePath[spriteIndex] = texturePath;
+        }
         return total;
     }
 

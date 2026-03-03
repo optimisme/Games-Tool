@@ -50,6 +50,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         gemSpriteIndices = findSpriteIndicesByTypeOrName("gem");
         dragonSpriteIndices = findSpriteIndicesByTypeOrName("dragon");
         onGround = isStandingOnFloor();
+        updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
     }
 
@@ -77,6 +78,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             velocityX = 0f;
             velocityY = 0f;
             jumpQueued = false;
+            updatePlayerAnimationSelection();
             syncPlayerToSpriteRuntime();
             return;
         }
@@ -128,6 +130,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             triggerGameOver();
         }
 
+        updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
     }
 
@@ -251,7 +254,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         if (deathZoneIndices.size <= 0) {
             return false;
         }
-        return overlapsAnyZone(playerRect(rectCacheA), deathZoneIndices);
+        return spriteOverlapsAnyZoneByHitBoxes(playerSpriteIndex, playerX, playerY, deathZoneIndices);
     }
 
     private void collectTouchedGems() {
@@ -259,7 +262,6 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             return;
         }
 
-        Rectangle playerRect = playerRect(rectCacheA);
         for (int i = 0; i < gemSpriteIndices.size; i++) {
             int spriteIndex = gemSpriteIndices.get(i);
             if (collectedGemSpriteIndices.contains(spriteIndex)) {
@@ -272,7 +274,14 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             if (!runtime.visible) {
                 continue;
             }
-            if (playerRect.overlaps(spriteRectAtCurrent(spriteIndex, rectCacheB))) {
+            if (spritesOverlapByHitBoxes(
+                playerSpriteIndex,
+                playerX,
+                playerY,
+                spriteIndex,
+                runtime.worldX,
+                runtime.worldY
+            )) {
                 collectedGemSpriteIndices.add(spriteIndex);
                 setSpriteVisible(spriteIndex, false);
             }
@@ -288,7 +297,6 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             return;
         }
 
-        Rectangle playerRect = playerRect(rectCacheA);
         boolean foxyIsFalling = !onGround && velocityY > DRAGON_STOMP_MIN_FALL_SPEED;
         touchingDragonNowCache.clear();
 
@@ -304,7 +312,14 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
             if (!dragonRuntime.visible) {
                 continue;
             }
-            if (!playerRect.overlaps(spriteRectAtCurrent(spriteIndex, rectCacheB))) {
+            if (!spritesOverlapByHitBoxes(
+                playerSpriteIndex,
+                playerX,
+                playerY,
+                spriteIndex,
+                dragonRuntime.worldX,
+                dragonRuntime.worldY
+            )) {
                 continue;
             }
 
@@ -376,6 +391,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         restoreSpritesVisible(gemSpriteIndices);
         restoreSpritesVisible(dragonSpriteIndices);
         setPlayerFlip(false, false);
+        updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
     }
 
@@ -383,5 +399,27 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         for (int i = 0; i < indices.size; i++) {
             setSpriteVisible(indices.get(i), true);
         }
+    }
+
+    private void updatePlayerAnimationSelection() {
+        if (!hasPlayer()) {
+            return;
+        }
+
+        final float verticalThreshold = 5f;
+        final float moveThreshold = 2f;
+        String animationName = "Foxy Idle";
+        if (!onGround) {
+            if (velocityY < -verticalThreshold) {
+                animationName = "Foxy Jump Up";
+            } else {
+                animationName = "Foxy Jump Fall";
+            }
+        } else if (Math.abs(velocityX) > moveThreshold) {
+            animationName = "Foxy Walk";
+        }
+
+        setPlayerFlip(!facingRight, false);
+        setPlayerAnimationOverrideByName(animationName);
     }
 }

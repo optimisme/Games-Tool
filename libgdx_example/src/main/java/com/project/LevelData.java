@@ -195,6 +195,7 @@ public final class LevelData {
 
     public static final class AnimationClip {
         public final String id;
+        public final String name;
         public final String texturePath;
         public final int startFrame;
         public final int endFrame;
@@ -202,10 +203,12 @@ public final class LevelData {
         public final boolean loop;
         public final float anchorX;
         public final float anchorY;
+        public final Array<HitBox> hitBoxes;
         public final ObjectMap<Integer, FrameRig> frameRigs;
 
         public AnimationClip(
             String id,
+            String name,
             String texturePath,
             int startFrame,
             int endFrame,
@@ -213,9 +216,11 @@ public final class LevelData {
             boolean loop,
             float anchorX,
             float anchorY,
+            Array<HitBox> hitBoxes,
             ObjectMap<Integer, FrameRig> frameRigs
         ) {
             this.id = id;
+            this.name = name;
             this.texturePath = texturePath;
             this.startFrame = startFrame;
             this.endFrame = endFrame;
@@ -223,6 +228,7 @@ public final class LevelData {
             this.loop = loop;
             this.anchorX = anchorX;
             this.anchorY = anchorY;
+            this.hitBoxes = hitBoxes;
             this.frameRigs = frameRigs;
         }
     }
@@ -230,10 +236,37 @@ public final class LevelData {
     public static final class FrameRig {
         public final float anchorX;
         public final float anchorY;
+        public final Array<HitBox> hitBoxes;
 
-        public FrameRig(float anchorX, float anchorY) {
+        public FrameRig(float anchorX, float anchorY, Array<HitBox> hitBoxes) {
             this.anchorX = anchorX;
             this.anchorY = anchorY;
+            this.hitBoxes = hitBoxes;
+        }
+    }
+
+    public static final class HitBox {
+        public final String id;
+        public final String name;
+        public final float x;
+        public final float y;
+        public final float width;
+        public final float height;
+
+        public HitBox(
+            String id,
+            String name,
+            float x,
+            float y,
+            float width,
+            float height
+        ) {
+            this.id = id;
+            this.name = name;
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
         }
     }
 }
