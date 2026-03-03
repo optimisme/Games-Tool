@@ -80,10 +80,10 @@
     {
       "type": "Foxy Death",
       "gameplayData": "",
-      "x": 0,
-      "y": 520,
-      "width": 1070,
-      "height": 40,
+      "x": -261,
+      "y": 534,
+      "width": 1664,
+      "height": 153,
       "color": "red",
       "groupId": "__main__"
     }
