@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../app_data.dart';
@@ -65,13 +67,24 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
 
     return CupertinoPageScaffold(
       child: SafeArea(
-        child: CustomPaint(
-          painter: _LoadingPainter(
-            levelIndex: widget.levelIndex,
-            progress: progress,
-            label: label,
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: (FocusNode _, KeyEvent event) {
+            return _onKeyEvent(event, appData);
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _onTap(appData),
+            child: CustomPaint(
+              painter: _LoadingPainter(
+                levelIndex: widget.levelIndex,
+                progress: progress,
+                label: label,
+                showRetryHint: appData.loadingError != null,
+              ),
+              child: const SizedBox.expand(),
+            ),
           ),
-          child: const SizedBox.expand(),
         ),
       ),
     );

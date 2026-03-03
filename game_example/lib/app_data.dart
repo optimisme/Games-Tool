@@ -130,11 +130,13 @@ class AppData extends ChangeNotifier {
       await _loadPersonalizedLevelFilesStep(levelIndex);
       loadingProgress = 1;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
       loadingError = '$e';
       if (kDebugMode) {
-        print('Error carregant els assets del joc: $e');
+        debugPrint('Error carregant els assets del joc: $e');
+        debugPrintStack(stackTrace: stackTrace);
       }
+      rethrow;
     } finally {
       isLoadingData = false;
       notifyListeners();

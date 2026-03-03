@@ -8,7 +8,7 @@ extension _LoadingInitialize on _LoadingState {
       if (!mounted) {
         return;
       }
-      context.read<AppData>().ensureLoadedForLevel(widget.levelIndex);
+      _requestLoad();
     });
   }
 
