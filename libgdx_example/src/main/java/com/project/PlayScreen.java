@@ -2,14 +2,15 @@ package com.project;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
@@ -18,6 +19,9 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class PlayScreen extends ScreenAdapter {
 
     private static final float DEFAULT_ANIMATION_FPS = 8f;
+    private static final float FIXED_STEP_SECONDS = 1f / 120f;
+    private static final float MAX_FRAME_SECONDS = 0.25f;
+
     private final GameApp game;
     private final int levelIndex;
     private final OrthographicCamera camera = new OrthographicCamera();
@@ -27,37 +31,53 @@ public class PlayScreen extends ScreenAdapter {
     private final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates = new Array<>();
     private final FloatArray spriteAnimationElapsed = new FloatArray();
     private final IntArray spriteTotalFrames = new IntArray();
-    private LevelData levelData;
+
+    private final LevelData levelData;
+    private final boolean[] layerVisibilityStates;
+    private final GameplayController gameplayController;
+
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
+    private float fixedStepAccumulator = 0f;
 
     public PlayScreen(GameApp game, int levelIndex) {
         this.game = game;
         this.levelIndex = levelIndex;
         this.levelData = LevelLoader.loadLevel(levelIndex);
+        this.layerVisibilityStates = buildInitialLayerVisibility(levelData);
         this.viewport = createViewport(levelData, camera);
         camera.setToOrtho(false);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
         applyInitialCameraFromLevel();
         initializeAnimationRuntimeState();
+        this.gameplayController = createGameplayController();
     }
 
     @Override
     public void render(float delta) {
-        handleDebugOverlayInput();
-        updateAnimations(delta);
-
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.unloadReferencedAssetsForLevel(levelIndex);
             game.setScreen(new MenuScreen(game));
             return;
         }
 
+        handleDebugOverlayInput();
+        gameplayController.handleInput();
+        stepSimulation(delta);
+
         viewport.apply();
+        updateCameraForGameplay();
         ScreenUtils.clear(levelData.backgroundColor);
 
         SpriteBatch batch = game.getBatch();
         batch.begin();
-        levelRenderer.render(levelData, game.getAssetManager(), batch, camera, spriteRuntimeStates);
+        levelRenderer.render(
+            levelData,
+            game.getAssetManager(),
+            batch,
+            camera,
+            spriteRuntimeStates,
+            layerVisibilityStates
+        );
         batch.end();
 
         debugOverlayRenderer.render(
@@ -68,23 +88,48 @@ public class PlayScreen extends ScreenAdapter {
         );
     }
 
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height, false);
+        updateCameraForGameplay();
+    }
+
+    @Override
+    public void dispose() {
+        debugOverlayRenderer.dispose();
+    }
+
+    private void stepSimulation(float deltaSeconds) {
+        float clampedDelta = Math.max(0f, Math.min(MAX_FRAME_SECONDS, deltaSeconds));
+        fixedStepAccumulator += clampedDelta;
+
+        while (fixedStepAccumulator >= FIXED_STEP_SECONDS) {
+            updateAnimations(FIXED_STEP_SECONDS);
+            gameplayController.fixedUpdate(FIXED_STEP_SECONDS);
+            fixedStepAccumulator -= FIXED_STEP_SECONDS;
+        }
+    }
+
     private void initializeAnimationRuntimeState() {
         spriteRuntimeStates.clear();
         spriteAnimationElapsed.clear();
         spriteTotalFrames.clear();
         spriteAnimationElapsed.setSize(levelData.sprites.size);
         spriteTotalFrames.setSize(levelData.sprites.size);
-        for (int i = 0; i < spriteTotalFrames.size; i++) {
-            spriteTotalFrames.set(i, 0);
-        }
-
         for (int i = 0; i < levelData.sprites.size; i++) {
             LevelData.LevelSprite sprite = levelData.sprites.get(i);
             spriteRuntimeStates.add(new LevelRenderer.SpriteRuntimeState(
                 sprite.frameIndex,
                 sprite.anchorX,
-                sprite.anchorY
+                sprite.anchorY,
+                sprite.x,
+                sprite.y,
+                true,
+                sprite.flipX,
+                sprite.flipY
             ));
+            spriteTotalFrames.set(i, 0);
+            spriteAnimationElapsed.set(i, 0f);
         }
     }
 
@@ -176,32 +221,13 @@ public class PlayScreen extends ScreenAdapter {
         return total;
     }
 
-    private static int positiveMod(int value, int divisor) {
-        if (divisor <= 0) {
-            return 0;
-        }
-        int mod = value % divisor;
-        return mod < 0 ? mod + divisor : mod;
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height, false);
-        camera.update();
-    }
-
-    @Override
-    public void dispose() {
-        debugOverlayRenderer.dispose();
-    }
-
     private void handleDebugOverlayInput() {
         if (!Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
             return;
         }
 
-        boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ||
-            Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+        boolean shiftPressed = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
+            || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
         if (shiftPressed) {
             debugOverlayMode = nextDebugOverlayMode(debugOverlayMode);
         } else {
@@ -211,6 +237,97 @@ public class PlayScreen extends ScreenAdapter {
         }
 
         Gdx.app.log("PlayScreen", "Debug overlay: " + debugOverlayMode.name().toLowerCase());
+    }
+
+    private void applyInitialCameraFromLevel() {
+        float centerX = levelData.viewportX + levelData.viewportWidth * 0.5f;
+        float centerYDown = levelData.viewportY + levelData.viewportHeight * 0.5f;
+        float centerY = levelData.worldHeight - centerYDown;
+        camera.position.set(centerX, centerY, 0f);
+        camera.update();
+    }
+
+    private void updateCameraForGameplay() {
+        if (!gameplayController.hasCameraTarget()) {
+            camera.update();
+            return;
+        }
+
+        float worldW = Math.max(1f, levelData.worldWidth);
+        float worldH = Math.max(1f, levelData.worldHeight);
+        float viewW = Math.max(1f, viewport.getWorldWidth());
+        float viewH = Math.max(1f, viewport.getWorldHeight());
+        float halfW = viewW * 0.5f;
+        float halfH = viewH * 0.5f;
+
+        float minX = Math.min(halfW, worldW - halfW);
+        float maxX = Math.max(halfW, worldW - halfW);
+        float minYDown = Math.min(halfH, worldH - halfH);
+        float maxYDown = Math.max(halfH, worldH - halfH);
+
+        float centerX = MathUtils.clamp(gameplayController.getCameraTargetX(), minX, maxX);
+        float centerYDown = MathUtils.clamp(gameplayController.getCameraTargetY(), minYDown, maxYDown);
+        float centerY = worldH - centerYDown;
+        camera.position.set(centerX, centerY, 0f);
+        camera.update();
+    }
+
+    private GameplayController createGameplayController() {
+        if (isPlatformerLevel(levelData)) {
+            Gdx.app.log("PlayScreen", "Gameplay mode: platformer");
+            return new PlatformerGameplayController(levelData, spriteRuntimeStates, layerVisibilityStates);
+        }
+        Gdx.app.log("PlayScreen", "Gameplay mode: topdown");
+        return new TopDownGameplayController(levelData, spriteRuntimeStates, layerVisibilityStates);
+    }
+
+    private static boolean isPlatformerLevel(LevelData levelData) {
+        for (int i = 0; i < levelData.zones.size; i++) {
+            LevelData.LevelZone zone = levelData.zones.get(i);
+            String type = normalize(zone.type);
+            String name = normalize(zone.name);
+            if (containsAny(type, "floor", "death") || containsAny(name, "floor", "death")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+
+    private static boolean containsAny(String value, String... needles) {
+        if (value == null || value.isEmpty() || needles == null || needles.length == 0) {
+            return false;
+        }
+        for (int i = 0; i < needles.length; i++) {
+            String needle = needles[i];
+            if (needle != null && !needle.isEmpty() && value.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Viewport createViewport(LevelData levelData, OrthographicCamera camera) {
+        switch (levelData.viewportAdaptation) {
+            case "expand":
+                return new ExtendViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
+            case "stretch":
+                return new StretchViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
+            case "letterbox":
+            default:
+                return new FitViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
+        }
+    }
+
+    private static boolean[] buildInitialLayerVisibility(LevelData levelData) {
+        boolean[] states = new boolean[levelData.layers.size];
+        for (int i = 0; i < levelData.layers.size; i++) {
+            states[i] = levelData.layers.get(i).visible;
+        }
+        return states;
     }
 
     private static DebugOverlayMode nextDebugOverlayMode(DebugOverlayMode mode) {
@@ -227,24 +344,12 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private static Viewport createViewport(LevelData levelData, OrthographicCamera camera) {
-        switch (levelData.viewportAdaptation) {
-            case "expand":
-                return new ExtendViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
-            case "stretch":
-                return new StretchViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
-            case "letterbox":
-            default:
-                return new FitViewport(levelData.viewportWidth, levelData.viewportHeight, camera);
+    private static int positiveMod(int value, int divisor) {
+        if (divisor <= 0) {
+            return 0;
         }
-    }
-
-    private void applyInitialCameraFromLevel() {
-        float centerX = levelData.viewportX + levelData.viewportWidth * 0.5f;
-        float centerYDown = levelData.viewportY + levelData.viewportHeight * 0.5f;
-        float centerY = levelData.worldHeight - centerYDown;
-        camera.position.set(centerX, centerY, 0f);
-        camera.update();
+        int mod = value % divisor;
+        return mod < 0 ? mod + divisor : mod;
     }
 
     private enum DebugOverlayMode {

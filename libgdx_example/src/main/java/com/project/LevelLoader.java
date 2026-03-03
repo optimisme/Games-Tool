@@ -224,6 +224,7 @@ public final class LevelLoader {
 
         return new LevelData.LevelSprite(
             spriteNode.getString("name", "Sprite"),
+            spriteNode.getString("type", ""),
             spriteNode.getFloat("depth", 0f),
             spriteNode.getFloat("x", 0f),
             spriteNode.getFloat("y", 0f),
@@ -365,6 +366,8 @@ public final class LevelLoader {
                 zones.add(new LevelData.LevelZone(
                     zoneNode.getString("name", "Zone"),
                     zoneNode.getString("type", ""),
+                    zoneNode.getString("gameplayData", ""),
+                    zoneNode.getString("groupId", ""),
                     x,
                     y,
                     width,
