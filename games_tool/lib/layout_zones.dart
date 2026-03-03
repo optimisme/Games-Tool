@@ -2196,82 +2196,12 @@ class _ZoneTypesPopover extends StatefulWidget {
 class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
   late final List<_ZoneTypeDraft> _drafts =
       widget.initialTypes.map((item) => item.copyWith()).toList(growable: true);
-  int _selectedIndex = -1;
+  late final List<TextEditingController> _nameControllers = _drafts
+      .map((draft) => TextEditingController(text: draft.name))
+      .toList(growable: true);
+  late final List<GlobalKey> _colorAnchorKeys =
+      List.generate(_drafts.length, (_) => GlobalKey(), growable: true);
   int _newKeyCounter = 0;
-  late final TextEditingController _nameController = TextEditingController();
-  late String _selectedColor = widget.colorPalette.first;
-  String? _nameError;
-
-  Widget _buildDraftRow({
-    required BuildContext context,
-    required int index,
-    required _ZoneTypeDraft draft,
-  }) {
-    final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    final bool selected = index == _selectedIndex;
-    return GestureDetector(
-      key: ValueKey(draft.key),
-      onTap: () => _selectIndex(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          vertical: 6,
-          horizontal: 8,
-        ),
-        color: selected
-            ? CupertinoColors.systemBlue.withValues(alpha: 0.18)
-            : Colors.transparent,
-        child: Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: LayoutUtils.getColorFromName(draft.color),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: CDKText(
-                draft.name,
-                role: selected ? CDKTextRole.bodyStrong : CDKTextRole.body,
-                color: cdkColors.colorText,
-              ),
-            ),
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  CupertinoIcons.bars,
-                  size: 16,
-                  color: cdkColors.colorText,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _selectIndex(int index) {
-    if (index < 0 || index >= _drafts.length) {
-      return;
-    }
-    setState(() {
-      if (_selectedIndex == index) {
-        _selectedIndex = -1;
-        _nameController.clear();
-        _selectedColor = widget.colorPalette.first;
-      } else {
-        _selectedIndex = index;
-        _nameController.text = _drafts[index].name;
-        _selectedColor = _drafts[index].color;
-      }
-      _nameError = null;
-    });
-  }
 
   void _emitChanged() {
     widget.onTypesChanged(
@@ -2279,83 +2209,55 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
     );
   }
 
-  bool _isNameDuplicated(String name, {required int excludingIndex}) {
-    for (int i = 0; i < _drafts.length; i++) {
-      if (i == excludingIndex) continue;
-      if (_drafts[i].name.trim() == name) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void _addDraft() {
-    if (_selectedIndex >= 0 && _selectedIndex < _drafts.length) {
+  void _updateDraft(int index, {String? name, String? color}) {
+    if (index < 0 || index >= _drafts.length) {
       return;
     }
-    final String nextName = _nameController.text.trim();
-    if (nextName.isEmpty) {
-      setState(() {
-        _nameError = 'Category name is required.';
-      });
-      return;
-    }
-    if (_isNameDuplicated(nextName, excludingIndex: _selectedIndex)) {
-      setState(() {
-        _nameError = 'A category with this name already exists.';
-      });
-      return;
-    }
-
-    setState(() {
-      _drafts.add(
-        _ZoneTypeDraft(
-          key: '__new_${_newKeyCounter++}',
-          name: nextName,
-          color: _selectedColor,
-        ),
-      );
-      _selectedIndex = -1;
-      _nameController.clear();
-      _selectedColor = widget.colorPalette.first;
-      _nameError = null;
-    });
-    _emitChanged();
-  }
-
-  void _autoUpdateSelectedDraft({
-    String? name,
-    String? color,
-  }) {
-    if (_selectedIndex < 0 || _selectedIndex >= _drafts.length) {
-      return;
-    }
-    final _ZoneTypeDraft current = _drafts[_selectedIndex];
+    final _ZoneTypeDraft current = _drafts[index];
     final String nextName = name ?? current.name;
     final String nextColor = color ?? current.color;
     if (nextName == current.name && nextColor == current.color) {
       return;
     }
     setState(() {
-      _drafts[_selectedIndex] = current.copyWith(
-        name: nextName,
-        color: nextColor,
-      );
-      _nameError = null;
+      _drafts[index] = current.copyWith(name: nextName, color: nextColor);
     });
     _emitChanged();
   }
 
-  void _deleteSelected() {
-    if (_selectedIndex < 0 || _selectedIndex >= _drafts.length) {
+  void _addDraft() {
+    final int nextNumber = _drafts.length + 1;
+    String candidateName = 'Category $nextNumber';
+    final Set<String> existingNames =
+        _drafts.map((d) => d.name.trim()).toSet();
+    int suffix = nextNumber;
+    while (existingNames.contains(candidateName)) {
+      suffix++;
+      candidateName = 'Category $suffix';
+    }
+    setState(() {
+      _drafts.add(
+        _ZoneTypeDraft(
+          key: '__new_${_newKeyCounter++}',
+          name: candidateName,
+          color: widget.colorPalette.first,
+        ),
+      );
+      _nameControllers.add(TextEditingController(text: candidateName));
+      _colorAnchorKeys.add(GlobalKey());
+    });
+    _emitChanged();
+  }
+
+  void _deleteDraft(int index) {
+    if (index < 0 || index >= _drafts.length) {
       return;
     }
     setState(() {
-      _drafts.removeAt(_selectedIndex);
-      _selectedIndex = -1;
-      _nameController.clear();
-      _selectedColor = widget.colorPalette.first;
-      _nameError = null;
+      _drafts.removeAt(index);
+      _nameControllers[index].dispose();
+      _nameControllers.removeAt(index);
+      _colorAnchorKeys.removeAt(index);
     });
     _emitChanged();
   }
@@ -2374,26 +2276,52 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
     if (insertIndex == oldIndex) {
       return;
     }
-
-    final String? selectedKey =
-        (_selectedIndex >= 0 && _selectedIndex < _drafts.length)
-            ? _drafts[_selectedIndex].key
-            : null;
-
     setState(() {
-      final _ZoneTypeDraft moved = _drafts.removeAt(oldIndex);
-      _drafts.insert(insertIndex, moved);
-      if (selectedKey != null) {
-        _selectedIndex =
-            _drafts.indexWhere((draft) => draft.key == selectedKey);
-      }
+      final _ZoneTypeDraft movedDraft = _drafts.removeAt(oldIndex);
+      _drafts.insert(insertIndex, movedDraft);
+      final TextEditingController movedController =
+          _nameControllers.removeAt(oldIndex);
+      _nameControllers.insert(insertIndex, movedController);
+      final GlobalKey movedKey = _colorAnchorKeys.removeAt(oldIndex);
+      _colorAnchorKeys.insert(insertIndex, movedKey);
     });
     _emitChanged();
   }
 
+  void _showColorPicker(int index) {
+    if (index < 0 || index >= _drafts.length) {
+      return;
+    }
+    final GlobalKey anchorKey = _colorAnchorKeys[index];
+    if (anchorKey.currentContext == null) {
+      return;
+    }
+    final CDKDialogController controller = CDKDialogController();
+    CDKDialogsManager.showPopoverArrowed(
+      context: context,
+      anchorKey: anchorKey,
+      isAnimated: true,
+      animateContentResize: false,
+      dismissOnEscape: true,
+      dismissOnOutsideTap: true,
+      showBackgroundShade: false,
+      controller: controller,
+      child: _ZoneCategoryColorPicker(
+        colorPalette: widget.colorPalette,
+        selectedColorName: _drafts[index].color,
+        onSelected: (String colorName) {
+          _updateDraft(index, color: colorName);
+          controller.close();
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _nameController.dispose();
+    for (final controller in _nameControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -2401,11 +2329,6 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    final bool hasSelection =
-        _selectedIndex >= 0 && _selectedIndex < _drafts.length;
-    final bool selectedTypeIsUsed = hasSelection &&
-        widget.usedTypeKeys.contains(_drafts[_selectedIndex].key);
-    final bool canDelete = hasSelection && !selectedTypeIsUsed;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 220),
@@ -2413,7 +2336,7 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
       alignment: Alignment.topCenter,
       clipBehavior: Clip.none,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 420, maxWidth: 460),
+        constraints: const BoxConstraints(minWidth: 340, maxWidth: 380),
         child: Padding(
           padding: EdgeInsets.all(spacing.md),
           child: Column(
@@ -2424,12 +2347,12 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
               SizedBox(height: spacing.sm),
               if (_drafts.isEmpty)
                 const CDKText(
-                  'No zone categories yet. Create one below.',
+                  'No zone categories yet.',
                   role: CDKTextRole.caption,
                   secondary: true,
                 ),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 180),
+                constraints: const BoxConstraints(maxHeight: 260),
                 child: Localizations.override(
                   context: context,
                   delegates: const [
@@ -2444,127 +2367,142 @@ class _ZoneTypesPopoverState extends State<_ZoneTypesPopover> {
                     onReorder: _reorderDrafts,
                     itemBuilder: (context, index) {
                       final _ZoneTypeDraft draft = _drafts[index];
-                      return _buildDraftRow(
-                        context: context,
-                        index: index,
-                        draft: draft,
+                      final bool isUsed =
+                          widget.usedTypeKeys.contains(draft.key);
+                      return Container(
+                        key: ValueKey(draft.key),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        color: cdkColors.backgroundSecondary0,
+                        child: Row(
+                          children: [
+                            CDKButton(
+                              key: _colorAnchorKeys[index],
+                              style: CDKButtonStyle.normal,
+                              onPressed: () => _showColorPicker(index),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: LayoutUtils.getColorFromName(
+                                          draft.color),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    CupertinoIcons.chevron_down,
+                                    size: 10,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: spacing.xs),
+                            Expanded(
+                              child: CDKFieldText(
+                                placeholder: 'Category name',
+                                controller: _nameControllers[index],
+                                onChanged: (value) {
+                                  final String trimmed = value.trim();
+                                  if (trimmed.isNotEmpty) {
+                                    _updateDraft(index, name: trimmed);
+                                  }
+                                },
+                              ),
+                            ),
+                            SizedBox(width: spacing.xs),
+                            SizedBox(
+                              width: 24,
+                              child: isUsed
+                                  ? const SizedBox.shrink()
+                                  : CupertinoButton(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(20, 20),
+                                      onPressed: () => _deleteDraft(index),
+                                      child: Icon(
+                                        CupertinoIcons.minus_circle,
+                                        size: 16,
+                                        color: cdkColors.colorText,
+                                      ),
+                                    ),
+                            ),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  CupertinoIcons.bars,
+                                  size: 16,
+                                  color: cdkColors.colorText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
                 ),
               ),
-              SizedBox(height: spacing.md),
-              CDKText(
-                'Name',
-                role: CDKTextRole.caption,
-                color: cdkColors.colorText,
-              ),
-              const SizedBox(height: 4),
-              CDKFieldText(
-                placeholder: 'Category name',
-                controller: _nameController,
-                onChanged: (value) {
-                  final String trimmed = value.trim();
-                  if (hasSelection) {
-                    if (trimmed.isEmpty) {
-                      if (_nameError != 'Category name is required.') {
-                        setState(() {
-                          _nameError = 'Category name is required.';
-                        });
-                      }
-                      return;
-                    }
-                    if (_isNameDuplicated(trimmed,
-                        excludingIndex: _selectedIndex)) {
-                      if (_nameError !=
-                          'A category with this name already exists.') {
-                        setState(() {
-                          _nameError =
-                              'A category with this name already exists.';
-                        });
-                      }
-                      return;
-                    }
-                    _autoUpdateSelectedDraft(name: trimmed);
-                    return;
-                  }
-                  if (_nameError != null) {
-                    setState(() {
-                      _nameError = null;
-                    });
-                  }
-                },
-                onSubmitted: (_) => _addDraft(),
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                height: 18,
-                child: _nameError == null
-                    ? const SizedBox.shrink()
-                    : CDKText(
-                        _nameError!,
-                        role: CDKTextRole.caption,
-                        color: CDKTheme.red,
-                      ),
-              ),
               SizedBox(height: spacing.sm),
-              CDKText(
-                'Color',
-                role: CDKTextRole.caption,
-                color: cdkColors.colorText,
-              ),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: spacing.xs,
-                runSpacing: spacing.xs,
-                children: widget.colorPalette.map((colorName) {
-                  return SelectableColorSwatch(
-                    color: LayoutUtils.getColorFromName(colorName),
-                    selected: _selectedColor == colorName,
-                    onTap: () {
-                      if (_selectedColor == colorName) {
-                        return;
-                      }
-                      setState(() {
-                        _selectedColor = colorName;
-                      });
-                      if (hasSelection) {
-                        _autoUpdateSelectedDraft(color: colorName);
-                      }
-                    },
-                  );
-                }).toList(growable: false),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 18,
-                child: selectedTypeIsUsed
-                    ? const CDKText(
-                        'Category is in use and cannot be deleted.',
-                        role: CDKTextRole.caption,
-                        secondary: true,
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              SizedBox(height: spacing.md),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CDKButton(
-                    style: CDKButtonStyle.normal,
-                    enabled: canDelete,
-                    onPressed: _deleteSelected,
-                    child: const Text('Delete category'),
-                  ),
-                  CDKButton(
-                    style: CDKButtonStyle.action,
-                    onPressed: hasSelection ? null : _addDraft,
-                    child: const Text('Add category'),
-                  ),
-                ],
+              CDKButton(
+                style: CDKButtonStyle.action,
+                onPressed: _addDraft,
+                child: const Text('Add category'),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoneCategoryColorPicker extends StatelessWidget {
+  const _ZoneCategoryColorPicker({
+    required this.colorPalette,
+    required this.selectedColorName,
+    required this.onSelected,
+  });
+
+  final List<String> colorPalette;
+  final String selectedColorName;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Padding(
+        padding: EdgeInsets.all(spacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CDKText('Color', role: CDKTextRole.caption),
+            SizedBox(height: spacing.xs),
+            Wrap(
+              spacing: spacing.xs,
+              runSpacing: spacing.xs,
+              children: colorPalette
+                  .map(
+                    (String colorName) => SelectableColorSwatch(
+                      color: LayoutUtils.getColorFromName(colorName),
+                      selected: colorName == selectedColorName,
+                      onTap: () => onSelected(colorName),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
         ),
       ),
     );
