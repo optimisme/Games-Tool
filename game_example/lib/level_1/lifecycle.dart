@@ -3,12 +3,17 @@ part of 'main.dart';
 /// Level setup helpers for runtime references, spawn state, and camera defaults.
 extension _Level1Initialize on _Level1State {
   void _initializeLevel(AppData appData) {
-    _runtimeApi.useLoadedGameData(
-      appData.gameData,
-      gamesTool: appData.gamesTool,
-    );
-    _level = appData.getLevelByIndex(widget.levelIndex);
-    _playerSprite = _resolveLevel1PlayerSprite(_level);
+    _runtimeGameData = cloneGameData(appData.gameData);
+    _level = _runtimeGameData == null
+        ? null
+        : appData.gamesTool
+            .findLevelByIndex(_runtimeGameData!, widget.levelIndex);
+    if (_runtimeGameData != null) {
+      _runtimeApi.useLoadedGameData(
+        _runtimeGameData!,
+        gamesTool: appData.gamesTool,
+      );
+    }
     _playerSpriteIndex = appData.gamesTool
         .findSpriteIndexByTypeOrName(_level, _level1PlayerSpriteName);
     _movingPlatformLayerIndex = appData.gamesTool.findLayerIndexByName(
@@ -20,7 +25,7 @@ extension _Level1Initialize on _Level1State {
       _level,
       _level1MovingPlatformFloorGameplayData,
     );
-    final Map<String, dynamic>? spawn = _playerSprite;
+    final Map<String, dynamic>? spawn = _resolveLevel1PlayerSprite(_level);
     final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
       gamesTool: appData.gamesTool,
       level: _level,

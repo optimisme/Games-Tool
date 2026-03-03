@@ -4,7 +4,7 @@ part of 'main.dart';
 extension _Level0Initialize on _Level0State {
   void _initializeLevel(AppData appData) {
     // Work on a cloned game-data tree so runtime tile edits stay level-local.
-    _runtimeGameData = _cloneGameData(appData.gameData);
+    _runtimeGameData = cloneGameData(appData.gameData);
     _level = _runtimeGameData == null
         ? null
         : appData.gamesTool
@@ -33,6 +33,8 @@ extension _Level0Initialize on _Level0State {
       fallbackCenterX: 100,
       fallbackCenterY: 100,
     );
+    _cameraFollowOffsetX = 0;
+    _cameraFollowOffsetY = 0;
     final Set<String> collectibleArbreTileKeys = _collectLevel0ArbreTileKeys(
       gamesTool: appData.gamesTool,
       level: _level,
@@ -69,16 +71,5 @@ extension _Level0Initialize on _Level0State {
       x: _updateState!.cameraX,
       y: _updateState!.cameraY,
     );
-  }
-
-  Map<String, dynamic>? _cloneGameData(Map<String, dynamic> source) {
-    if (source.isEmpty) {
-      return null;
-    }
-    final dynamic clone = jsonDecode(jsonEncode(source));
-    if (clone is Map<String, dynamic>) {
-      return clone;
-    }
-    return null;
   }
 }

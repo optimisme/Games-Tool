@@ -10,7 +10,6 @@ import '../shared/utils_level.dart';
 import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
-part 'drawing.dart';
 part 'lifecycle.dart';
 part 'interaction.dart';
 part 'models.dart';
@@ -191,8 +190,8 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   Duration? _lastTickTimestamp;
   bool _initialized = false;
   bool _jumpQueued = false;
+  Map<String, dynamic>? _runtimeGameData;
   Map<String, dynamic>? _level;
-  Map<String, dynamic>? _playerSprite;
   int? _playerSpriteIndex;
   Level1UpdateState? _updateState;
   // Render interpolation alpha for the current vsync frame: [0, 1].
@@ -295,7 +294,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                 child: CustomPaint(
                   painter: LevelPainter<Level1RenderState>(
                     appData: appData,
-                    gameData: appData.gameData,
+                    gameData: _runtimeGameData ?? appData.gameData,
                     level: _level,
                     renderState: renderState,
                     layerCommands: layerCommands,

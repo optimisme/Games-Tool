@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +10,6 @@ import '../shared/utils_level.dart';
 import '../shared/utils_painter.dart';
 import '../utils_gamestool/utils_gamestool.dart';
 
-part 'drawing.dart';
 part 'lifecycle.dart';
 part 'interaction.dart';
 part 'models.dart';
@@ -225,6 +222,8 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _runtimeGameData;
   Map<String, dynamic>? _level;
   int? _heroSpriteIndex;
+  double _cameraFollowOffsetX = 0;
+  double _cameraFollowOffsetY = 0;
   int? _decoracionsLayerIndex;
   int? _pontAmagatLayerIndex;
   Level0UpdateState? _updateState;

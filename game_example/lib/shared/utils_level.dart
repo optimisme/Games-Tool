@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -95,6 +96,17 @@ T selectByLevelIndex<T>({
     return level1;
   }
   return level0;
+}
+
+Map<String, dynamic>? cloneGameData(Map<String, dynamic> source) {
+  if (source.isEmpty) {
+    return null;
+  }
+  final dynamic clone = jsonDecode(jsonEncode(source));
+  if (clone is Map<String, dynamic>) {
+    return clone;
+  }
+  return null;
 }
 
 void snapshotPreviousPosition2D({

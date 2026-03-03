@@ -2,6 +2,21 @@ part of 'main.dart';
 
 /// Input and navigation rules for active gameplay and end states.
 extension _Level1Interaction on _Level1State {
+  void _clearRuntimeState() {
+    _pressedKeys.clear();
+    _jumpQueued = false;
+    _lastTickTimestamp = null;
+    _runtimeApi.resetFrameState();
+    _runtimeGameData = null;
+    _level = null;
+    _playerSpriteIndex = null;
+    _updateState = null;
+    _cameraFollowOffsetX = 0;
+    _cameraFollowOffsetY = 0;
+    _movingPlatformLayerIndex = null;
+    _movingPlatformFloorZoneIndex = null;
+  }
+
   void _goBackToMenu() {
     goBackToMenu(
       context: context,
@@ -11,6 +26,7 @@ extension _Level1Interaction on _Level1State {
         _isLeavingLevel = value;
       },
       ticker: _ticker,
+      beforeNavigate: _clearRuntimeState,
     );
   }
 

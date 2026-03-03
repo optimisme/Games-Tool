@@ -13,13 +13,15 @@ extension _Level0Interaction on _Level0State {
     );
   }
 
-  void _clearLevel0RuntimeState() {
+  void _clearRuntimeState() {
     _pressedKeys.clear();
     _lastTickTimestamp = null;
     _runtimeApi.resetFrameState();
     _runtimeGameData = null;
     _level = null;
     _heroSpriteIndex = null;
+    _cameraFollowOffsetX = 0;
+    _cameraFollowOffsetY = 0;
     _decoracionsLayerIndex = null;
     _pontAmagatLayerIndex = null;
     _updateState = null;
@@ -34,7 +36,7 @@ extension _Level0Interaction on _Level0State {
         _isLeavingLevel = value;
       },
       ticker: _ticker,
-      beforeNavigate: _clearLevel0RuntimeState,
+      beforeNavigate: _clearRuntimeState,
     );
   }
 }

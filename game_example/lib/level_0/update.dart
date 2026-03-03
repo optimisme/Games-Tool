@@ -37,8 +37,8 @@ extension _Level0Update on _Level0State {
     if (!state.isWin) {
       _updateMovement(state, dt);
       final Offset cameraFocus = _resolvePlayerCameraFocusPoint(state);
-      state.cameraX = cameraFocus.dx;
-      state.cameraY = cameraFocus.dy;
+      state.cameraX = cameraFocus.dx + _cameraFollowOffsetX;
+      state.cameraY = cameraFocus.dy + _cameraFollowOffsetY;
       _runtimeApi.setTransform2D(
         id: _level0PlayerTransformId,
         x: state.playerX,
