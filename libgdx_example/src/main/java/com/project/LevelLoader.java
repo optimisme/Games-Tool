@@ -39,8 +39,9 @@ public final class LevelLoader {
                 return emptyLevel("Invalid level");
             }
 
+            ObjectMap<String, MediaFrameSize> mediaFrameSizes = loadMediaFrameSizes(root);
             ObjectMap<String, LevelData.AnimationClip> animationClips = loadAnimationClips(root);
-            return parseLevel(levelNode, animationClips);
+            return parseLevel(levelNode, animationClips, mediaFrameSizes);
         } catch (Exception ex) {
             Gdx.app.error("LevelLoader", "Failed to load level data", ex);
             return emptyLevel("Load error");
@@ -49,7 +50,8 @@ public final class LevelLoader {
 
     private static LevelData parseLevel(
         JsonValue levelNode,
-        ObjectMap<String, LevelData.AnimationClip> animationClips
+        ObjectMap<String, LevelData.AnimationClip> animationClips,
+        ObjectMap<String, MediaFrameSize> mediaFrameSizes
     ) {
         String name = levelNode.getString("name", "Untitled Level");
         Color backgroundColor = parseColor(levelNode.getString("backgroundColorHex", "#000000"));
@@ -77,7 +79,7 @@ public final class LevelLoader {
         JsonValue spritesNode = levelNode.get("sprites");
         if (spritesNode != null && spritesNode.isArray()) {
             for (JsonValue spriteNode = spritesNode.child; spriteNode != null; spriteNode = spriteNode.next) {
-                LevelData.LevelSprite sprite = parseSprite(spriteNode, animationClips);
+                LevelData.LevelSprite sprite = parseSprite(spriteNode, animationClips, mediaFrameSizes);
                 if (sprite != null) {
                     sprites.add(sprite);
                 }
@@ -177,7 +179,8 @@ public final class LevelLoader {
 
     private static LevelData.LevelSprite parseSprite(
         JsonValue spriteNode,
-        ObjectMap<String, LevelData.AnimationClip> animationClips
+        ObjectMap<String, LevelData.AnimationClip> animationClips,
+        ObjectMap<String, MediaFrameSize> mediaFrameSizes
     ) {
         String imageFile = spriteNode.getString("imageFile", null);
         if (imageFile == null || imageFile.isEmpty()) {
@@ -186,17 +189,18 @@ public final class LevelLoader {
 
         float width = spriteNode.getFloat("width", 0f);
         float height = spriteNode.getFloat("height", 0f);
-        if (width <= 0f || height <= 0f) {
-            return null;
-        }
 
         String animationId = spriteNode.getString("animationId", null);
         int frameIndex = 0;
         float anchorX = 0.5f;
         float anchorY = 0.5f;
+        String texturePath = "levels/" + imageFile;
         if (animationId != null) {
             LevelData.AnimationClip clip = animationClips.get(animationId);
             if (clip != null) {
+                if (clip.texturePath != null && !clip.texturePath.isEmpty()) {
+                    texturePath = clip.texturePath;
+                }
                 frameIndex = Math.max(0, clip.startFrame);
                 LevelData.FrameRig startRig = clip.frameRigs.get(frameIndex);
                 if (startRig != null) {
@@ -207,6 +211,15 @@ public final class LevelLoader {
                     anchorY = clip.anchorY;
                 }
             }
+        }
+
+        MediaFrameSize mediaSize = mediaFrameSizes.get(texturePath);
+        if (mediaSize != null && mediaSize.width > 0f && mediaSize.height > 0f) {
+            width = mediaSize.width;
+            height = mediaSize.height;
+        }
+        if (width <= 0f || height <= 0f) {
+            return null;
         }
 
         return new LevelData.LevelSprite(
@@ -221,9 +234,34 @@ public final class LevelLoader {
             spriteNode.getBoolean("flipX", false),
             spriteNode.getBoolean("flipY", false),
             frameIndex,
-            "levels/" + imageFile,
+            texturePath,
             animationId
         );
+    }
+
+    private static ObjectMap<String, MediaFrameSize> loadMediaFrameSizes(JsonValue root) {
+        ObjectMap<String, MediaFrameSize> mapping = new ObjectMap<>();
+        JsonValue assets = root.get("mediaAssets");
+        if (assets == null || !assets.isArray()) {
+            return mapping;
+        }
+
+        for (JsonValue asset = assets.child; asset != null; asset = asset.next) {
+            String fileName = asset.getString("fileName", null);
+            if (fileName == null || fileName.isEmpty()) {
+                continue;
+            }
+            int tileWidth = asset.getInt("tileWidth", 0);
+            int tileHeight = asset.getInt("tileHeight", 0);
+            if (tileWidth <= 0 || tileHeight <= 0) {
+                continue;
+            }
+            mapping.put(
+                "levels/" + fileName,
+                new MediaFrameSize(tileWidth, tileHeight)
+            );
+        }
+        return mapping;
     }
 
     private static ObjectMap<String, LevelData.AnimationClip> loadAnimationClips(JsonValue root) {
@@ -249,6 +287,8 @@ public final class LevelLoader {
                 String id = animation.getString("id", null);
                 int startFrame = Math.max(0, animation.getInt("startFrame", 0));
                 if (id != null && !id.isEmpty()) {
+                    String mediaFile = animation.getString("mediaFile", null);
+                    String texturePath = mediaFile == null || mediaFile.isEmpty() ? null : "levels/" + mediaFile;
                     float anchorX = anchorOrDefault(animation.getFloat("anchorX", 0.5f), 0.5f);
                     float anchorY = anchorOrDefault(animation.getFloat("anchorY", 0.5f), 0.5f);
                     int endFrame = Math.max(startFrame, animation.getInt("endFrame", startFrame));
@@ -273,6 +313,7 @@ public final class LevelLoader {
                         id,
                         new LevelData.AnimationClip(
                             id,
+                            texturePath,
                             startFrame,
                             endFrame,
                             fps,
@@ -541,6 +582,16 @@ public final class LevelLoader {
                 return "stretch";
             default:
                 return DEFAULT_VIEWPORT_ADAPTATION;
+        }
+    }
+
+    private static final class MediaFrameSize {
+        final float width;
+        final float height;
+
+        MediaFrameSize(float width, float height) {
+            this.width = width;
+            this.height = height;
         }
     }
 
