@@ -377,7 +377,10 @@ extension _Level1Update on _Level1State {
   }
 
   bool _isTouchingDeathZone(Level1UpdateState state) {
-    final List<Rect> deathZones = _resolveLevel1DeathZones(_level);
+    final List<Rect> deathZones = _resolveLevel1ZonesByTypeOrName(
+      _level,
+      _level1DeathZoneName,
+    );
     if (deathZones.isEmpty) {
       return false;
     }
@@ -397,7 +400,10 @@ extension _Level1Update on _Level1State {
   }
 
   bool _isStandingOnFloor(Level1UpdateState state) {
-    final List<Rect> floors = _resolveLevel1FloorZones(_level);
+    final List<Rect> floors = _resolveLevel1ZonesByTypeOrName(
+      _level,
+      _level1FloorZoneName,
+    );
     if (floors.isEmpty) {
       return false;
     }
@@ -523,34 +529,18 @@ extension _Level1Update on _Level1State {
 
   List<int> _gemSpriteIndices() {
     final Map<String, dynamic>? level = _level;
-    if (level == null) {
-      return const <int>[];
-    }
-    final List<Map<String, dynamic>> sprites =
-        _runtimeApi.gamesTool.listLevelSprites(level);
-    final List<int> indices = <int>[];
-    for (int i = 0; i < sprites.length; i++) {
-      if (_isLevel1GemSprite(sprites[i])) {
-        indices.add(i);
-      }
-    }
-    return indices;
+    return _runtimeApi.gamesTool.findSpriteIndicesByTypeOrName(
+      level,
+      _level1GemSpriteName,
+    );
   }
 
   List<int> _dragonSpriteIndices() {
     final Map<String, dynamic>? level = _level;
-    if (level == null) {
-      return const <int>[];
-    }
-    final List<Map<String, dynamic>> sprites =
-        _runtimeApi.gamesTool.listLevelSprites(level);
-    final List<int> indices = <int>[];
-    for (int i = 0; i < sprites.length; i++) {
-      if (_isLevel1DragonSprite(sprites[i])) {
-        indices.add(i);
-      }
-    }
-    return indices;
+    return _runtimeApi.gamesTool.findSpriteIndicesByTypeOrName(
+      level,
+      _level1DragonSpriteName,
+    );
   }
 
   List<Rect> _playerCollisionRectsForPose(
@@ -585,7 +575,10 @@ extension _Level1Update on _Level1State {
     if (state.velocityY < 0) {
       return false;
     }
-    final List<Rect> floors = _resolveLevel1FloorZones(_level);
+    final List<Rect> floors = _resolveLevel1ZonesByTypeOrName(
+      _level,
+      _level1FloorZoneName,
+    );
     if (floors.isEmpty) {
       return false;
     }

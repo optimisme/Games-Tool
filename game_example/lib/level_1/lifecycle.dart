@@ -14,8 +14,16 @@ extension _Level1Initialize on _Level1State {
         gamesTool: appData.gamesTool,
       );
     }
-    _playerSpriteIndex = appData.gamesTool
-        .findSpriteIndexByTypeOrName(_level, _level1PlayerSpriteName);
+    _playerSpriteIndex = appData.gamesTool.findSpriteIndexByName(
+      _level,
+      _level1PlayerSpriteName,
+    );
+    if (_playerSpriteIndex == null) {
+      throw StateError(
+        'Level ${widget.levelIndex} is missing required sprite '
+        '"$_level1PlayerSpriteName".',
+      );
+    }
     _movingPlatformLayerIndex = appData.gamesTool.findLayerIndexByName(
       _level,
       _level1MovingPlatformLayerName,
@@ -25,7 +33,15 @@ extension _Level1Initialize on _Level1State {
       _level,
       _level1MovingPlatformFloorGameplayData,
     );
-    final Map<String, dynamic>? spawn = _resolveLevel1PlayerSprite(_level);
+    final Map<String, dynamic>? resolvedSpawn =
+        appData.gamesTool.findSpriteByName(_level, _level1PlayerSpriteName);
+    if (resolvedSpawn == null) {
+      throw StateError(
+        'Level ${widget.levelIndex} is missing required sprite '
+        '"$_level1PlayerSpriteName".',
+      );
+    }
+    final Map<String, dynamic> spawn = resolvedSpawn;
     final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
       gamesTool: appData.gamesTool,
       level: _level,
@@ -45,8 +61,8 @@ extension _Level1Initialize on _Level1State {
       cameraY: bootstrap.viewportCenterY,
       platformX: initialPlatformPosition.dx,
       platformY: initialPlatformPosition.dy,
-      playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 22,
-      playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 30,
+      playerWidth: (spawn['width'] as num?)?.toDouble() ?? 22,
+      playerHeight: (spawn['height'] as num?)?.toDouble() ?? 30,
       gemsCount: 0,
       totalGems: _gemSpriteIndices().length,
     );

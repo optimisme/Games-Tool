@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Level bootstrapping and teardown-adjacent setup.
 extension _Level0Initialize on _Level0State {
+  /// Loads level runtime data and initializes simulation/camera state.
   void _initializeLevel(AppData appData) {
     // Work on a cloned game-data tree so runtime tile edits stay level-local.
     _runtimeGameData = cloneGameData(appData.gameData);
@@ -15,17 +16,30 @@ extension _Level0Initialize on _Level0State {
         gamesTool: appData.gamesTool,
       );
     }
-    _heroSpriteIndex = appData.gamesTool.findSpriteIndexByTypeOrName(
-          _level,
-          _level0PlayerSpriteName,
-        ) ??
-        appData.gamesTool.firstSpriteIndex(_level);
+    _heroSpriteIndex = appData.gamesTool.findSpriteIndexByName(
+      _level,
+      _level0PlayerSpriteName,
+    );
+    if (_heroSpriteIndex == null) {
+      throw StateError(
+        'Level ${widget.levelIndex} is missing required sprite '
+        '"$_level0PlayerSpriteName".',
+      );
+    }
     _decoracionsLayerIndex = appData.gamesTool
         .findLayerIndexByName(_level, _level0DecoracionsLayerName);
     _pontAmagatLayerIndex = appData.gamesTool
         .findLayerIndexByName(_level, _level0PontAmagatLayerName);
 
-    final Map<String, dynamic>? spawn = _resolveLevel0PlayerSprite(_level);
+    final Map<String, dynamic>? resolvedSpawn =
+        appData.gamesTool.findSpriteByName(_level, _level0PlayerSpriteName);
+    if (resolvedSpawn == null) {
+      throw StateError(
+        'Level ${widget.levelIndex} is missing required sprite '
+        '"$_level0PlayerSpriteName".',
+      );
+    }
+    final Map<String, dynamic> spawn = resolvedSpawn;
     final LevelViewportBootstrap bootstrap = buildLevelViewportBootstrap(
       gamesTool: appData.gamesTool,
       level: _level,
@@ -46,8 +60,8 @@ extension _Level0Initialize on _Level0State {
       playerY: bootstrap.spawnY,
       cameraX: bootstrap.viewportCenterX,
       cameraY: bootstrap.viewportCenterY,
-      playerWidth: (spawn?['width'] as num?)?.toDouble() ?? 20,
-      playerHeight: (spawn?['height'] as num?)?.toDouble() ?? 20,
+      playerWidth: (spawn['width'] as num?)?.toDouble() ?? 20,
+      playerHeight: (spawn['height'] as num?)?.toDouble() ?? 20,
       speedPerSecond: 95,
       totalArbres: collectibleArbreTileKeys.length,
       collectibleArbreTileKeys: collectibleArbreTileKeys,

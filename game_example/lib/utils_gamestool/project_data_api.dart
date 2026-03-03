@@ -218,6 +218,71 @@ class GamesToolApi {
     return null;
   }
 
+  List<int> findSpriteIndicesByTypeOrName(
+    Map<String, dynamic>? level,
+    String value, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return const <int>[];
+    }
+    final List<Map<String, dynamic>> sprites = listLevelSprites(level);
+    final String target =
+        caseInsensitive ? value.trim().toLowerCase() : value.trim();
+    final List<int> indices = <int>[];
+    for (int i = 0; i < sprites.length; i++) {
+      final String type = ((sprites[i]['type'] as String?) ?? '').trim();
+      final String name = ((sprites[i]['name'] as String?) ?? '').trim();
+      final String normalizedType = caseInsensitive ? type.toLowerCase() : type;
+      final String normalizedName = caseInsensitive ? name.toLowerCase() : name;
+      if (normalizedType == target || normalizedName == target) {
+        indices.add(i);
+      }
+    }
+    return indices;
+  }
+
+  int? findSpriteIndexByName(
+    Map<String, dynamic>? level,
+    String spriteName, {
+    bool caseInsensitive = true,
+  }) {
+    if (level == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> sprites = listLevelSprites(level);
+    final String target =
+        caseInsensitive ? spriteName.trim().toLowerCase() : spriteName.trim();
+    for (int i = 0; i < sprites.length; i++) {
+      final String name = ((sprites[i]['name'] as String?) ?? '').trim();
+      final String normalizedName = caseInsensitive ? name.toLowerCase() : name;
+      if (normalizedName == target) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? findSpriteByName(
+    Map<String, dynamic>? level,
+    String spriteName, {
+    bool caseInsensitive = true,
+  }) {
+    final int? spriteIndex = findSpriteIndexByName(
+      level,
+      spriteName,
+      caseInsensitive: caseInsensitive,
+    );
+    if (spriteIndex == null) {
+      return null;
+    }
+    final List<Map<String, dynamic>> sprites = listLevelSprites(level);
+    if (spriteIndex < 0 || spriteIndex >= sprites.length) {
+      return null;
+    }
+    return sprites[spriteIndex];
+  }
+
   int? firstSpriteIndex(Map<String, dynamic>? level) {
     if (level == null) {
       return null;

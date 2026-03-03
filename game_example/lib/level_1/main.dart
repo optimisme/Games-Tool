@@ -50,44 +50,6 @@ const HudBackButtonLayout _level1BackHudLayout = HudBackButtonLayout(
   iconGap: 3 * kHudSpacingScaleX,
 );
 
-bool _isLevel1PlayerSprite(Map<String, dynamic> sprite) {
-  final String target = _level1PlayerSpriteName.toLowerCase();
-  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
-  return spriteName.toLowerCase() == target;
-}
-
-bool _isLevel1GemSprite(Map<String, dynamic> sprite) {
-  final String target = _level1GemSpriteName.toLowerCase();
-  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
-  final String spriteType = ((sprite['type'] as String?) ?? '').trim();
-  return spriteName.toLowerCase() == target ||
-      spriteType.toLowerCase() == target;
-}
-
-bool _isLevel1DragonSprite(Map<String, dynamic> sprite) {
-  final String target = _level1DragonSpriteName.toLowerCase();
-  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
-  final String spriteType = ((sprite['type'] as String?) ?? '').trim();
-  return spriteName.toLowerCase() == target ||
-      spriteType.toLowerCase() == target;
-}
-
-Map<String, dynamic>? _resolveLevel1PlayerSprite(Map<String, dynamic>? level) {
-  if (level == null) {
-    return null;
-  }
-  final List<Map<String, dynamic>> sprites =
-      ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  for (final Map<String, dynamic> sprite in sprites) {
-    if (_isLevel1PlayerSprite(sprite)) {
-      return sprite;
-    }
-  }
-  return null;
-}
-
 LevelSpriteRenderSelection _resolveLevel1PlayerRenderSelection(
   Level1RenderState state,
 ) {
@@ -129,14 +91,6 @@ bool _shouldSkipLevel1Sprite({
     return true;
   }
   return false;
-}
-
-List<Rect> _resolveLevel1FloorZones(Map<String, dynamic>? level) {
-  return _resolveLevel1ZonesByTypeOrName(level, _level1FloorZoneName);
-}
-
-List<Rect> _resolveLevel1DeathZones(Map<String, dynamic>? level) {
-  return _resolveLevel1ZonesByTypeOrName(level, _level1DeathZoneName);
 }
 
 List<Rect> _resolveLevel1ZonesByTypeOrName(
@@ -337,7 +291,10 @@ extension _Level1Hud on _Level1State {
             .whereType<Map<String, dynamic>>()
             .toList(growable: false);
     final Map<String, dynamic>? playerSprite =
-        _resolveLevel1PlayerSprite(level);
+        appData.gamesTool.findSpriteByName(level, _level1PlayerSpriteName);
+    final Set<int> dragonSpriteIndices = appData.gamesTool
+        .findSpriteIndicesByTypeOrName(level, _level1DragonSpriteName)
+        .toSet();
     final LevelSpriteRenderSelection playerSelection =
         _resolveLevel1PlayerRenderSelection(renderState);
 
@@ -375,7 +332,7 @@ extension _Level1Hud on _Level1State {
             renderState.dragonDeathStartSeconds[spriteIndex];
         final bool drawDragonDeath = dragonDying &&
             dragonDeathStart != null &&
-            _isLevel1DragonSprite(sprite);
+            dragonSpriteIndices.contains(spriteIndex);
         return LevelSpriteRenderCommand(
           sprite: sprite,
           depth: appData.gamesTool.spriteDepth(sprite),
