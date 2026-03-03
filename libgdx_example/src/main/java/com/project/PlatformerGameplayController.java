@@ -16,6 +16,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private static final float MAX_FALL_SPEED_PER_SECOND = 840f;
     private static final float FLOOR_SUPPORT_DELTA = 1f;
     private static final float COLLISION_EPSILON = 1.2f;
+    private static final float FLOOR_WALL_LIKE_RATIO = 1.2f;
     private static final float DRAGON_STOMP_MIN_FALL_SPEED = 25f;
     private static final float DRAGON_DAMAGE_PERCENT = 25f;
     private static final float START_LIFE_PERCENT = 100f;
@@ -24,6 +25,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private static final float DEFAULT_ANIMATION_FPS = 8f;
 
     private final IntArray floorZoneIndices = new IntArray();
+    private final IntArray solidZoneIndices = new IntArray();
     private final IntArray deathZoneIndices = new IntArray();
     private final IntArray gemSpriteIndices;
     private final IntArray dragonSpriteIndices;
@@ -127,7 +129,9 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         }
 
         float previousY = playerY;
+        float previousX = playerX;
         playerX += velocityX * dtSeconds;
+        resolveHorizontalCollisions(previousX);
 
         playerY += velocityY * dtSeconds;
         boolean landed = resolveVerticalCollisions(previousY);
@@ -151,6 +155,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
 
     private void classifyZones() {
         floorZoneIndices.clear();
+        solidZoneIndices.clear();
         deathZoneIndices.clear();
         for (int i = 0; i < levelData.zones.size; i++) {
             LevelData.LevelZone zone = levelData.zones.get(i);
@@ -160,9 +165,72 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
                 deathZoneIndices.add(i);
                 continue;
             }
-            if (containsAny(type, "floor", "platform") || containsAny(name, "floor", "platform")) {
+            boolean isFloor = containsAny(type, "floor", "platform") || containsAny(name, "floor", "platform");
+            boolean isSolid = containsAny(type, "wall", "mur", "solid", "bloc", "block")
+                || containsAny(name, "wall", "mur", "solid", "bloc", "block");
+            boolean isWallLikeFloor = isFloor && zone.height > zone.width * FLOOR_WALL_LIKE_RATIO;
+
+            if (isFloor) {
                 floorZoneIndices.add(i);
             }
+            if (isSolid || isWallLikeFloor) {
+                solidZoneIndices.add(i);
+            }
+        }
+    }
+
+    private void resolveHorizontalCollisions(float previousX) {
+        if (!hasPlayer() || solidZoneIndices.size <= 0 || Math.abs(playerX - previousX) <= 0.0001f) {
+            return;
+        }
+
+        Rectangle playerRect = playerRect(rectCacheA);
+        Rectangle previousRect = playerRectAt(previousX, playerY, previousPlayerRectCache);
+        float leftOffset = playerX - playerRect.x;
+        float rightOffset = playerRect.x + playerRect.width - playerX;
+
+        float bestCrossDistance = Float.POSITIVE_INFINITY;
+        float bestResolvedX = playerX;
+        boolean collided = false;
+        boolean movingRight = velocityX > 0f;
+
+        for (int i = 0; i < solidZoneIndices.size; i++) {
+            int zoneIndex = solidZoneIndices.get(i);
+            Rectangle zoneRect = zoneRectAtIndex(zoneIndex, rectCacheB);
+            if (!overlapsVerticallyForSweep(previousRect, playerRect, zoneRect)) {
+                continue;
+            }
+
+            if (movingRight) {
+                float previousRight = previousRect.x + previousRect.width;
+                float currentRight = playerRect.x + playerRect.width;
+                float zoneLeft = zoneRect.x;
+                if (previousRight <= zoneLeft + COLLISION_EPSILON && currentRight >= zoneLeft - COLLISION_EPSILON) {
+                    float crossDistance = zoneLeft - previousRight;
+                    if (crossDistance < bestCrossDistance) {
+                        bestCrossDistance = crossDistance;
+                        bestResolvedX = zoneLeft - rightOffset;
+                        collided = true;
+                    }
+                }
+            } else {
+                float previousLeft = previousRect.x;
+                float currentLeft = playerRect.x;
+                float zoneRight = zoneRect.x + zoneRect.width;
+                if (previousLeft >= zoneRight - COLLISION_EPSILON && currentLeft <= zoneRight + COLLISION_EPSILON) {
+                    float crossDistance = previousLeft - zoneRight;
+                    if (crossDistance < bestCrossDistance) {
+                        bestCrossDistance = crossDistance;
+                        bestResolvedX = zoneRight + leftOffset;
+                        collided = true;
+                    }
+                }
+            }
+        }
+
+        if (collided) {
+            playerX = bestResolvedX;
+            velocityX = 0f;
         }
     }
 
@@ -540,6 +608,13 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
         float sweepRight = Math.max(previousRect.x + previousRect.width, currentRect.x + currentRect.width);
         return sweepRight > zoneRect.x + COLLISION_EPSILON
             && sweepLeft < zoneRect.x + zoneRect.width - COLLISION_EPSILON;
+    }
+
+    private boolean overlapsVerticallyForSweep(Rectangle previousRect, Rectangle currentRect, Rectangle zoneRect) {
+        float sweepTop = Math.min(previousRect.y, currentRect.y);
+        float sweepBottom = Math.max(previousRect.y + previousRect.height, currentRect.y + currentRect.height);
+        return sweepBottom > zoneRect.y + COLLISION_EPSILON
+            && sweepTop < zoneRect.y + zoneRect.height - COLLISION_EPSILON;
     }
 
     private boolean crossedZoneTop(float previousBottom, float currentBottom, float zoneTop) {
