@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Input handling and scene transitions for level 0.
 extension _Level0Interaction on _Level0State {
+  /// Handles keyboard input for gameplay and end-state exit.
   KeyEventResult _onKeyEvent(KeyEvent event) {
     final Level0UpdateState? state = _updateState;
     return handleGameplayKeyEvent(
@@ -13,6 +14,7 @@ extension _Level0Interaction on _Level0State {
     );
   }
 
+  /// Clears per-level runtime and input state before leaving the scene.
   void _clearRuntimeState() {
     _pressedKeys.clear();
     _lastTickTimestamp = null;
@@ -27,6 +29,7 @@ extension _Level0Interaction on _Level0State {
     _updateState = null;
   }
 
+  /// Navigates back to menu using shared transition flow.
   void _goBackToMenu() {
     goBackToMenu(
       context: context,

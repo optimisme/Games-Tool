@@ -37,35 +37,10 @@ const HudBackButtonLayout _level0BackHudLayout = HudBackButtonLayout(
   iconGap: 3 * kHudSpacingScaleX,
 );
 
+/// Builds a stable key for a tile coordinate pair.
 String _level0TileKey(int x, int y) => '$x:$y';
 
-bool _isLevel0PlayerSprite(Map<String, dynamic> sprite) {
-  final String target = _level0PlayerSpriteName.toLowerCase();
-  final String spriteName = ((sprite['name'] as String?) ?? '').trim();
-  final String spriteType = ((sprite['type'] as String?) ?? '').trim();
-  return spriteName.toLowerCase() == target ||
-      spriteType.toLowerCase() == target;
-}
-
-Map<String, dynamic>? _resolveLevel0PlayerSprite(Map<String, dynamic>? level) {
-  if (level == null) {
-    return null;
-  }
-  final List<Map<String, dynamic>> sprites =
-      ((level['sprites'] as List<dynamic>?) ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .toList(growable: false);
-  for (final Map<String, dynamic> sprite in sprites) {
-    if (_isLevel0PlayerSprite(sprite)) {
-      return sprite;
-    }
-  }
-  if (sprites.isEmpty) {
-    return null;
-  }
-  return sprites.first;
-}
-
+/// Chooses the hero animation and flips for the current movement state.
 LevelSpriteRenderSelection _resolveLevel0PlayerRenderSelection(
   Level0RenderState state,
 ) {
@@ -118,6 +93,7 @@ LevelSpriteRenderSelection _resolveLevel0PlayerRenderSelection(
   }
 }
 
+/// Collects tree tiles that should count toward level completion.
 Set<String> _collectLevel0ArbreTileKeys({
   required GamesToolApi gamesTool,
   required Map<String, dynamic>? level,
@@ -202,14 +178,17 @@ Set<String> _collectLevel0ArbreTileKeys({
 
 /// Top-down exploration level with tile interaction and zone-driven triggers.
 class Level0 extends StatefulWidget {
+  /// Creates a level widget for the provided level index.
   const Level0({super.key, required this.levelIndex});
 
   final int levelIndex;
 
+  /// Creates the mutable level state owner.
   @override
   State<Level0> createState() => _Level0State();
 }
 
+/// Owns lifecycle, input, and render command assembly for level 0.
 class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   final FocusNode _focusNode = FocusNode();
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
@@ -231,6 +210,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
   double _renderAlpha = 1.0;
   bool _isLeavingLevel = false;
 
+  /// Initializes runtime state once shared assets are available.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -250,6 +230,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     _startLoop();
   }
 
+  /// Releases ticker and focus resources.
   @override
   void dispose() {
     _ticker?.dispose();
@@ -257,6 +238,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Requests a repaint and stores frame interpolation alpha.
   void _refreshLevel0([VoidCallback? update, double alpha = 1.0]) {
     if (!mounted) {
       return;
@@ -265,6 +247,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
     setState(update ?? () {});
   }
 
+  /// Builds the level UI and command lists for the shared painter.
   @override
   Widget build(BuildContext context) {
     final AppData appData = context.watch<AppData>();
@@ -350,6 +333,7 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
 
 /// HUD helpers for screen-space interaction geometry.
 extension _Level0Hud on _Level0State {
+  /// Builds sprite render commands for the current frame.
   List<LevelSpriteRenderCommand> _buildSpriteRenderCommands({
     required AppData appData,
     required Level0RenderState? renderState,
@@ -363,7 +347,7 @@ extension _Level0Hud on _Level0State {
             .whereType<Map<String, dynamic>>()
             .toList(growable: false);
     final Map<String, dynamic>? playerSprite =
-        _resolveLevel0PlayerSprite(level);
+        appData.gamesTool.findSpriteByName(level, _level0PlayerSpriteName);
     final LevelSpriteRenderSelection playerSelection =
         _resolveLevel0PlayerRenderSelection(renderState);
 
@@ -397,6 +381,7 @@ extension _Level0Hud on _Level0State {
     );
   }
 
+  /// Builds layer render commands in painter order.
   List<LayerRenderCommand> _buildLayerRenderCommands({
     required AppData appData,
   }) {
@@ -414,6 +399,7 @@ extension _Level0Hud on _Level0State {
     }).toList(growable: false);
   }
 
+  /// Builds HUD text and metrics commands.
   List<HudRenderCommand> _buildHudRenderCommands({
     required Level0RenderState? renderState,
     required double hudRectWidth,
@@ -465,6 +451,7 @@ extension _Level0Hud on _Level0State {
     return commands;
   }
 
+  /// Builds end-state overlay commands.
   List<OverlayRenderCommand> _buildOverlayRenderCommands({
     required Level0RenderState? renderState,
   }) {
@@ -488,6 +475,7 @@ extension _Level0Hud on _Level0State {
     ];
   }
 
+  /// Builds HUD image commands.
   List<RenderImageCommand> _buildImageRenderCommands({
     required Size canvasSize,
   }) {
@@ -508,6 +496,7 @@ extension _Level0Hud on _Level0State {
     ];
   }
 
+  /// Resolves HUD interactions from tap coordinates.
   void _onHudTapDown({
     required Offset screenPosition,
     required Size canvasSize,

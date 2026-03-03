@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Mutable simulation state advanced by update.dart every frame.
 class Level0UpdateState {
+  /// Creates the mutable update state container.
   Level0UpdateState({
     required this.playerX,
     required this.playerY,
@@ -35,11 +36,14 @@ class Level0UpdateState {
   double animationTimeSeconds = 0;
   final double speedPerSecond;
 
+  /// Indicates when end-state input can trigger scene exit.
   bool get canExitEndState =>
       endStateElapsedSeconds >= _level0EndStateInputDelaySeconds;
 }
 
+/// Immutable snapshot consumed by rendering each frame.
 class Level0RenderState {
+  /// Creates a render-state value object.
   const Level0RenderState({
     required this.renderRevision,
     required this.playerX,
@@ -60,6 +64,7 @@ class Level0RenderState {
     required this.tickCounter,
   });
 
+  /// Creates an interpolated render snapshot from mutable update state.
   factory Level0RenderState.from(
     Level0UpdateState state, {
     required GameDataRuntimeApi runtimeApi,

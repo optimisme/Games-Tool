@@ -2,6 +2,7 @@ part of 'main.dart';
 
 /// Per-frame simulation for movement, collisions, and world state mutations.
 extension _Level0Update on _Level0State {
+  /// Starts the fixed-step game loop ticker for this level.
   void _startLoop() {
     _ticker = restartGameLoopTicker(
       tickerProvider: this,
@@ -27,6 +28,7 @@ extension _Level0Update on _Level0State {
     );
   }
 
+  /// Advances one fixed simulation tick.
   void _tick(double dt) {
     final Level0UpdateState? state = _updateState;
     if (!mounted || state == null) {
@@ -58,6 +60,7 @@ extension _Level0Update on _Level0State {
     }
   }
 
+  /// Updates player movement, facing, collectibles, and derived state.
   void _updateMovement(Level0UpdateState state, double dt) {
     final bool up = _pressedKeys.contains(LogicalKeyboardKey.arrowUp) ||
         _pressedKeys.contains(LogicalKeyboardKey.keyW);
@@ -147,6 +150,7 @@ extension _Level0Update on _Level0State {
     state.tickCounter = (state.animationTimeSeconds * 60).floor();
   }
 
+  /// Computes camera focus from sprite anchor-aware runtime data.
   Offset _resolvePlayerCameraFocusPoint(Level0UpdateState state) {
     final int? spriteIndex = _heroSpriteIndex;
     if (spriteIndex == null) {
@@ -167,6 +171,7 @@ extension _Level0Update on _Level0State {
     );
   }
 
+  /// Checks whether the next pose collides with blocked zones.
   bool _wouldCollideWithBlockedZone(
     Level0UpdateState state, {
     required double nextX,
@@ -193,6 +198,7 @@ extension _Level0Update on _Level0State {
         .isNotEmpty;
   }
 
+  /// Checks if the player currently overlaps a bridge zone.
   bool _isInsidePontZone(Level0UpdateState state) {
     final int? spriteIndex = _heroSpriteIndex;
     if (spriteIndex == null) {
@@ -215,6 +221,7 @@ extension _Level0Update on _Level0State {
         .isNotEmpty;
   }
 
+  /// Removes collectible tree tiles when the player overlaps tree zones.
   void _clearDecorationTileIfOnArbre(Level0UpdateState state) {
     final int? spriteIndex = _heroSpriteIndex;
     final int? layerIndex = _decoracionsLayerIndex;
@@ -279,6 +286,7 @@ extension _Level0Update on _Level0State {
     state.arbresRemovedCount = state.collectedArbreTileKeys.length;
   }
 
+  /// Evaluates and triggers the win condition when all trees are collected.
   void _updateWinState(Level0UpdateState state) {
     if (state.isWin || state.totalArbres <= 0) {
       return;
@@ -288,6 +296,7 @@ extension _Level0Update on _Level0State {
     }
   }
 
+  /// Transitions gameplay state into the win end-state.
   void _triggerWin(Level0UpdateState state) {
     state.isWin = true;
     state.endStateElapsedSeconds = 0;
@@ -295,6 +304,7 @@ extension _Level0Update on _Level0State {
     _pressedKeys.clear();
   }
 
+  /// Checks whether the player touches any zone with specific gameplay data.
   bool _isInsideZoneWithGameplayData(
     Level0UpdateState state,
     String gameplayDataValue,
@@ -340,6 +350,7 @@ extension _Level0Update on _Level0State {
     return false;
   }
 
+  /// Marks a layer visible if it is currently hidden.
   void _revealLayerIfHidden(int layerIndex) {
     final bool isVisible = _runtimeApi.gameDataGetAs<bool>(
           <Object>[
@@ -360,6 +371,7 @@ extension _Level0Update on _Level0State {
     );
   }
 
+  /// Reveals hidden bridge layer when entering the trigger zone.
   void _revealPontAmagatLayerIfEnteringFuturPontZone(Level0UpdateState state) {
     final int? layerIndex = _pontAmagatLayerIndex;
     if (layerIndex == null) {
