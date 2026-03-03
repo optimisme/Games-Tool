@@ -28,6 +28,19 @@ extension _Level1Initialize on _Level1State {
       _level,
       _level1MovingPlatformLayerName,
     );
+    final int? movingPlatformLayerIndex = _movingPlatformLayerIndex;
+    final List<Map<String, dynamic>> allLayers = _level == null
+        ? const <Map<String, dynamic>>[]
+        : appData.gamesTool.listLevelLayers(
+            _level!,
+            visibleOnly: false,
+            painterOrder: false,
+          );
+    _movingPlatformLayer = movingPlatformLayerIndex != null &&
+            movingPlatformLayerIndex >= 0 &&
+            movingPlatformLayerIndex < allLayers.length
+        ? allLayers[movingPlatformLayerIndex]
+        : null;
     _movingPlatformFloorZoneIndex =
         appData.gamesTool.findZoneIndexByGameplayData(
       _level,

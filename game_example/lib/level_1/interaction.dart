@@ -14,6 +14,7 @@ extension _Level1Interaction on _Level1State {
     _cameraFollowOffsetX = 0;
     _cameraFollowOffsetY = 0;
     _movingPlatformLayerIndex = null;
+    _movingPlatformLayer = null;
     _movingPlatformFloorZoneIndex = null;
   }
 

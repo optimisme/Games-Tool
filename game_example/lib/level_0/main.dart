@@ -293,10 +293,11 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (TapDownDetails details) {
                   _focusNode.requestFocus();
-                  _onHudTapDown(
+                  handleBackHudTap(
                     screenPosition: details.localPosition,
                     canvasSize: canvasSize,
-                    hudCommands: hudCommands,
+                    commands: hudCommands,
+                    onBackTap: _goBackToMenu,
                   );
                 },
                 child: CustomPaint(
@@ -317,7 +318,6 @@ class _Level0State extends State<Level0> with SingleTickerProviderStateMixin {
                         focal: _camera.focal,
                       );
                     },
-                    loadingLabel: 'Loading level 0...',
                     renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
@@ -494,21 +494,5 @@ extension _Level0Hud on _Level0State {
         dstRectScreen: iconRect,
       ),
     ];
-  }
-
-  /// Resolves HUD interactions from tap coordinates.
-  void _onHudTapDown({
-    required Offset screenPosition,
-    required Size canvasSize,
-    required List<HudRenderCommand> hudCommands,
-  }) {
-    final String? interactionId = hitTestHudInteractionId(
-      canvasSize: canvasSize,
-      screenPosition: screenPosition,
-      commands: hudCommands,
-    );
-    if (interactionId == kHudInteractionBack) {
-      _goBackToMenu();
-    }
   }
 }

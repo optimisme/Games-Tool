@@ -154,6 +154,7 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
   double _cameraFollowOffsetX = 0;
   double _cameraFollowOffsetY = 0;
   int? _movingPlatformLayerIndex;
+  Map<String, dynamic>? _movingPlatformLayer;
   int? _movingPlatformFloorZoneIndex;
 
   @override
@@ -238,10 +239,11 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (TapDownDetails details) {
                   _focusNode.requestFocus();
-                  _onHudTapDown(
+                  handleBackHudTap(
                     screenPosition: details.localPosition,
                     canvasSize: canvasSize,
-                    hudCommands: hudCommands,
+                    commands: hudCommands,
+                    onBackTap: _goBackToMenu,
                   );
                 },
                 child: CustomPaint(
@@ -262,7 +264,6 @@ class _Level1State extends State<Level1> with SingleTickerProviderStateMixin {
                         focal: _camera.focal,
                       );
                     },
-                    loadingLabel: 'Loading level 1...',
                     renderRevision: renderState?.renderRevision,
                   ),
                   child: const SizedBox.expand(),
@@ -356,19 +357,9 @@ extension _Level1Hud on _Level1State {
     }
     final List<Map<String, dynamic>> visibleLayers = appData.gamesTool
         .listLevelLayers(level, visibleOnly: true, painterOrder: true);
-    final List<Map<String, dynamic>> allLayers = appData.gamesTool
-        .listLevelLayers(level, visibleOnly: false, painterOrder: false);
-    final int? movingPlatformLayerIndex = _movingPlatformLayerIndex;
-    final Map<String, dynamic>? movingPlatformLayer =
-        movingPlatformLayerIndex != null &&
-                movingPlatformLayerIndex >= 0 &&
-                movingPlatformLayerIndex < allLayers.length
-            ? allLayers[movingPlatformLayerIndex]
-            : null;
-
     return visibleLayers.map((Map<String, dynamic> layer) {
-      final bool isMovingPlatformLayer =
-          movingPlatformLayer != null && identical(layer, movingPlatformLayer);
+      final bool isMovingPlatformLayer = _movingPlatformLayer != null &&
+          identical(layer, _movingPlatformLayer);
       return LayerRenderCommand(
         layer: layer,
         depth: appData.gamesTool.layerDepth(layer),
@@ -486,20 +477,5 @@ extension _Level1Hud on _Level1State {
         dstRectScreen: iconRect,
       ),
     ];
-  }
-
-  void _onHudTapDown({
-    required Offset screenPosition,
-    required Size canvasSize,
-    required List<HudRenderCommand> hudCommands,
-  }) {
-    final String? interactionId = hitTestHudInteractionId(
-      canvasSize: canvasSize,
-      screenPosition: screenPosition,
-      commands: hudCommands,
-    );
-    if (interactionId == kHudInteractionBack) {
-      _goBackToMenu();
-    }
   }
 }
