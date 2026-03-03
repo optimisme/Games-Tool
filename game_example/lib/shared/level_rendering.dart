@@ -68,7 +68,6 @@ class LevelPainter<TState> extends CustomPainter {
     required this.overlayCommands,
     required this.imageCommands,
     required this.resolveRuntimeCamera,
-    required this.loadingLabel,
     required this.renderRevision,
     this.loadingBackgroundColor = const ui.Color(0xFF000000),
     this.worldBackgroundFallback = const ui.Color(0xFF000000),
@@ -84,7 +83,6 @@ class LevelPainter<TState> extends CustomPainter {
   final List<OverlayRenderCommand> overlayCommands;
   final List<RenderImageCommand> imageCommands;
   final LevelRuntimeCameraResolver<TState> resolveRuntimeCamera;
-  final String loadingLabel;
   final ui.Color loadingBackgroundColor;
   final ui.Color worldBackgroundFallback;
   final Object? renderRevision;
@@ -99,7 +97,6 @@ class LevelPainter<TState> extends CustomPainter {
       level: level,
       renderState: renderState,
       resolveRuntimeCamera: resolveRuntimeCamera,
-      loadingLabel: loadingLabel,
       loadingBackgroundColor: loadingBackgroundColor,
       layerCommands: layerCommands,
       spriteCommands: spriteCommands,
@@ -404,11 +401,9 @@ class OverlayRenderCommand {
 void drawLevelLoadingPlaceholder({
   required ui.Canvas canvas,
   required ui.Size size,
-  required String label,
   required ui.Color backgroundColor,
 }) {
   canvas.drawRect(ui.Offset.zero & size, ui.Paint()..color = backgroundColor);
-  drawHudText(canvas, label, const ui.Offset(20, 20));
 }
 
 TState? paintLevelFrameWithCommands<TState>({
@@ -419,7 +414,6 @@ TState? paintLevelFrameWithCommands<TState>({
   required Map<String, dynamic>? level,
   required TState? renderState,
   required RuntimeCamera2D Function(TState state) resolveRuntimeCamera,
-  required String loadingLabel,
   required ui.Color loadingBackgroundColor,
   required List<LayerRenderCommand> layerCommands,
   required List<LevelSpriteRenderCommand> spriteCommands,
@@ -434,7 +428,6 @@ TState? paintLevelFrameWithCommands<TState>({
     drawLevelLoadingPlaceholder(
       canvas: canvas,
       size: canvasSize,
-      label: loadingLabel,
       backgroundColor: loadingBackgroundColor,
     );
     return null;
@@ -544,6 +537,22 @@ String? hitTestHudInteractionId({
     }
   }
   return null;
+}
+
+void handleBackHudTap({
+  required ui.Size canvasSize,
+  required ui.Offset screenPosition,
+  required List<HudRenderCommand> commands,
+  required VoidCallback onBackTap,
+}) {
+  final String? interactionId = hitTestHudInteractionId(
+    canvasSize: canvasSize,
+    screenPosition: screenPosition,
+    commands: commands,
+  );
+  if (interactionId == kHudInteractionBack) {
+    onBackTap();
+  }
 }
 
 ui.Rect? _resolveHudCommandHitRect({
