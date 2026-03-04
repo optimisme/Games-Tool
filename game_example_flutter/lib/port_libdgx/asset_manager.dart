@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
@@ -27,7 +26,10 @@ class AssetManager {
   int _batchRequested = 0;
   int _batchCompleted = 0;
 
-  void load(String path, Type _type) {
+  void load(String path, Type type) {
+    if (type != Texture) {
+      return;
+    }
     if (_texturesByPath.containsKey(path) || _queuedSet.contains(path)) {
       return;
     }
@@ -41,7 +43,10 @@ class AssetManager {
     _batchRequested += 1;
   }
 
-  bool update([int _millis = 0]) {
+  bool update([int millis = 0]) {
+    if (millis < 0) {
+      millis = 0;
+    }
     _pumpQueue();
     final bool done = _queue.isEmpty && _activeLoad == null;
     if (done) {
@@ -57,11 +62,17 @@ class AssetManager {
     return _batchCompleted / _batchRequested;
   }
 
-  bool isLoaded(String path, Type _type) {
+  bool isLoaded(String path, Type type) {
+    if (type != Texture) {
+      return false;
+    }
     return _texturesByPath.containsKey(path);
   }
 
-  Texture get(String path, Type _type) {
+  Texture get(String path, Type type) {
+    if (type != Texture) {
+      throw StateError('Unsupported asset type for $path: $type');
+    }
     final Texture? texture = _texturesByPath[path];
     if (texture == null) {
       throw StateError('Texture not loaded: $path');

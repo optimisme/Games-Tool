@@ -9,11 +9,11 @@ import 'level_data.dart';
 import 'port_libdgx/math_types.dart';
 
 class LevelLoader {
-  static const String GAME_DATA_PATH = 'levels/game_data.json';
-  static const double DEFAULT_VIEWPORT_WIDTH = 320;
-  static const double DEFAULT_VIEWPORT_HEIGHT = 180;
-  static const String DEFAULT_VIEWPORT_ADAPTATION = 'letterbox';
-  static const double DEFAULT_DEPTH_SENSITIVITY = 0.08;
+  static const String gameDataPath = 'levels/game_data.json';
+  static const double defaultViewportWidth = 320;
+  static const double defaultViewportHeight = 180;
+  static const String defaultViewportAdaptation = 'letterbox';
+  static const double defaultDepthSensitivity = 0.08;
 
   static Map<String, dynamic>? _gameDataRoot;
   static Map<String, dynamic>? _animationsRoot;
@@ -21,10 +21,10 @@ class LevelLoader {
 
   static Future<void> initialize() async {
     final String gameDataRaw = await rootBundle.loadString(
-      'assets/$GAME_DATA_PATH',
+      'assets/$gameDataPath',
     );
     _gameDataRoot = jsonDecode(gameDataRaw) as Map<String, dynamic>;
-    _jsonByPath[GAME_DATA_PATH] = _gameDataRoot!;
+    _jsonByPath[gameDataPath] = _gameDataRoot!;
 
     final String? animationsFilePath =
         _gameDataRoot!['animationsFile'] as String?;
@@ -113,21 +113,20 @@ class LevelLoader {
     );
     final double viewportWidth = _positiveFiniteOrDefault(
       levelNode['viewportWidth'],
-      DEFAULT_VIEWPORT_WIDTH,
+      defaultViewportWidth,
     );
     final double viewportHeight = _positiveFiniteOrDefault(
       levelNode['viewportHeight'],
-      DEFAULT_VIEWPORT_HEIGHT,
+      defaultViewportHeight,
     );
     final double viewportX = _finiteOrDefault(levelNode['viewportX'], 0);
     final double viewportY = _finiteOrDefault(levelNode['viewportY'], 0);
     final double depthSensitivity = _nonNegativeFiniteOrDefault(
       levelNode['depthSensitivity'],
-      DEFAULT_DEPTH_SENSITIVITY,
+      defaultDepthSensitivity,
     );
     final String viewportAdaptation = _normalizeViewportAdaptation(
-      (levelNode['viewportAdaptation'] as String?) ??
-          DEFAULT_VIEWPORT_ADAPTATION,
+      (levelNode['viewportAdaptation'] as String?) ?? defaultViewportAdaptation,
     );
 
     final Array<LevelLayer> layers = Array<LevelLayer>();
@@ -208,8 +207,8 @@ class LevelLoader {
       }
     }
 
-    worldWidth = math.max(worldWidth, DEFAULT_VIEWPORT_WIDTH);
-    worldHeight = math.max(worldHeight, DEFAULT_VIEWPORT_HEIGHT);
+    worldWidth = math.max(worldWidth, defaultViewportWidth);
+    worldHeight = math.max(worldHeight, defaultViewportHeight);
 
     return LevelData(
       name,
@@ -656,14 +655,14 @@ class LevelLoader {
     return LevelData(
       name,
       colorValueOf('#000000'),
-      DEFAULT_VIEWPORT_WIDTH,
-      DEFAULT_VIEWPORT_HEIGHT,
+      defaultViewportWidth,
+      defaultViewportHeight,
       0,
       0,
-      DEFAULT_VIEWPORT_ADAPTATION,
-      DEFAULT_DEPTH_SENSITIVITY,
-      DEFAULT_VIEWPORT_WIDTH,
-      DEFAULT_VIEWPORT_HEIGHT,
+      defaultViewportAdaptation,
+      defaultDepthSensitivity,
+      defaultViewportWidth,
+      defaultViewportHeight,
       Array<LevelLayer>(),
       Array<LevelSprite>(),
       Array<LevelZone>(),
@@ -762,7 +761,7 @@ class LevelLoader {
       case 'strech':
         return 'stretch';
       default:
-        return DEFAULT_VIEWPORT_ADAPTATION;
+        return defaultViewportAdaptation;
     }
   }
 

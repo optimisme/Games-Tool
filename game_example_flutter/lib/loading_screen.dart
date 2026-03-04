@@ -8,22 +8,22 @@ import 'play_screen.dart';
 import 'port_libdgx/viewport.dart';
 
 class LoadingScreen extends ScreenAdapter {
-  static const double WORLD_WIDTH = 1280;
-  static const double WORLD_HEIGHT = 720;
-  static const double MIN_SECONDS_ON_SCREEN = 0.85;
-  static const double VISUAL_PROGRESS_SPEED = 3.2;
+  static const double worldWidth = 1280;
+  static const double worldHeight = 720;
+  static const double minSecondsOnScreen = 0.85;
+  static const double visualProgressSpeed = 3.2;
 
-  static final ui.Color BACKGROUND = colorValueOf('050A06');
-  static final ui.Color BAR_BG = colorValueOf('0A1A0F');
-  static final ui.Color BAR_FILL = colorValueOf('35FF74');
-  static final ui.Color TEXT = colorValueOf('35FF74');
-  static final ui.Color SUBTEXT = colorValueOf('21964A');
+  static final ui.Color background = colorValueOf('050A06');
+  static final ui.Color barBg = colorValueOf('0A1A0F');
+  static final ui.Color barFill = colorValueOf('35FF74');
+  static final ui.Color textColor = colorValueOf('35FF74');
+  static final ui.Color subtextColor = colorValueOf('21964A');
 
   final GameApp game;
   final int levelIndex;
   final Viewport viewport = FitViewport(
-    WORLD_WIDTH,
-    WORLD_HEIGHT,
+    worldWidth,
+    worldHeight,
     OrthographicCamera(),
   );
   final GlyphLayout layout = GlyphLayout();
@@ -54,18 +54,18 @@ class LoadingScreen extends ScreenAdapter {
       1,
     );
     final double maxProgressForTime = clampDouble(
-      elapsedSeconds / MIN_SECONDS_ON_SCREEN,
+      elapsedSeconds / minSecondsOnScreen,
       0,
       1,
     );
     final double targetProgress = math.min(actualProgress, maxProgressForTime);
     visualProgress = math.min(
       targetProgress,
-      visualProgress + math.max(0, delta) * VISUAL_PROGRESS_SPEED,
+      visualProgress + math.max(0, delta) * visualProgressSpeed,
     );
 
     if (done &&
-        elapsedSeconds >= MIN_SECONDS_ON_SCREEN &&
+        elapsedSeconds >= minSecondsOnScreen &&
         visualProgress >= 0.999 &&
         !_levelReady) {
       _levelReady = true;
@@ -73,7 +73,7 @@ class LoadingScreen extends ScreenAdapter {
       return;
     }
 
-    ScreenUtils.clear(BACKGROUND);
+    ScreenUtils.clear(background);
     viewport.apply();
 
     _renderBar(visualProgress);
@@ -84,21 +84,21 @@ class LoadingScreen extends ScreenAdapter {
     final double clamped = clampDouble(progress, 0, 1);
     const double barWidth = 620;
     const double barHeight = 28;
-    final double x = (WORLD_WIDTH - barWidth) * 0.5;
-    final double y = WORLD_HEIGHT * 0.44;
+    final double x = (worldWidth - barWidth) * 0.5;
+    final double y = worldHeight * 0.44;
 
     final ShapeRenderer shapes = game.getShapeRenderer();
     shapes.setProjectionMatrix(viewport.getCamera().combined);
 
     shapes.begin(ShapeType.filled);
-    shapes.setColor(BAR_BG);
+    shapes.setColor(barBg);
     shapes.rect(x, y, barWidth, barHeight);
-    shapes.setColor(BAR_FILL);
+    shapes.setColor(barFill);
     shapes.rect(x, y, barWidth * clamped, barHeight);
     shapes.end();
 
     shapes.begin(ShapeType.line);
-    shapes.setColor(BAR_FILL);
+    shapes.setColor(barFill);
     shapes.rect(x, y, barWidth, barHeight);
     shapes.end();
   }
@@ -115,17 +115,17 @@ class LoadingScreen extends ScreenAdapter {
       batch,
       font,
       'Loading ${game.getLevelName(levelIndex)}',
-      WORLD_HEIGHT * 0.58,
+      worldHeight * 0.58,
       2,
-      TEXT,
+      textColor,
     );
     _drawCenteredText(
       batch,
       font,
       '${(clamped * 100).round()}%',
-      WORLD_HEIGHT * 0.40,
+      worldHeight * 0.40,
       1.5,
-      SUBTEXT,
+      subtextColor,
     );
 
     batch.end();
@@ -142,7 +142,7 @@ class LoadingScreen extends ScreenAdapter {
     font.getData().setScale(scale);
     font.setColor(color);
     layout.setText(font, text);
-    final double x = (WORLD_WIDTH - layout.width) * 0.5;
+    final double x = (worldWidth - layout.width) * 0.5;
     font.draw(batch, layout, x, y);
     font.getData().setScale(1);
   }

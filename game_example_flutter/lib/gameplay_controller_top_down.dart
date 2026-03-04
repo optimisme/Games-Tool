@@ -2,13 +2,11 @@ import 'port_libdgx/gdx.dart';
 import 'port_libdgx/gdx_collections.dart';
 import 'gameplay_controller_base.dart';
 import 'level_data.dart';
-import 'level_renderer.dart';
 import 'port_libdgx/math_types.dart';
-import 'runtime_transform.dart';
 
 class GameplayControllerTopDown extends GameplayControllerBase {
-  static const double MOVE_SPEED_PER_SECOND = 95;
-  static const double DIAGONAL_NORMALIZE = 0.70710677;
+  static const double moveSpeedPerSecond = 95;
+  static const double diagonalNormalize = 0.70710677;
 
   final IntArray blockedZoneIndices = IntArray();
   final IntArray arbreZoneIndices = IntArray();
@@ -20,22 +18,16 @@ class GameplayControllerTopDown extends GameplayControllerBase {
   late final int decorationsLayerIndex;
   late final int hiddenBridgeLayerIndex;
   bool wasInsideFutureBridgeZone = false;
-  _Direction direction = _Direction.DOWN;
+  _Direction _direction = _Direction.down;
   bool moving = false;
 
   GameplayControllerTopDown(
-    LevelData levelData,
-    Array<SpriteRuntimeState> spriteRuntimeStates,
-    List<bool> layerVisibilityStates,
-    Array<RuntimeTransform> zoneRuntimeStates,
-    Array<RuntimeTransform> zonePreviousRuntimeStates,
-  ) : super(
-        levelData,
-        spriteRuntimeStates,
-        layerVisibilityStates,
-        zoneRuntimeStates,
-        zonePreviousRuntimeStates,
-      ) {
+    super.levelData,
+    super.spriteRuntimeStates,
+    super.layerVisibilityStates,
+    super.zoneRuntimeStates,
+    super.zonePreviousRuntimeStates,
+  ) {
     decorationsLayerIndex = _findLayerIndexByName(<String>[
       'decoracions',
       'decorations',
@@ -66,7 +58,7 @@ class GameplayControllerTopDown extends GameplayControllerBase {
 
   @override
   void handleInput() {
-    if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.r)) {
       resetPlayerToSpawn();
     }
   }
@@ -80,17 +72,17 @@ class GameplayControllerTopDown extends GameplayControllerBase {
     double inputX = 0;
     double inputY = 0;
     final bool left =
-        Gdx.input.isKeyPressed(Input.Keys.LEFT) ||
-        Gdx.input.isKeyPressed(Input.Keys.A);
+        Gdx.input.isKeyPressed(Input.keys.left) ||
+        Gdx.input.isKeyPressed(Input.keys.a);
     final bool right =
-        Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
-        Gdx.input.isKeyPressed(Input.Keys.D);
+        Gdx.input.isKeyPressed(Input.keys.right) ||
+        Gdx.input.isKeyPressed(Input.keys.d);
     final bool up =
-        Gdx.input.isKeyPressed(Input.Keys.UP) ||
-        Gdx.input.isKeyPressed(Input.Keys.W);
+        Gdx.input.isKeyPressed(Input.keys.up) ||
+        Gdx.input.isKeyPressed(Input.keys.w);
     final bool down =
-        Gdx.input.isKeyPressed(Input.Keys.DOWN) ||
-        Gdx.input.isKeyPressed(Input.Keys.S);
+        Gdx.input.isKeyPressed(Input.keys.down) ||
+        Gdx.input.isKeyPressed(Input.keys.s);
 
     if (left) {
       inputX -= 1;
@@ -106,12 +98,12 @@ class GameplayControllerTopDown extends GameplayControllerBase {
     }
 
     if (inputX != 0 && inputY != 0) {
-      inputX *= DIAGONAL_NORMALIZE;
-      inputY *= DIAGONAL_NORMALIZE;
+      inputX *= diagonalNormalize;
+      inputY *= diagonalNormalize;
     }
 
-    final double dx = inputX * MOVE_SPEED_PER_SECOND * dtSeconds;
-    final double dy = inputY * MOVE_SPEED_PER_SECOND * dtSeconds;
+    final double dx = inputX * moveSpeedPerSecond * dtSeconds;
+    final double dy = inputY * moveSpeedPerSecond * dtSeconds;
     _updateDirection(up, down, left, right);
 
     if (dx != 0) {
@@ -139,7 +131,7 @@ class GameplayControllerTopDown extends GameplayControllerBase {
   void resetPlayerToSpawn() {
     super.resetPlayerToSpawn();
     wasInsideFutureBridgeZone = false;
-    direction = _Direction.DOWN;
+    _direction = _Direction.down;
     moving = false;
     setPlayerFlip(false, false);
     _updatePlayerAnimationSelection();
@@ -307,21 +299,21 @@ class GameplayControllerTopDown extends GameplayControllerBase {
 
   void _updateDirection(bool up, bool down, bool left, bool right) {
     if (up && left) {
-      direction = _Direction.UP_LEFT;
+      _direction = _Direction.upLeft;
     } else if (up && right) {
-      direction = _Direction.UP_RIGHT;
+      _direction = _Direction.upRight;
     } else if (down && left) {
-      direction = _Direction.DOWN_LEFT;
+      _direction = _Direction.downLeft;
     } else if (down && right) {
-      direction = _Direction.DOWN_RIGHT;
+      _direction = _Direction.downRight;
     } else if (up) {
-      direction = _Direction.UP;
+      _direction = _Direction.up;
     } else if (down) {
-      direction = _Direction.DOWN;
+      _direction = _Direction.down;
     } else if (left) {
-      direction = _Direction.LEFT;
+      _direction = _Direction.left;
     } else if (right) {
-      direction = _Direction.RIGHT;
+      _direction = _Direction.right;
     }
   }
 
@@ -333,36 +325,36 @@ class GameplayControllerTopDown extends GameplayControllerBase {
     final String prefix = moving ? 'Heroi Camina ' : 'Heroi Aturat ';
     String suffix;
     bool flipX;
-    switch (direction) {
-      case _Direction.UP_LEFT:
+    switch (_direction) {
+      case _Direction.upLeft:
         suffix = 'Amunt-Dreta';
         flipX = true;
         break;
-      case _Direction.UP:
+      case _Direction.up:
         suffix = 'Amunt';
         flipX = false;
         break;
-      case _Direction.UP_RIGHT:
+      case _Direction.upRight:
         suffix = 'Amunt-Dreta';
         flipX = false;
         break;
-      case _Direction.LEFT:
+      case _Direction.left:
         suffix = 'Dreta';
         flipX = true;
         break;
-      case _Direction.RIGHT:
+      case _Direction.right:
         suffix = 'Dreta';
         flipX = false;
         break;
-      case _Direction.DOWN_LEFT:
+      case _Direction.downLeft:
         suffix = 'Avall-Dreta';
         flipX = true;
         break;
-      case _Direction.DOWN_RIGHT:
+      case _Direction.downRight:
         suffix = 'Avall-Dreta';
         flipX = false;
         break;
-      case _Direction.DOWN:
+      case _Direction.down:
         suffix = 'Avall';
         flipX = false;
         break;
@@ -373,13 +365,4 @@ class GameplayControllerTopDown extends GameplayControllerBase {
   }
 }
 
-enum _Direction {
-  UP_LEFT,
-  UP,
-  UP_RIGHT,
-  LEFT,
-  RIGHT,
-  DOWN_LEFT,
-  DOWN,
-  DOWN_RIGHT,
-}
+enum _Direction { upLeft, up, upRight, left, right, downLeft, down, downRight }

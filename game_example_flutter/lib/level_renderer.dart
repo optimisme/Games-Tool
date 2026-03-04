@@ -9,8 +9,8 @@ import 'runtime_transform.dart';
 import 'port_libdgx/viewport.dart';
 
 class LevelRenderer {
-  static const double MIN_DEPTH_PROJECTION_FACTOR = 0.25;
-  static const double MAX_DEPTH_PROJECTION_FACTOR = 4.0;
+  static const double minDepthProjectionFactor = 0.25;
+  static const double maxDepthProjectionFactor = 4.0;
 
   final ObjectMap<String, List<List<TextureRegion>>> splitCache =
       ObjectMap<String, List<List<TextureRegion>>>();
@@ -299,8 +299,8 @@ class LevelRenderer {
         : 0.08;
     final double factor = math.exp(-depth * safeSensitivity);
     return math.max(
-      MIN_DEPTH_PROJECTION_FACTOR,
-      math.min(MAX_DEPTH_PROJECTION_FACTOR, factor),
+      minDepthProjectionFactor,
+      math.min(maxDepthProjectionFactor, factor),
     );
   }
 

@@ -7,10 +7,10 @@ import 'port_libdgx/viewport.dart';
 import 'port_libdgx/gdx_collections.dart';
 
 class DebugOverlay {
-  static const double ZONE_FILL_ALPHA = 0.20;
-  static const double ZONE_STROKE_ALPHA = 0.85;
-  static const double PATH_ALPHA = 0.90;
-  static const double PATH_POINT_RADIUS = 2.2;
+  static const double zoneFillAlpha = 0.20;
+  static const double zoneStrokeAlpha = 0.85;
+  static const double pathAlpha = 0.90;
+  static const double pathPointRadius = 2.2;
 
   final ShapeRenderer shapes = ShapeRenderer();
 
@@ -59,7 +59,7 @@ class DebugOverlay {
       if (rect == null) {
         continue;
       }
-      shapes.setColor(zone.color.withOpacity(ZONE_FILL_ALPHA));
+      shapes.setColor(zone.color.withValues(alpha: zoneFillAlpha));
       shapes.rect(rect.left, rect.top, rect.width, rect.height);
     }
     shapes.end();
@@ -83,7 +83,7 @@ class DebugOverlay {
       if (rect == null) {
         continue;
       }
-      shapes.setColor(zone.color.withOpacity(ZONE_STROKE_ALPHA));
+      shapes.setColor(zone.color.withValues(alpha: zoneStrokeAlpha));
       shapes.rect(rect.left, rect.top, rect.width, rect.height);
     }
     shapes.end();
@@ -97,7 +97,7 @@ class DebugOverlay {
     shapes.begin(ShapeType.line);
     for (int i = 0; i < level.paths.size; i++) {
       final LevelPath path = level.paths.get(i);
-      shapes.setColor(path.color.withOpacity(PATH_ALPHA));
+      shapes.setColor(path.color.withValues(alpha: pathAlpha));
 
       for (int p = 0; p + 1 < path.points.size; p++) {
         final a = path.points.get(p);
