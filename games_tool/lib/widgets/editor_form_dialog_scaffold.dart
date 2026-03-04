@@ -20,6 +20,7 @@ class EditorFormDialogScaffold extends StatelessWidget {
     this.liveEditBottomSpacing = true,
     this.minWidth = 360,
     this.maxWidth = 520,
+    this.headerTrailing,
   });
 
   final String title;
@@ -38,6 +39,7 @@ class EditorFormDialogScaffold extends StatelessWidget {
   final bool liveEditBottomSpacing;
   final double minWidth;
   final double maxWidth;
+  final Widget? headerTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,16 @@ class EditorFormDialogScaffold extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CDKText(title, role: CDKTextRole.title),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: CDKText(title, role: CDKTextRole.title)),
+                  if (headerTrailing != null) ...[
+                    SizedBox(width: spacing.sm),
+                    headerTrailing!,
+                  ],
+                ],
+              ),
               SizedBox(height: spacing.md),
               if (description.trim().isNotEmpty) ...[
                 CDKText(description, role: CDKTextRole.body),

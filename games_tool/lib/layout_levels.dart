@@ -1368,6 +1368,18 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
       liveEditMode: widget.liveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
+      headerTrailing: widget.onDelete == null
+          ? null
+          : CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(20, 20),
+              onPressed: widget.onDelete,
+              child: const Icon(
+                CupertinoIcons.trash,
+                size: 16,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
       minWidth: 320,
       maxWidth: 420,
       body: Column(

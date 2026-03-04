@@ -1895,6 +1895,19 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       liveEditMode: true,
       liveEditBottomSpacing: false,
       onClose: widget.onClose,
+      onDelete: widget.onDelete,
+      headerTrailing: widget.onDelete == null
+          ? null
+          : CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(20, 20),
+              onPressed: widget.onDelete,
+              child: const Icon(
+                CupertinoIcons.trash,
+                size: 16,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2368,14 +2381,6 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                     ),
                   ),
                 ),
-                if (widget.onDelete != null) ...[
-                  SizedBox(height: spacing.md),
-                  CDKButton(
-                    style: CDKButtonStyle.destructive,
-                    onPressed: widget.onDelete,
-                    child: const Text('Delete Path'),
-                  ),
-                ],
               ],
             ),
           ),

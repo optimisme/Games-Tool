@@ -1591,6 +1591,18 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
       liveEditMode: widget.liveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
+      headerTrailing: widget.onDelete == null
+          ? null
+          : CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(20, 20),
+              onPressed: widget.onDelete,
+              child: const Icon(
+                CupertinoIcons.trash,
+                size: 16,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
       minWidth: 400,
       maxWidth: 540,
       body: Column(
