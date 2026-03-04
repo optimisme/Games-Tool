@@ -9,20 +9,20 @@ import 'port_libdgx/math_types.dart';
 import 'runtime_transform.dart';
 
 class GameplayControllerPlatformer extends GameplayControllerBase {
-  static const double MOVE_SPEED_PER_SECOND = 150;
-  static const double GRAVITY_PER_SECOND_SQ = 2088;
-  static const double JUMP_IMPULSE_PER_SECOND = 708;
-  static const double MAX_FALL_SPEED_PER_SECOND = 840;
-  static const double FLOOR_SUPPORT_DELTA = 1;
-  static const double COLLISION_EPSILON = 1.2;
-  static const double FLOOR_WALL_LIKE_RATIO = 1.2;
-  static const double DRAGON_STOMP_MIN_FALL_SPEED = 25;
-  static const double DRAGON_DAMAGE_PERCENT = 20;
-  static const double DRAGON_TOUCH_DAMAGE_INTERVAL_SECONDS = 0.5;
-  static const double START_LIFE_PERCENT = 100;
-  static const double DRAGON_DEATH_FALLBACK_DURATION_SECONDS = 0.7;
-  static const String DRAGON_DEATH_ANIMATION_NAME = 'Dragon Death';
-  static const double DEFAULT_ANIMATION_FPS = 8;
+  static const double moveSpeedPerSecond = 150;
+  static const double gravityPerSecondSq = 2088;
+  static const double jumpImpulsePerSecond = 708;
+  static const double maxFallSpeedPerSecond = 840;
+  static const double floorSupportDelta = 1;
+  static const double collisionEpsilon = 1.2;
+  static const double floorWallLikeRatio = 1.2;
+  static const double dragonStompMinFallSpeed = 25;
+  static const double dragonDamagePercent = 20;
+  static const double dragonTouchDamageIntervalSeconds = 0.5;
+  static const double startLifePercent = 100;
+  static const double dragonDeathFallbackDurationSeconds = 0.7;
+  static const String dragonDeathAnimationName = 'Dragon Death';
+  static const double defaultAnimationFps = 8;
 
   final IntArray floorZoneIndices = IntArray();
   final IntArray solidZoneIndices = IntArray();
@@ -42,7 +42,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
   late final double dragonDeathDurationSeconds;
   double velocityX = 0;
   double velocityY = 0;
-  double lifePercent = START_LIFE_PERCENT;
+  double lifePercent = startLifePercent;
   double simulationTimeSeconds = 0;
   bool onGround = false;
   bool gameOver = false;
@@ -51,18 +51,12 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
   bool facingRight = true;
 
   GameplayControllerPlatformer(
-    LevelData levelData,
-    Array<SpriteRuntimeState> spriteRuntimeStates,
-    List<bool> layerVisibilityStates,
-    Array<RuntimeTransform> zoneRuntimeStates,
-    Array<RuntimeTransform> zonePreviousRuntimeStates,
-  ) : super(
-        levelData,
-        spriteRuntimeStates,
-        layerVisibilityStates,
-        zoneRuntimeStates,
-        zonePreviousRuntimeStates,
-      ) {
+    super.levelData,
+    super.spriteRuntimeStates,
+    super.layerVisibilityStates,
+    super.zoneRuntimeStates,
+    super.zonePreviousRuntimeStates,
+  ) {
     _classifyZones();
     gemSpriteIndices = findSpriteIndicesByTypeOrName(<String>['gem']);
     dragonSpriteIndices = findSpriteIndicesByTypeOrName(<String>['dragon']);
@@ -84,9 +78,9 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
 
   @override
   void handleInput() {
-    if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) ||
-        Gdx.input.isKeyJustPressed(Input.Keys.W) ||
-        Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.space) ||
+        Gdx.input.isKeyJustPressed(Input.keys.w) ||
+        Gdx.input.isKeyJustPressed(Input.keys.up)) {
       jumpQueued = true;
     }
   }
@@ -110,19 +104,19 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
     }
 
     final bool moveLeft =
-        Gdx.input.isKeyPressed(Input.Keys.LEFT) ||
-        Gdx.input.isKeyPressed(Input.Keys.A);
+        Gdx.input.isKeyPressed(Input.keys.left) ||
+        Gdx.input.isKeyPressed(Input.keys.a);
     final bool moveRight =
-        Gdx.input.isKeyPressed(Input.Keys.RIGHT) ||
-        Gdx.input.isKeyPressed(Input.Keys.D);
+        Gdx.input.isKeyPressed(Input.keys.right) ||
+        Gdx.input.isKeyPressed(Input.keys.d);
 
     if (moveLeft == moveRight) {
       velocityX = 0;
     } else if (moveLeft) {
-      velocityX = -MOVE_SPEED_PER_SECOND;
+      velocityX = -moveSpeedPerSecond;
       facingRight = false;
     } else {
-      velocityX = MOVE_SPEED_PER_SECOND;
+      velocityX = moveSpeedPerSecond;
       facingRight = true;
     }
     setPlayerFlip(!facingRight, false);
@@ -138,15 +132,15 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
     }
 
     if (jumpQueued && onGround) {
-      velocityY = -JUMP_IMPULSE_PER_SECOND;
+      velocityY = -jumpImpulsePerSecond;
       onGround = false;
     }
     jumpQueued = false;
 
     if (!onGround || velocityY < 0) {
-      velocityY += GRAVITY_PER_SECOND_SQ * dtSeconds;
-      if (velocityY > MAX_FALL_SPEED_PER_SECOND) {
-        velocityY = MAX_FALL_SPEED_PER_SECOND;
+      velocityY += gravityPerSecondSq * dtSeconds;
+      if (velocityY > maxFallSpeedPerSecond) {
+        velocityY = maxFallSpeedPerSecond;
       }
     }
 
@@ -204,7 +198,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
           ]) ||
           containsAny(name, <String>['wall', 'mur', 'solid', 'bloc', 'block']);
       final bool isWallLikeFloor =
-          isFloor && zone.height > zone.width * FLOOR_WALL_LIKE_RATIO;
+          isFloor && zone.height > zone.width * floorWallLikeRatio;
 
       if (isFloor) {
         floorZoneIndices.add(i);
@@ -220,7 +214,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
       return;
     }
 
-    final Rectangle playerRectBounds = playerRect(this.rectCacheA);
+    final Rectangle playerRectBounds = playerRect(rectCacheA);
     final Rectangle previousRect = playerRectAt(
       previousX,
       playerY,
@@ -249,8 +243,8 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
         final double previousRight = previousRect.x + previousRect.width;
         final double currentRight = playerRectBounds.x + playerRectBounds.width;
         final double zoneLeft = zoneRect.x;
-        if (previousRight <= zoneLeft + COLLISION_EPSILON &&
-            currentRight >= zoneLeft - COLLISION_EPSILON) {
+        if (previousRight <= zoneLeft + collisionEpsilon &&
+            currentRight >= zoneLeft - collisionEpsilon) {
           final double crossDistance = zoneLeft - previousRight;
           if (crossDistance < bestCrossDistance) {
             bestCrossDistance = crossDistance;
@@ -262,8 +256,8 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
         final double previousLeft = previousRect.x;
         final double currentLeft = playerRectBounds.x;
         final double zoneRight = zoneRect.x + zoneRect.width;
-        if (previousLeft >= zoneRight - COLLISION_EPSILON &&
-            currentLeft <= zoneRight + COLLISION_EPSILON) {
+        if (previousLeft >= zoneRight - collisionEpsilon &&
+            currentLeft <= zoneRight + collisionEpsilon) {
           final double crossDistance = previousLeft - zoneRight;
           if (crossDistance < bestCrossDistance) {
             bestCrossDistance = crossDistance;
@@ -395,7 +389,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
         continue;
       }
       final double bottomDelta = (testBottom - zoneRect.y).abs();
-      if (bottomDelta <= FLOOR_SUPPORT_DELTA) {
+      if (bottomDelta <= floorSupportDelta) {
         return true;
       }
     }
@@ -455,8 +449,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
       return;
     }
 
-    final bool foxyIsFalling =
-        !onGround && velocityY > DRAGON_STOMP_MIN_FALL_SPEED;
+    final bool foxyIsFalling = !onGround && velocityY > dragonStompMinFallSpeed;
     touchingDragonNowCache.clear();
 
     for (final int spriteIndex in dragonSpriteIndices.iterable()) {
@@ -486,7 +479,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
 
       if (foxyIsFalling) {
         _startDragonDeath(spriteIndex);
-        velocityY = -JUMP_IMPULSE_PER_SECOND * 0.38;
+        velocityY = -jumpImpulsePerSecond * 0.38;
         onGround = false;
         continue;
       }
@@ -500,7 +493,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
         _applyDragonDamage();
         nextDragonDamageSecondsBySprite.put(
           spriteIndex,
-          simulationTimeSeconds + DRAGON_TOUCH_DAMAGE_INTERVAL_SECONDS,
+          simulationTimeSeconds + dragonTouchDamageIntervalSeconds,
         );
         if (gameOver) {
           break;
@@ -535,7 +528,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
     dragonDeathStartSecondsBySprite.put(spriteIndex, simulationTimeSeconds);
     touchingDragonSpriteIndices.remove(spriteIndex);
     nextDragonDamageSecondsBySprite.remove(spriteIndex, -1);
-    setAnimationOverrideByName(spriteIndex, DRAGON_DEATH_ANIMATION_NAME);
+    setAnimationOverrideByName(spriteIndex, dragonDeathAnimationName);
   }
 
   void _pruneCompletedDragonDeaths() {
@@ -566,30 +559,28 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
   }
 
   double _resolveDragonDeathDurationSeconds() {
-    final String? animationId = findAnimationIdByName(
-      DRAGON_DEATH_ANIMATION_NAME,
-    );
+    final String? animationId = findAnimationIdByName(dragonDeathAnimationName);
     if (animationId == null || animationId.isEmpty) {
-      return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+      return dragonDeathFallbackDurationSeconds;
     }
     final AnimationClip? clip = levelData.animationClips.get(animationId);
     if (clip == null) {
-      return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+      return dragonDeathFallbackDurationSeconds;
     }
 
     final int spanFrames = math.max(1, clip.endFrame - clip.startFrame + 1);
     final double fps = clip.fps.isFinite && clip.fps > 0
         ? clip.fps
-        : DEFAULT_ANIMATION_FPS;
+        : defaultAnimationFps;
     final double durationSeconds = spanFrames / fps;
     if (!durationSeconds.isFinite || durationSeconds <= 0) {
-      return DRAGON_DEATH_FALLBACK_DURATION_SECONDS;
+      return dragonDeathFallbackDurationSeconds;
     }
     return durationSeconds;
   }
 
   void _applyDragonDamage() {
-    lifePercent -= DRAGON_DAMAGE_PERCENT;
+    lifePercent -= dragonDamagePercent;
     if (lifePercent <= 0) {
       lifePercent = 0;
       _triggerGameOver();
@@ -674,8 +665,8 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
       previousRect.x + previousRect.width,
       currentRect.x + currentRect.width,
     );
-    return sweepRight > zoneRect.x + COLLISION_EPSILON &&
-        sweepLeft < zoneRect.x + zoneRect.width - COLLISION_EPSILON;
+    return sweepRight > zoneRect.x + collisionEpsilon &&
+        sweepLeft < zoneRect.x + zoneRect.width - collisionEpsilon;
   }
 
   bool _overlapsVerticallyForSweep(
@@ -688,8 +679,8 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
       previousRect.y + previousRect.height,
       currentRect.y + currentRect.height,
     );
-    return sweepBottom > zoneRect.y + COLLISION_EPSILON &&
-        sweepTop < zoneRect.y + zoneRect.height - COLLISION_EPSILON;
+    return sweepBottom > zoneRect.y + collisionEpsilon &&
+        sweepTop < zoneRect.y + zoneRect.height - collisionEpsilon;
   }
 
   bool _crossedZoneTop(
@@ -697,8 +688,8 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
     double currentBottom,
     double zoneTop,
   ) {
-    return previousBottom <= zoneTop + COLLISION_EPSILON &&
-        currentBottom >= zoneTop - COLLISION_EPSILON;
+    return previousBottom <= zoneTop + collisionEpsilon &&
+        currentBottom >= zoneTop - collisionEpsilon;
   }
 
   bool _isStandingOnFloorRect(Rectangle playerRect, Rectangle floorRect) {
@@ -710,7 +701,7 @@ class GameplayControllerPlatformer extends GameplayControllerBase {
       return false;
     }
     final double bottomDelta = (playerBottom - floorRect.y).abs();
-    return bottomDelta <= FLOOR_SUPPORT_DELTA;
+    return bottomDelta <= floorSupportDelta;
   }
 
   void _updatePlayerAnimationSelection() {

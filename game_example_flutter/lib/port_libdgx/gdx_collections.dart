@@ -23,9 +23,19 @@ class Array<T> {
 
   T peek() => _values.last;
 
-  bool contains(T value, [bool _identity = false]) => _values.contains(value);
+  bool contains(T value, [bool identity = false]) {
+    if (identity) {
+      return _values.contains(value);
+    }
+    return _values.contains(value);
+  }
 
-  int indexOf(T value, [bool _identity = false]) => _values.indexOf(value);
+  int indexOf(T value, [bool identity = false]) {
+    if (identity) {
+      return _values.indexOf(value);
+    }
+    return _values.indexOf(value);
+  }
 
   Iterable<T> iterable() => _values;
 
@@ -159,7 +169,11 @@ class IntFloatMap {
 
   bool containsKey(int key) => _values.containsKey(key);
 
-  void remove(int key, double _defaultValue) {
+  void remove(int key, double defaultValue) {
+    if (defaultValue.isNaN) {
+      _values.remove(key);
+      return;
+    }
     _values.remove(key);
   }
 

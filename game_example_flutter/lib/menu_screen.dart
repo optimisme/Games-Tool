@@ -10,23 +10,23 @@ import 'port_libdgx/math_types.dart';
 import 'port_libdgx/viewport.dart';
 
 class MenuScreen extends ScreenAdapter {
-  static const double WORLD_WIDTH = 1280;
-  static const double WORLD_HEIGHT = 720;
-  static const double BLINK_INTERVAL_SECONDS = 0.42;
+  static const double worldWidth = 1280;
+  static const double worldHeight = 720;
+  static const double blinkIntervalSeconds = 0.42;
 
-  static final ui.Color BACKGROUND = colorValueOf('000000');
-  static final ui.Color PRIMARY = colorValueOf('#35FF74');
-  static final ui.Color DIM = colorValueOf('#146F34');
-  static final ui.Color SCANLINE = colorValueOf('#17A84022');
-  static final ui.Color SELECTED_FILL = colorValueOf('#0E1E12');
-  static final ui.Color UNSELECTED_FILL = colorValueOf('#060B08');
-  static final ui.Color UNSELECTED_TEXT = colorValueOf('#23AA54');
-  static final ui.Color FOOTER = colorValueOf('#21964A');
+  static final ui.Color background = colorValueOf('000000');
+  static final ui.Color primary = colorValueOf('#35FF74');
+  static final ui.Color dim = colorValueOf('#146F34');
+  static final ui.Color scanline = colorValueOf('#17A84022');
+  static final ui.Color selectedFill = colorValueOf('#0E1E12');
+  static final ui.Color unselectedFill = colorValueOf('#060B08');
+  static final ui.Color unselectedText = colorValueOf('#23AA54');
+  static final ui.Color footer = colorValueOf('#21964A');
 
   final GameApp game;
   final Viewport viewport = FitViewport(
-    WORLD_WIDTH,
-    WORLD_HEIGHT,
+    worldWidth,
+    worldHeight,
     OrthographicCamera(),
   );
   final Vector3 pointer = Vector3(0, 0, 0);
@@ -49,7 +49,7 @@ class MenuScreen extends ScreenAdapter {
     _handleKeyboardInput();
     _handlePointerInput();
 
-    ScreenUtils.clear(BACKGROUND);
+    ScreenUtils.clear(background);
 
     viewport.apply();
 
@@ -67,16 +67,16 @@ class MenuScreen extends ScreenAdapter {
   }
 
   void _handleKeyboardInput() {
-    if (Gdx.input.isKeyJustPressed(Input.Keys.UP) ||
-        Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.up) ||
+        Gdx.input.isKeyJustPressed(Input.keys.w)) {
       _moveSelection(-1);
     }
-    if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) ||
-        Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.down) ||
+        Gdx.input.isKeyJustPressed(Input.keys.s)) {
       _moveSelection(1);
     }
-    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) ||
-        Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.enter) ||
+        Gdx.input.isKeyJustPressed(Input.keys.space)) {
       _startSelectedLevel();
     }
   }
@@ -86,7 +86,7 @@ class MenuScreen extends ScreenAdapter {
       return;
     }
     pointer.set(Gdx.input.getX().toDouble(), Gdx.input.getY().toDouble(), 0);
-    pointer.y = WORLD_HEIGHT - pointer.y;
+    pointer.y = worldHeight - pointer.y;
     for (int i = 0; i < optionRects.size; i++) {
       if (optionRects.get(i).contains(pointer.x, pointer.y)) {
         selectedIndex = i;
@@ -98,19 +98,19 @@ class MenuScreen extends ScreenAdapter {
 
   void _updateBlink(double delta) {
     blinkAccumulator += delta;
-    if (blinkAccumulator >= BLINK_INTERVAL_SECONDS) {
-      blinkAccumulator -= BLINK_INTERVAL_SECONDS;
+    if (blinkAccumulator >= blinkIntervalSeconds) {
+      blinkAccumulator -= blinkIntervalSeconds;
       cursorVisible = !cursorVisible;
     }
   }
 
   void _renderBackground(ShapeRenderer shapes) {
     shapes.begin(ShapeType.line);
-    shapes.setColor(SCANLINE);
+    shapes.setColor(scanline);
     double y = 0;
-    while (y <= WORLD_HEIGHT) {
+    while (y <= worldHeight) {
       final double drawY = _toScreenY(y);
-      shapes.line(0, drawY, WORLD_WIDTH, drawY);
+      shapes.line(0, drawY, worldWidth, drawY);
       y += 4;
     }
     shapes.end();
@@ -119,7 +119,7 @@ class MenuScreen extends ScreenAdapter {
   void _renderOptions(ShapeRenderer shapes) {
     shapes.begin(ShapeType.filled);
     for (int i = 0; i < optionRects.size; i++) {
-      shapes.setColor(i == selectedIndex ? SELECTED_FILL : UNSELECTED_FILL);
+      shapes.setColor(i == selectedIndex ? selectedFill : unselectedFill);
       final Rectangle rect = optionRects.get(i);
       shapes.rect(
         rect.x,
@@ -132,7 +132,7 @@ class MenuScreen extends ScreenAdapter {
 
     shapes.begin(ShapeType.line);
     for (int i = 0; i < optionRects.size; i++) {
-      shapes.setColor(i == selectedIndex ? PRIMARY : DIM);
+      shapes.setColor(i == selectedIndex ? primary : dim);
       final Rectangle rect = optionRects.get(i);
       shapes.rect(
         rect.x,
@@ -149,17 +149,17 @@ class MenuScreen extends ScreenAdapter {
       batch,
       font,
       'Game Example',
-      WORLD_HEIGHT * 0.82,
+      worldHeight * 0.82,
       3.2,
-      PRIMARY,
+      primary,
     );
-    _drawCenteredText(batch, font, 'SELECT LEVEL', WORLD_HEIGHT * 0.70, 2, DIM);
+    _drawCenteredText(batch, font, 'SELECT LEVEL', worldHeight * 0.70, 2, dim);
 
     for (int i = 0; i < optionRects.size; i++) {
       final Rectangle rect = optionRects.get(i);
       final bool selected = i == selectedIndex;
       final String prefix = selected && cursorVisible ? '> ' : '  ';
-      final ui.Color textColor = selected ? PRIMARY : UNSELECTED_TEXT;
+      final ui.Color textColor = selected ? primary : unselectedText;
       _drawCenteredTextInRect(
         batch,
         font,
@@ -176,7 +176,7 @@ class MenuScreen extends ScreenAdapter {
       'ARROWS/W,S: MOVE   ENTER/SPACE: PLAY   MOUSE: CLICK',
       36,
       1.1,
-      FOOTER,
+      footer,
     );
   }
 
@@ -191,7 +191,7 @@ class MenuScreen extends ScreenAdapter {
     font.getData().setScale(scale);
     font.setColor(color);
     layout.setText(font, text);
-    final double x = (WORLD_WIDTH - layout.width) * 0.5;
+    final double x = (worldWidth - layout.width) * 0.5;
     font.draw(batch, layout, x, _toScreenY(y));
     font.getData().setScale(1);
   }
@@ -240,11 +240,11 @@ class MenuScreen extends ScreenAdapter {
   void _rebuildOptionRects() {
     optionRects.clear();
 
-    final double width = clampDouble(WORLD_WIDTH * 0.46, 220, 420);
+    final double width = clampDouble(worldWidth * 0.46, 220, 420);
     const double buttonHeight = 60;
     const double spacing = 18;
-    final double startY = WORLD_HEIGHT * 0.55;
-    final double centerX = WORLD_WIDTH * 0.5;
+    final double startY = worldHeight * 0.55;
+    final double centerX = worldWidth * 0.5;
 
     for (int i = 0; i < math.max(1, options.size); i++) {
       final double centerY = startY - i * (buttonHeight + spacing);
@@ -260,11 +260,11 @@ class MenuScreen extends ScreenAdapter {
   }
 
   double _toScreenY(double yUp) {
-    return WORLD_HEIGHT - yUp;
+    return worldHeight - yUp;
   }
 
   double _toScreenRectY(double rectYUp, double height) {
-    return WORLD_HEIGHT - rectYUp - height;
+    return worldHeight - rectYUp - height;
   }
 
   @override

@@ -54,8 +54,8 @@ class Graphics {
 }
 
 class Input {
-  static final _KeysData Keys = _KeysData();
-  static final _ButtonsData Buttons = _ButtonsData();
+  static final KeysData keys = KeysData();
+  static final ButtonsData buttons = ButtonsData();
 
   final InputState _state = InputState();
 
@@ -93,78 +93,82 @@ class Input {
     _state.endFrame();
   }
 
-  void setInputProcessor(Object? _processor) {}
+  void setInputProcessor(Object? processor) {
+    if (processor == null) {
+      return;
+    }
+  }
 }
 
-class _KeysData {
-  final int UP = 19;
-  final int DOWN = 20;
-  final int LEFT = 21;
-  final int RIGHT = 22;
-  final int W = 51;
-  final int A = 29;
-  final int S = 47;
-  final int D = 32;
-  final int ENTER = 66;
-  final int SPACE = 62;
-  final int ESCAPE = 111;
-  final int F3 = 292;
-  final int SHIFT_LEFT = 59;
-  final int SHIFT_RIGHT = 60;
-  final int R = 46;
+class KeysData {
+  final int up = 19;
+  final int down = 20;
+  final int left = 21;
+  final int right = 22;
+  final int w = 51;
+  final int a = 29;
+  final int s = 47;
+  final int d = 32;
+  final int enter = 66;
+  final int space = 62;
+  final int escape = 111;
+  final int f3 = 292;
+  final int shiftLeft = 59;
+  final int shiftRight = 60;
+  final int r = 46;
 }
 
-class _ButtonsData {
-  final int LEFT = 0;
+class ButtonsData {
+  final int left = 0;
 }
 
 int? logicalKeyToGdxKey(LogicalKeyboardKey key) {
   if (key == LogicalKeyboardKey.arrowUp) {
-    return Input.Keys.UP;
+    return Input.keys.up;
   }
   if (key == LogicalKeyboardKey.arrowDown) {
-    return Input.Keys.DOWN;
+    return Input.keys.down;
   }
   if (key == LogicalKeyboardKey.arrowLeft) {
-    return Input.Keys.LEFT;
+    return Input.keys.left;
   }
   if (key == LogicalKeyboardKey.arrowRight) {
-    return Input.Keys.RIGHT;
+    return Input.keys.right;
   }
   if (key == LogicalKeyboardKey.escape) {
-    return Input.Keys.ESCAPE;
+    return Input.keys.escape;
   }
   if (key == LogicalKeyboardKey.enter ||
       key == LogicalKeyboardKey.numpadEnter) {
-    return Input.Keys.ENTER;
+    return Input.keys.enter;
   }
   if (key == LogicalKeyboardKey.space) {
-    return Input.Keys.SPACE;
+    return Input.keys.space;
   }
   if (key == LogicalKeyboardKey.f3) {
-    return Input.Keys.F3;
+    return Input.keys.f3;
   }
   if (key == LogicalKeyboardKey.shiftLeft) {
-    return Input.Keys.SHIFT_LEFT;
+    return Input.keys.shiftLeft;
   }
   if (key == LogicalKeyboardKey.shiftRight) {
-    return Input.Keys.SHIFT_RIGHT;
+    return Input.keys.shiftRight;
   }
 
   if (key == LogicalKeyboardKey.keyW) {
-    return Input.Keys.W;
+    return Input.keys.w;
   }
   if (key == LogicalKeyboardKey.keyA) {
-    return Input.Keys.A;
+    return Input.keys.a;
   }
   if (key == LogicalKeyboardKey.keyS) {
-    return Input.Keys.S;
+    return Input.keys.s;
   }
   if (key == LogicalKeyboardKey.keyD) {
-    return Input.Keys.D;
+    return Input.keys.d;
   }
   if (key == LogicalKeyboardKey.keyR) {
-    return Input.Keys.R;
+    return Input.keys.r;
   }
   return null;
 }

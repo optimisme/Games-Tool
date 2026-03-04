@@ -55,7 +55,11 @@ class SpriteBatch {
     _inBatch = false;
   }
 
-  void setProjectionMatrix(Object? _matrix) {}
+  void setProjectionMatrix(Object? matrix) {
+    if (matrix == null) {
+      return;
+    }
+  }
 
   void drawRegion(
     Texture texture,
@@ -96,7 +100,11 @@ class ShapeRenderer {
   ui.Color _color = const ui.Color(0xFFFFFFFF);
   bool _begun = false;
 
-  void setProjectionMatrix(Object? _matrix) {}
+  void setProjectionMatrix(Object? matrix) {
+    if (matrix == null) {
+      return;
+    }
+  }
 
   void begin(ShapeType type) {
     _type = type;
@@ -142,7 +150,10 @@ class ShapeRenderer {
     );
   }
 
-  void circle(double x, double y, double radius, [int _segments = 12]) {
+  void circle(double x, double y, double radius, [int segments = 12]) {
+    if (segments <= 0) {
+      segments = 12;
+    }
     if (!_begun) {
       return;
     }
@@ -177,7 +188,10 @@ class BitmapFont {
     _color = color;
   }
 
-  void draw(SpriteBatch _batch, GlyphLayout layout, double x, double y) {
+  void draw(SpriteBatch batch, GlyphLayout layout, double x, double y) {
+    if (!batch._inBatch) {
+      return;
+    }
     _drawText(layout.text, x, y);
   }
 
@@ -256,7 +270,7 @@ class MathUtils {
 }
 
 class GL20 {
-  static const int GL_COLOR_BUFFER_BIT = 0x4000;
+  static const int glColorBufferBit = 0x4000;
 }
 
 class TextureRegion {

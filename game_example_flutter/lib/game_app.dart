@@ -21,7 +21,7 @@ class GameApp extends Game {
       ObjectMap<String, String>();
   final ObjectMap<String, Array<String>> animationMediaByGroup =
       ObjectMap<String, Array<String>>();
-  final Array<_AnimationMediaEntry> animationMediaEntries =
+  final Array<_AnimationMediaEntry> _animationMediaEntries =
       Array<_AnimationMediaEntry>();
 
   SpriteBatch? batch;
@@ -96,7 +96,7 @@ class GameApp extends Game {
     animationMediaById.clear();
     animationGroupById.clear();
     animationMediaByGroup.clear();
-    animationMediaEntries.clear();
+    _animationMediaEntries.clear();
 
     try {
       final String gameDataRaw = await rootBundle.loadString(
@@ -189,7 +189,7 @@ class GameApp extends Game {
           }
         }
 
-        animationMediaEntries.add(
+        _animationMediaEntries.add(
           _AnimationMediaEntry(_normalize(name ?? ''), mediaFile),
         );
       }
@@ -243,11 +243,12 @@ class GameApp extends Game {
       }
     }
 
-    if (spriteTokens.size <= 0 || animationMediaEntries.size <= 0) {
+    if (spriteTokens.size <= 0 || _animationMediaEntries.size <= 0) {
       return;
     }
 
-    for (final _AnimationMediaEntry entry in animationMediaEntries.iterable()) {
+    for (final _AnimationMediaEntry entry
+        in _animationMediaEntries.iterable()) {
       if (entry.normalizedName.isEmpty) {
         continue;
       }

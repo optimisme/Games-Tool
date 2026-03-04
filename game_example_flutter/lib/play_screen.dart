@@ -19,34 +19,34 @@ import 'runtime_transform.dart';
 import 'port_libdgx/viewport.dart';
 
 class PlayScreen extends ScreenAdapter {
-  static const double DEFAULT_ANIMATION_FPS = 8;
-  static const double FIXED_STEP_SECONDS = 1 / 120;
-  static const double MAX_FRAME_SECONDS = 0.25;
-  static const double HUD_MARGIN = 14;
-  static const String HUD_BACK_LABEL = 'Tornar';
-  static const double HUD_BUTTON_HEIGHT = 48;
-  static const double HUD_ICON_SIZE = 26;
-  static const double HUD_ICON_TEXT_GAP = 8;
-  static const double HUD_BACK_LABEL_SCALE = 1.45;
-  static const double HUD_COUNTER_SCALE = 1.45;
-  static const double HUD_LIFE_TEXT_SCALE = 1.2;
-  static const double HUD_LIFE_BAR_WIDTH = 210;
-  static const double HUD_LIFE_BAR_HEIGHT = 14;
-  static const double HUD_LIFE_BAR_TOP_GAP = 8;
-  static const double HUD_ROW_GAP = 10;
-  static const double END_OVERLAY_RETURN_DELAY_SECONDS = 1;
-  static const double END_OVERLAY_TITLE_SCALE = 2.4;
-  static const double END_OVERLAY_PROMPT_SCALE = 1.25;
-  static const double END_OVERLAY_PROMPT_GAP = 44;
-  static const double CAMERA_DEAD_ZONE_FRACTION_X = 0.22;
-  static const double CAMERA_DEAD_ZONE_FRACTION_Y = 0.18;
-  static const double CAMERA_FOLLOW_SMOOTHNESS_PER_SECOND = 10;
+  static const double defaultAnimationFps = 8;
+  static const double fixedStepSeconds = 1 / 120;
+  static const double maxFrameSeconds = 0.25;
+  static const double hudMargin = 14;
+  static const String hudBackLabel = 'Tornar';
+  static const double hudButtonHeight = 48;
+  static const double hudIconSize = 26;
+  static const double hudIconTextGap = 8;
+  static const double hudBackLabelScale = 1.45;
+  static const double hudCounterScale = 1.45;
+  static const double hudLifeTextScale = 1.2;
+  static const double hudLifeBarWidth = 210;
+  static const double hudLifeBarHeight = 14;
+  static const double hudLifeBarTopGap = 8;
+  static const double hudRowGap = 10;
+  static const double endOverlayReturnDelaySeconds = 1;
+  static const double endOverlayTitleScale = 2.4;
+  static const double endOverlayPromptScale = 1.25;
+  static const double endOverlayPromptGap = 44;
+  static const double cameraDeadZoneFractionX = 0.22;
+  static const double cameraDeadZoneFractionY = 0.18;
+  static const double cameraFollowSmoothnessPerSecond = 10;
 
-  static final ui.Color HUD_TEXT_COLOR = colorValueOf('FFFFFF');
-  static final ui.Color HUD_LIFE_BAR_BG = colorValueOf('5B0D0D');
-  static final ui.Color HUD_LIFE_BAR_FILL = colorValueOf('3DE67D');
-  static final ui.Color HUD_LIFE_BAR_BORDER = colorValueOf('E8FFE8');
-  static final ui.Color END_OVERLAY_DIM = colorValueOf('000000A8');
+  static final ui.Color hudTextColor = colorValueOf('FFFFFF');
+  static final ui.Color hudLifeBarBg = colorValueOf('5B0D0D');
+  static final ui.Color hudLifeBarFill = colorValueOf('3DE67D');
+  static final ui.Color hudLifeBarBorder = colorValueOf('E8FFE8');
+  static final ui.Color endOverlayDim = colorValueOf('000000A8');
 
   final GameApp game;
   final int levelIndex;
@@ -62,7 +62,7 @@ class PlayScreen extends ScreenAdapter {
   final Array<RuntimeTransform> zoneRuntimeStates = Array<RuntimeTransform>();
   final Array<RuntimeTransform> zonePreviousRuntimeStates =
       Array<RuntimeTransform>();
-  final Array<_PathBindingRuntime> pathBindingRuntimes =
+  final Array<_PathBindingRuntime> _pathBindingRuntimes =
       Array<_PathBindingRuntime>();
   final FloatArray spriteAnimationElapsed = FloatArray();
   final IntArray spriteTotalFrames = IntArray();
@@ -76,8 +76,8 @@ class PlayScreen extends ScreenAdapter {
   final GlyphLayout hudLayout = GlyphLayout();
   Texture? backIconTexture;
 
-  _DebugOverlayMode debugOverlayMode = _DebugOverlayMode.NONE;
-  _EndOverlayState endOverlayState = _EndOverlayState.NONE;
+  _DebugOverlayMode _debugOverlayMode = _DebugOverlayMode.none;
+  _EndOverlayState _endOverlayState = _EndOverlayState.none;
   double endOverlayElapsedSeconds = 0;
   double fixedStepAccumulator = 0;
   double pathMotionTimeSeconds = 0;
@@ -112,7 +112,7 @@ class PlayScreen extends ScreenAdapter {
 
   @override
   void render(double delta) {
-    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+    if (Gdx.input.isKeyJustPressed(Input.keys.escape)) {
       _returnToMenu();
       return;
     }
@@ -155,10 +155,10 @@ class PlayScreen extends ScreenAdapter {
     debugOverlayRenderer.render(
       levelData,
       camera,
-      debugOverlayMode == _DebugOverlayMode.ZONES ||
-          debugOverlayMode == _DebugOverlayMode.BOTH,
-      debugOverlayMode == _DebugOverlayMode.PATHS ||
-          debugOverlayMode == _DebugOverlayMode.BOTH,
+      _debugOverlayMode == _DebugOverlayMode.zones ||
+          _debugOverlayMode == _DebugOverlayMode.both,
+      _debugOverlayMode == _DebugOverlayMode.paths ||
+          _debugOverlayMode == _DebugOverlayMode.both,
       zoneRuntimeStates,
       viewport,
     );
@@ -183,16 +183,16 @@ class PlayScreen extends ScreenAdapter {
   void _stepSimulation(double deltaSeconds) {
     final double clampedDelta = math.max(
       0,
-      math.min(MAX_FRAME_SECONDS, deltaSeconds),
+      math.min(maxFrameSeconds, deltaSeconds),
     );
     fixedStepAccumulator += clampedDelta;
 
-    while (fixedStepAccumulator >= FIXED_STEP_SECONDS) {
+    while (fixedStepAccumulator >= fixedStepSeconds) {
       _snapshotPreviousZoneTransforms();
-      _advancePathBindings(FIXED_STEP_SECONDS);
-      gameplayController.fixedUpdate(FIXED_STEP_SECONDS);
-      _updateAnimations(FIXED_STEP_SECONDS);
-      fixedStepAccumulator -= FIXED_STEP_SECONDS;
+      _advancePathBindings(fixedStepSeconds);
+      gameplayController.fixedUpdate(fixedStepSeconds);
+      _updateAnimations(fixedStepSeconds);
+      fixedStepAccumulator -= fixedStepSeconds;
     }
   }
 
@@ -252,7 +252,7 @@ class PlayScreen extends ScreenAdapter {
   }
 
   void _initializePathBindingRuntimes() {
-    pathBindingRuntimes.clear();
+    _pathBindingRuntimes.clear();
     if (levelData.pathBindings.size <= 0 || levelData.paths.size <= 0) {
       return;
     }
@@ -292,7 +292,7 @@ class PlayScreen extends ScreenAdapter {
         );
         initialX = target.x;
         initialY = target.y;
-        pathBindingRuntimes.add(
+        _pathBindingRuntimes.add(
           _PathBindingRuntime(path, binding, initialX, initialY),
         );
       } else if (binding.targetType == 'zone') {
@@ -305,7 +305,7 @@ class PlayScreen extends ScreenAdapter {
         );
         initialX = target.x;
         initialY = target.y;
-        pathBindingRuntimes.add(
+        _pathBindingRuntimes.add(
           _PathBindingRuntime(path, binding, initialX, initialY),
         );
       } else if (binding.targetType == 'sprite') {
@@ -318,7 +318,7 @@ class PlayScreen extends ScreenAdapter {
         );
         initialX = target.worldX;
         initialY = target.worldY;
-        pathBindingRuntimes.add(
+        _pathBindingRuntimes.add(
           _PathBindingRuntime(path, binding, initialX, initialY),
         );
       }
@@ -339,12 +339,12 @@ class PlayScreen extends ScreenAdapter {
   }
 
   void _advancePathBindings(double delta) {
-    if (pathBindingRuntimes.size <= 0) {
+    if (_pathBindingRuntimes.size <= 0) {
       return;
     }
 
     pathMotionTimeSeconds += delta;
-    for (final _PathBindingRuntime runtime in pathBindingRuntimes.iterable()) {
+    for (final _PathBindingRuntime runtime in _pathBindingRuntimes.iterable()) {
       if (!runtime.binding.enabled) {
         continue;
       }
@@ -489,7 +489,7 @@ class PlayScreen extends ScreenAdapter {
       final int span = math.max(1, end - start + 1);
       final double fps = clip.fps.isFinite && clip.fps > 0
           ? clip.fps
-          : DEFAULT_ANIMATION_FPS;
+          : defaultAnimationFps;
       final int ticks = (elapsed * fps).floor();
       final int offset = clip.loop
           ? _positiveMod(ticks, span)
@@ -517,9 +517,9 @@ class PlayScreen extends ScreenAdapter {
     final double hudWidth = Gdx.graphics.getWidth().toDouble();
 
     batch.begin();
-    font.getData().setScale(HUD_BACK_LABEL_SCALE);
-    font.setColor(HUD_TEXT_COLOR);
-    double backTextX = HUD_MARGIN;
+    font.getData().setScale(hudBackLabelScale);
+    font.setColor(hudTextColor);
+    double backTextX = hudMargin;
     if (backIconTexture != null) {
       final ui.Rect iconSrc = ui.Rect.fromLTWH(
         0,
@@ -528,19 +528,15 @@ class PlayScreen extends ScreenAdapter {
         backIconTexture!.height.toDouble(),
       );
       final ui.Rect iconDst = ui.Rect.fromLTWH(
-        HUD_MARGIN,
-        HUD_MARGIN + (HUD_BUTTON_HEIGHT - HUD_ICON_SIZE) * 0.5,
-        HUD_ICON_SIZE,
-        HUD_ICON_SIZE,
+        hudMargin,
+        hudMargin + (hudButtonHeight - hudIconSize) * 0.5,
+        hudIconSize,
+        hudIconSize,
       );
       batch.drawRegion(backIconTexture!, iconSrc, iconDst);
-      backTextX = HUD_MARGIN + HUD_ICON_SIZE + HUD_ICON_TEXT_GAP;
+      backTextX = hudMargin + hudIconSize + hudIconTextGap;
     }
-    font.drawText(
-      HUD_BACK_LABEL,
-      backTextX,
-      HUD_MARGIN + HUD_BUTTON_HEIGHT * 0.72,
-    );
+    font.drawText(hudBackLabel, backTextX, hudMargin + hudButtonHeight * 0.72);
     font.getData().setScale(1);
 
     final GameplayController gc = gameplayController;
@@ -557,20 +553,20 @@ class PlayScreen extends ScreenAdapter {
       lifePercent = clampDouble(gc.getLifePercent(), 0, 100);
     }
 
-    font.setColor(HUD_TEXT_COLOR);
-    final double rightEdgeX = hudWidth - HUD_MARGIN;
-    final double topTextY = HUD_MARGIN + HUD_BUTTON_HEIGHT * 0.72;
+    font.setColor(hudTextColor);
+    final double rightEdgeX = hudWidth - hudMargin;
+    final double topTextY = hudMargin + hudButtonHeight * 0.72;
     double gemsTextX = 0;
     double gemsTextY = topTextY;
     double gemsTextHeight = 0;
     double lifeTextX = 0;
     double lifeTextY = topTextY;
     final String lifeText = 'Life ${lifePercent.round()}%';
-    final double lifeBarX = rightEdgeX - HUD_LIFE_BAR_WIDTH;
+    final double lifeBarX = rightEdgeX - hudLifeBarWidth;
     double lifeBarY = 0;
 
     if (topRightLabel != null) {
-      font.getData().setScale(HUD_COUNTER_SCALE);
+      font.getData().setScale(hudCounterScale);
       hudLayout.setText(font, topRightLabel);
       gemsTextX = rightEdgeX - hudLayout.width;
       gemsTextHeight = hudLayout.height;
@@ -578,13 +574,12 @@ class PlayScreen extends ScreenAdapter {
     }
 
     if (showLifeBar) {
-      font.getData().setScale(HUD_LIFE_TEXT_SCALE);
+      font.getData().setScale(hudLifeTextScale);
       hudLayout.setText(font, lifeText);
       lifeTextX = rightEdgeX - hudLayout.width;
-      lifeBarY = lifeTextY + HUD_LIFE_BAR_TOP_GAP;
+      lifeBarY = lifeTextY + hudLifeBarTopGap;
       if (topRightLabel != null) {
-        gemsTextY =
-            lifeBarY + HUD_LIFE_BAR_HEIGHT + HUD_ROW_GAP + gemsTextHeight;
+        gemsTextY = lifeBarY + hudLifeBarHeight + hudRowGap + gemsTextHeight;
       }
       font.getData().setScale(1);
     }
@@ -593,34 +588,34 @@ class PlayScreen extends ScreenAdapter {
       batch.end();
 
       shapes.begin(ShapeType.filled);
-      shapes.setColor(HUD_LIFE_BAR_BG);
-      shapes.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
-      shapes.setColor(HUD_LIFE_BAR_FILL);
+      shapes.setColor(hudLifeBarBg);
+      shapes.rect(lifeBarX, lifeBarY, hudLifeBarWidth, hudLifeBarHeight);
+      shapes.setColor(hudLifeBarFill);
       shapes.rect(
         lifeBarX,
         lifeBarY,
-        HUD_LIFE_BAR_WIDTH * (lifePercent / 100),
-        HUD_LIFE_BAR_HEIGHT,
+        hudLifeBarWidth * (lifePercent / 100),
+        hudLifeBarHeight,
       );
       shapes.end();
 
       shapes.begin(ShapeType.line);
-      shapes.setColor(HUD_LIFE_BAR_BORDER);
-      shapes.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
+      shapes.setColor(hudLifeBarBorder);
+      shapes.rect(lifeBarX, lifeBarY, hudLifeBarWidth, hudLifeBarHeight);
       shapes.end();
 
       batch.begin();
     }
 
     if (topRightLabel != null) {
-      font.getData().setScale(HUD_COUNTER_SCALE);
+      font.getData().setScale(hudCounterScale);
       hudLayout.setText(font, topRightLabel);
       font.drawText(topRightLabel, gemsTextX, gemsTextY);
       font.getData().setScale(1);
     }
 
     if (showLifeBar) {
-      font.getData().setScale(HUD_LIFE_TEXT_SCALE);
+      font.getData().setScale(hudLifeTextScale);
       hudLayout.setText(font, lifeText);
       font.drawText(lifeText, lifeTextX, lifeTextY);
       font.getData().setScale(1);
@@ -648,7 +643,7 @@ class PlayScreen extends ScreenAdapter {
     final BitmapFont font = game.getFont();
 
     shapes.begin(ShapeType.filled);
-    shapes.setColor(END_OVERLAY_DIM);
+    shapes.setColor(endOverlayDim);
     shapes.rect(
       0,
       0,
@@ -663,17 +658,17 @@ class PlayScreen extends ScreenAdapter {
       font,
       _endOverlayTitle(),
       Gdx.graphics.getHeight() * 0.45,
-      END_OVERLAY_TITLE_SCALE,
-      HUD_TEXT_COLOR,
+      endOverlayTitleScale,
+      hudTextColor,
     );
-    if (endOverlayElapsedSeconds >= END_OVERLAY_RETURN_DELAY_SECONDS) {
+    if (endOverlayElapsedSeconds >= endOverlayReturnDelaySeconds) {
       _drawCenteredText(
         batch,
         font,
         _endOverlayPrompt(),
-        Gdx.graphics.getHeight() * 0.45 + END_OVERLAY_PROMPT_GAP,
-        END_OVERLAY_PROMPT_SCALE,
-        HUD_TEXT_COLOR,
+        Gdx.graphics.getHeight() * 0.45 + endOverlayPromptGap,
+        endOverlayPromptScale,
+        hudTextColor,
       );
     }
     batch.end();
@@ -710,17 +705,17 @@ class PlayScreen extends ScreenAdapter {
 
   void _updateBackButtonBounds() {
     final BitmapFont font = game.getFont();
-    font.getData().setScale(HUD_BACK_LABEL_SCALE);
-    hudLayout.setText(font, HUD_BACK_LABEL);
+    font.getData().setScale(hudBackLabelScale);
+    hudLayout.setText(font, hudBackLabel);
     font.getData().setScale(1);
     final double iconWidth = backIconTexture != null
-        ? HUD_ICON_SIZE + HUD_ICON_TEXT_GAP
+        ? hudIconSize + hudIconTextGap
         : 0;
     backButtonBounds.set(
-      HUD_MARGIN,
-      HUD_MARGIN,
+      hudMargin,
+      hudMargin,
       iconWidth + hudLayout.width + 16,
-      HUD_BUTTON_HEIGHT,
+      hudButtonHeight,
     );
   }
 
@@ -732,13 +727,13 @@ class PlayScreen extends ScreenAdapter {
     final GameplayController gc = gameplayController;
     if (gc is GameplayControllerTopDown) {
       if (gc.isWin()) {
-        endOverlayState = _EndOverlayState.LEVEL0_WIN;
+        _endOverlayState = _EndOverlayState.level0Win;
       }
     } else if (gc is GameplayControllerPlatformer) {
       if (gc.isGameOver()) {
-        endOverlayState = _EndOverlayState.LEVEL1_LOSE;
+        _endOverlayState = _EndOverlayState.level1Lose;
       } else if (gc.isWin()) {
-        endOverlayState = _EndOverlayState.LEVEL1_WIN;
+        _endOverlayState = _EndOverlayState.level1Win;
       }
     }
 
@@ -748,12 +743,12 @@ class PlayScreen extends ScreenAdapter {
   }
 
   bool _isEndOverlayActive() {
-    return endOverlayState != _EndOverlayState.NONE;
+    return _endOverlayState != _EndOverlayState.none;
   }
 
   void _updateEndOverlay(double delta) {
     endOverlayElapsedSeconds += math.max(0, delta);
-    if (endOverlayElapsedSeconds < END_OVERLAY_RETURN_DELAY_SECONDS) {
+    if (endOverlayElapsedSeconds < endOverlayReturnDelaySeconds) {
       return;
     }
 
@@ -764,17 +759,17 @@ class PlayScreen extends ScreenAdapter {
 
   bool _isAnyKeyJustPressed() {
     final List<int> keys = <int>[
-      Input.Keys.ENTER,
-      Input.Keys.SPACE,
-      Input.Keys.ESCAPE,
-      Input.Keys.UP,
-      Input.Keys.DOWN,
-      Input.Keys.LEFT,
-      Input.Keys.RIGHT,
-      Input.Keys.W,
-      Input.Keys.A,
-      Input.Keys.S,
-      Input.Keys.D,
+      Input.keys.enter,
+      Input.keys.space,
+      Input.keys.escape,
+      Input.keys.up,
+      Input.keys.down,
+      Input.keys.left,
+      Input.keys.right,
+      Input.keys.w,
+      Input.keys.a,
+      Input.keys.s,
+      Input.keys.d,
     ];
     for (final int key in keys) {
       if (Gdx.input.isKeyJustPressed(key)) {
@@ -785,44 +780,44 @@ class PlayScreen extends ScreenAdapter {
   }
 
   String _endOverlayTitle() {
-    switch (endOverlayState) {
-      case _EndOverlayState.LEVEL0_WIN:
+    switch (_endOverlayState) {
+      case _EndOverlayState.level0Win:
         return 'Has Guanyat';
-      case _EndOverlayState.LEVEL1_LOSE:
+      case _EndOverlayState.level1Lose:
         return 'You Lose';
-      case _EndOverlayState.LEVEL1_WIN:
+      case _EndOverlayState.level1Win:
         return 'You Win';
-      case _EndOverlayState.NONE:
+      case _EndOverlayState.none:
         return '';
     }
   }
 
   String _endOverlayPrompt() {
-    if (endOverlayState == _EndOverlayState.LEVEL0_WIN) {
+    if (_endOverlayState == _EndOverlayState.level0Win) {
       return 'Apreta qualsevol tecla per tornar';
     }
     return 'Press any key to return to main menu';
   }
 
   void _handleDebugOverlayInput() {
-    if (!Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
+    if (!Gdx.input.isKeyJustPressed(Input.keys.f3)) {
       return;
     }
 
     final bool shiftPressed =
-        Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) ||
-        Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+        Gdx.input.isKeyPressed(Input.keys.shiftLeft) ||
+        Gdx.input.isKeyPressed(Input.keys.shiftRight);
     if (shiftPressed) {
-      debugOverlayMode = _nextDebugOverlayMode(debugOverlayMode);
+      _debugOverlayMode = _nextDebugOverlayMode(_debugOverlayMode);
     } else {
-      debugOverlayMode = debugOverlayMode == _DebugOverlayMode.NONE
-          ? _DebugOverlayMode.BOTH
-          : _DebugOverlayMode.NONE;
+      _debugOverlayMode = _debugOverlayMode == _DebugOverlayMode.none
+          ? _DebugOverlayMode.both
+          : _DebugOverlayMode.none;
     }
 
     Gdx.app.log(
       'PlayScreen',
-      'Debug overlay: ${debugOverlayMode.name.toLowerCase()}',
+      'Debug overlay: ${_debugOverlayMode.name.toLowerCase()}',
     );
   }
 
@@ -856,8 +851,8 @@ class PlayScreen extends ScreenAdapter {
     final double currentCenterX = camera.x;
     final double currentCenterY = camera.y;
 
-    final double deadZoneHalfW = viewW * CAMERA_DEAD_ZONE_FRACTION_X * 0.5;
-    final double deadZoneHalfH = viewH * CAMERA_DEAD_ZONE_FRACTION_Y * 0.5;
+    final double deadZoneHalfW = viewW * cameraDeadZoneFractionX * 0.5;
+    final double deadZoneHalfH = viewH * cameraDeadZoneFractionY * 0.5;
 
     double targetCenterX = currentCenterX;
     if (playerX < currentCenterX - deadZoneHalfW) {
@@ -879,10 +874,10 @@ class PlayScreen extends ScreenAdapter {
     final double dt = clampDouble(
       Gdx.graphics.getDeltaTime(),
       0,
-      MAX_FRAME_SECONDS,
+      maxFrameSeconds,
     );
     final double followAlpha =
-        1 - math.exp(-CAMERA_FOLLOW_SMOOTHNESS_PER_SECOND * dt);
+        1 - math.exp(-cameraFollowSmoothnessPerSecond * dt);
 
     double centerX = MathUtils.lerp(currentCenterX, targetCenterX, followAlpha);
     double centerY = MathUtils.lerp(currentCenterY, targetCenterY, followAlpha);
@@ -962,14 +957,14 @@ class PlayScreen extends ScreenAdapter {
 
   _DebugOverlayMode _nextDebugOverlayMode(_DebugOverlayMode mode) {
     switch (mode) {
-      case _DebugOverlayMode.NONE:
-        return _DebugOverlayMode.ZONES;
-      case _DebugOverlayMode.ZONES:
-        return _DebugOverlayMode.PATHS;
-      case _DebugOverlayMode.PATHS:
-        return _DebugOverlayMode.BOTH;
-      case _DebugOverlayMode.BOTH:
-        return _DebugOverlayMode.NONE;
+      case _DebugOverlayMode.none:
+        return _DebugOverlayMode.zones;
+      case _DebugOverlayMode.zones:
+        return _DebugOverlayMode.paths;
+      case _DebugOverlayMode.paths:
+        return _DebugOverlayMode.both;
+      case _DebugOverlayMode.both:
+        return _DebugOverlayMode.none;
     }
   }
 
@@ -1076,6 +1071,6 @@ class _PathSample {
   _PathSample(this.x, this.y);
 }
 
-enum _DebugOverlayMode { NONE, ZONES, PATHS, BOTH }
+enum _DebugOverlayMode { none, zones, paths, both }
 
-enum _EndOverlayState { NONE, LEVEL0_WIN, LEVEL1_LOSE, LEVEL1_WIN }
+enum _EndOverlayState { none, level0Win, level1Lose, level1Win }
