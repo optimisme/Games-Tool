@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectSet;
 
-public final class TopDownGameplayController extends AbstractGameplayController {
+public final class GameplayControllerTopDown extends GameplayControllerBase {
 
     private static final float MOVE_SPEED_PER_SECOND = 95f;
     private static final float DIAGONAL_NORMALIZE = 0.70710677f;
@@ -26,7 +26,7 @@ public final class TopDownGameplayController extends AbstractGameplayController 
     private Direction direction = Direction.DOWN;
     private boolean moving = false;
 
-    public TopDownGameplayController(
+    public GameplayControllerTopDown(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
         boolean[] layerVisibilityStates,

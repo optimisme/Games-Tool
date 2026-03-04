@@ -518,7 +518,7 @@ public class PlayScreen extends ScreenAdapter {
     private GameplayController createGameplayController() {
         if (isPlatformerLevel(levelData)) {
             Gdx.app.log("PlayScreen", "Gameplay mode: platformer");
-            return new PlatformerGameplayController(
+            return new GameplayControllerPlatformer(
                 levelData,
                 spriteRuntimeStates,
                 layerVisibilityStates,
@@ -527,7 +527,7 @@ public class PlayScreen extends ScreenAdapter {
             );
         }
         Gdx.app.log("PlayScreen", "Gameplay mode: topdown");
-        return new TopDownGameplayController(
+        return new GameplayControllerTopDown(
             levelData,
             spriteRuntimeStates,
             layerVisibilityStates,

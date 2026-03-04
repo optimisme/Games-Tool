@@ -5,7 +5,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectMap;
 
-public abstract class AbstractGameplayController implements GameplayController {
+public abstract class GameplayControllerBase implements GameplayController {
 
     protected final LevelData levelData;
     protected final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates;
@@ -23,7 +23,7 @@ public abstract class AbstractGameplayController implements GameplayController {
     protected float playerX;
     protected float playerY;
 
-    protected AbstractGameplayController(
+    protected GameplayControllerBase(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
         boolean[] layerVisibilityStates,

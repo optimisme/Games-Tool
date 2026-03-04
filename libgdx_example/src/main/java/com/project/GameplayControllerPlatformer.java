@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.IntFloatMap;
 import com.badlogic.gdx.utils.IntSet;
 
-public final class PlatformerGameplayController extends AbstractGameplayController {
+public final class GameplayControllerPlatformer extends GameplayControllerBase {
 
     private static final float MOVE_SPEED_PER_SECOND = 150f;
     private static final float GRAVITY_PER_SECOND_SQ = 2088f;
@@ -47,7 +47,7 @@ public final class PlatformerGameplayController extends AbstractGameplayControll
     private boolean jumpQueued = false;
     private boolean facingRight = true;
 
-    public PlatformerGameplayController(
+    public GameplayControllerPlatformer(
         LevelData levelData,
         Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates,
         boolean[] layerVisibilityStates,
