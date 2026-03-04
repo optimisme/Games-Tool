@@ -3,10 +3,16 @@ package com.project;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
@@ -15,6 +21,7 @@ import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -23,11 +30,29 @@ public class PlayScreen extends ScreenAdapter {
     private static final float DEFAULT_ANIMATION_FPS = 8f;
     private static final float FIXED_STEP_SECONDS = 1f / 120f;
     private static final float MAX_FRAME_SECONDS = 0.25f;
+    private static final float HUD_MARGIN = 14f;
+    private static final float HUD_BUTTON_HEIGHT = 48f;
+    private static final float HUD_BUTTON_PADDING_X = 10f;
+    private static final float HUD_ICON_SIZE = 26f;
+    private static final float HUD_ICON_TEXT_GAP = 8f;
+    private static final float HUD_BACK_LABEL_SCALE = 1.45f;
+    private static final float HUD_COUNTER_SCALE = 1.45f;
+    private static final float HUD_LIFE_TEXT_SCALE = 1.2f;
+    private static final float HUD_LIFE_BAR_WIDTH = 210f;
+    private static final float HUD_LIFE_BAR_HEIGHT = 14f;
+    private static final float HUD_LIFE_BAR_TOP_GAP = 8f;
+    private static final float HUD_ROW_GAP = 10f;
+    private static final Color HUD_TEXT_COLOR = Color.valueOf("FFFFFF");
+    private static final Color HUD_LIFE_BAR_BG = Color.valueOf("5B0D0D");
+    private static final Color HUD_LIFE_BAR_FILL = Color.valueOf("3DE67D");
+    private static final Color HUD_LIFE_BAR_BORDER = Color.valueOf("E8FFE8");
 
     private final GameApp game;
     private final int levelIndex;
     private final OrthographicCamera camera = new OrthographicCamera();
     private final Viewport viewport;
+    private final OrthographicCamera hudCamera = new OrthographicCamera();
+    private final Viewport hudViewport = new ScreenViewport(hudCamera);
     private final LevelRenderer levelRenderer = new LevelRenderer();
     private final DebugOverlayRenderer debugOverlayRenderer = new DebugOverlayRenderer();
     private final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates = new Array<>();
@@ -44,6 +69,9 @@ public class PlayScreen extends ScreenAdapter {
     private final boolean[] layerVisibilityStates;
     private final GameplayController gameplayController;
     private final Vector2 samplePointCache = new Vector2();
+    private final Rectangle backButtonBounds = new Rectangle();
+    private final GlyphLayout hudLayout = new GlyphLayout();
+    private Texture backIconTexture;
 
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
     private float fixedStepAccumulator = 0f;
@@ -62,6 +90,8 @@ public class PlayScreen extends ScreenAdapter {
         initializeTransformRuntimeState();
         initializePathBindingRuntimes();
         this.gameplayController = createGameplayController();
+        hudViewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        loadHudAssets();
     }
 
     @Override
@@ -74,8 +104,12 @@ public class PlayScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.unloadReferencedAssetsForLevel(levelIndex);
-            game.setScreen(new MenuScreen(game));
+            returnToMenu();
+            return;
+        }
+
+        updateBackButtonBounds();
+        if (handleHudBackInput()) {
             return;
         }
 
@@ -107,17 +141,25 @@ public class PlayScreen extends ScreenAdapter {
             debugOverlayMode == DebugOverlayMode.PATHS || debugOverlayMode == DebugOverlayMode.BOTH,
             zoneRuntimeStates
         );
+
+        renderHud();
     }
 
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, false);
+        hudViewport.update(width, height, true);
+        updateBackButtonBounds();
         updateCameraForGameplay();
     }
 
     @Override
     public void dispose() {
         debugOverlayRenderer.dispose();
+        if (backIconTexture != null) {
+            backIconTexture.dispose();
+            backIconTexture = null;
+        }
     }
 
     private void stepSimulation(float deltaSeconds) {
@@ -462,6 +504,165 @@ public class PlayScreen extends ScreenAdapter {
     private String buildFrameCacheKey(String texturePath, int frameWidth, int frameHeight) {
         String safeTexturePath = texturePath == null ? "" : texturePath;
         return safeTexturePath + "#" + Math.max(1, frameWidth) + "x" + Math.max(1, frameHeight);
+    }
+
+    private void loadHudAssets() {
+        FileHandle backIconHandle = Gdx.files.internal("other/enrrere.png");
+        if (!backIconHandle.exists()) {
+            backIconTexture = null;
+            Gdx.app.log("PlayScreen", "HUD back icon not found at other/enrrere.png");
+            return;
+        }
+        backIconTexture = new Texture(backIconHandle);
+    }
+
+    private void updateBackButtonBounds() {
+        float hudHeight = hudViewport.getWorldHeight();
+        String backLabel = backLabelForLevel();
+        BitmapFont font = game.getFont();
+        font.getData().setScale(HUD_BACK_LABEL_SCALE);
+        hudLayout.setText(font, backLabel);
+        float contentWidth = hudLayout.width;
+        if (backIconTexture != null) {
+            contentWidth += HUD_ICON_SIZE + HUD_ICON_TEXT_GAP;
+        }
+        float buttonWidth = contentWidth + HUD_BUTTON_PADDING_X * 2f;
+        backButtonBounds.set(
+            HUD_MARGIN,
+            hudHeight - HUD_MARGIN - HUD_BUTTON_HEIGHT,
+            buttonWidth,
+            HUD_BUTTON_HEIGHT
+        );
+        font.getData().setScale(1f);
+    }
+
+    private boolean handleHudBackInput() {
+        if (!Gdx.input.justTouched()) {
+            return false;
+        }
+        float x = Gdx.input.getX();
+        float y = hudViewport.getScreenHeight() - Gdx.input.getY();
+        if (!backButtonBounds.contains(x, y)) {
+            return false;
+        }
+        returnToMenu();
+        return true;
+    }
+
+    private void returnToMenu() {
+        game.unloadReferencedAssetsForLevel(levelIndex);
+        game.setScreen(new MenuScreen(game));
+    }
+
+    private String backLabelForLevel() {
+        return levelIndex == 0 ? "Tornar" : "Back";
+    }
+
+    private void renderHud() {
+        hudViewport.apply();
+
+        float hudWidth = hudViewport.getWorldWidth();
+        float hudHeight = hudViewport.getWorldHeight();
+        String backLabel = backLabelForLevel();
+
+        String topRightLabel = null;
+        boolean showLifeBar = false;
+        float lifePercent = 0f;
+        if (levelIndex == 0 && gameplayController instanceof GameplayControllerTopDown) {
+            GameplayControllerTopDown topDownController = (GameplayControllerTopDown) gameplayController;
+            topRightLabel = "Arbres: "
+                + topDownController.getCollectedArbresCount()
+                + "/"
+                + topDownController.getTotalArbresCount();
+        } else if (levelIndex == 1 && gameplayController instanceof GameplayControllerPlatformer) {
+            GameplayControllerPlatformer platformerController = (GameplayControllerPlatformer) gameplayController;
+            topRightLabel = "Gems: "
+                + platformerController.getCollectedGemsCount()
+                + "/"
+                + platformerController.getTotalGemsCount();
+            showLifeBar = true;
+            lifePercent = MathUtils.clamp(platformerController.getLifePercent(), 0f, 100f);
+        }
+
+        BitmapFont font = game.getFont();
+        font.setColor(HUD_TEXT_COLOR);
+        float rightEdgeX = hudWidth - HUD_MARGIN;
+        float topTextY = hudHeight - HUD_MARGIN;
+        float gemsTextX = 0f;
+        float gemsTextY = topTextY;
+        float lifeTextX = 0f;
+        float lifeTextY = topTextY;
+        float lifeTextHeight = 0f;
+        String lifeText = "Life " + Math.round(lifePercent) + "%";
+        float lifeBarX = rightEdgeX - HUD_LIFE_BAR_WIDTH;
+        float lifeBarY = 0f;
+
+        if (topRightLabel != null) {
+            font.getData().setScale(HUD_COUNTER_SCALE);
+            hudLayout.setText(font, topRightLabel);
+            gemsTextX = rightEdgeX - hudLayout.width;
+            font.getData().setScale(1f);
+        }
+
+        if (showLifeBar) {
+            font.getData().setScale(HUD_LIFE_TEXT_SCALE);
+            hudLayout.setText(font, lifeText);
+            lifeTextX = rightEdgeX - hudLayout.width;
+            lifeTextHeight = hudLayout.height;
+            lifeBarY = lifeTextY - lifeTextHeight - HUD_LIFE_BAR_TOP_GAP - HUD_LIFE_BAR_HEIGHT;
+            if (topRightLabel != null) {
+                gemsTextY = lifeBarY - HUD_ROW_GAP;
+            }
+            font.getData().setScale(1f);
+        }
+
+        if (showLifeBar) {
+            ShapeRenderer shapeRenderer = game.getShapeRenderer();
+            shapeRenderer.setProjectionMatrix(hudCamera.combined);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(HUD_LIFE_BAR_BG);
+            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
+            shapeRenderer.setColor(HUD_LIFE_BAR_FILL);
+            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH * (lifePercent / 100f), HUD_LIFE_BAR_HEIGHT);
+            shapeRenderer.end();
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(HUD_LIFE_BAR_BORDER);
+            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
+            shapeRenderer.end();
+        }
+
+        SpriteBatch batch = game.getBatch();
+        batch.setProjectionMatrix(hudCamera.combined);
+        batch.begin();
+
+        font.getData().setScale(HUD_BACK_LABEL_SCALE);
+        hudLayout.setText(font, backLabel);
+        float backContentX = backButtonBounds.x + HUD_BUTTON_PADDING_X;
+        if (backIconTexture != null) {
+            float iconY = backButtonBounds.y + (backButtonBounds.height - HUD_ICON_SIZE) * 0.5f;
+            batch.draw(backIconTexture, backContentX, iconY, HUD_ICON_SIZE, HUD_ICON_SIZE);
+            backContentX += HUD_ICON_SIZE + HUD_ICON_TEXT_GAP;
+        }
+        float backTextY = backButtonBounds.y + (backButtonBounds.height + hudLayout.height) * 0.5f;
+        font.draw(batch, backLabel, backContentX, backTextY);
+
+        if (topRightLabel != null) {
+            font.getData().setScale(HUD_COUNTER_SCALE);
+            hudLayout.setText(font, topRightLabel);
+            font.draw(batch, topRightLabel, gemsTextX, gemsTextY);
+        }
+
+        if (showLifeBar) {
+            font.getData().setScale(HUD_LIFE_TEXT_SCALE);
+            hudLayout.setText(font, lifeText);
+            font.draw(batch, lifeText, lifeTextX, lifeTextY);
+        }
+
+        batch.end();
+
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
     }
 
     private void handleDebugOverlayInput() {

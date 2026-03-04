@@ -44,6 +44,14 @@ public final class GameplayControllerTopDown extends GameplayControllerBase {
         syncPlayerToSpriteRuntime();
     }
 
+    public int getCollectedArbresCount() {
+        return collectedArbreTileKeys.size;
+    }
+
+    public int getTotalArbresCount() {
+        return collectibleArbreTileKeys.size;
+    }
+
     @Override
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {

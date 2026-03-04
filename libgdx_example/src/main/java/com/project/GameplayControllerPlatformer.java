@@ -18,7 +18,7 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
     private static final float COLLISION_EPSILON = 1.2f;
     private static final float FLOOR_WALL_LIKE_RATIO = 1.2f;
     private static final float DRAGON_STOMP_MIN_FALL_SPEED = 25f;
-    private static final float DRAGON_DAMAGE_PERCENT = 25f;
+    private static final float DRAGON_DAMAGE_PERCENT = 20f;
     private static final float START_LIFE_PERCENT = 100f;
     private static final float DRAGON_DEATH_FALLBACK_DURATION_SECONDS = 0.7f;
     private static final String DRAGON_DEATH_ANIMATION_NAME = "Dragon Death";
@@ -62,6 +62,18 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
         onGround = isStandingOnFloor();
         updatePlayerAnimationSelection();
         syncPlayerToSpriteRuntime();
+    }
+
+    public int getCollectedGemsCount() {
+        return collectedGemSpriteIndices.size;
+    }
+
+    public int getTotalGemsCount() {
+        return gemSpriteIndices.size;
+    }
+
+    public float getLifePercent() {
+        return lifePercent;
     }
 
     @Override
