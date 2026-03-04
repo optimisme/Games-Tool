@@ -1,8 +1,8 @@
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'gameplay_controller.dart';
 import 'level_data.dart';
 import 'level_renderer.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/math_types.dart';
 import 'runtime_transform.dart';
 
 abstract class GameplayControllerBase implements GameplayController {

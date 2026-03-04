@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'port_libdgx/asset_manager.dart';
-import 'port_libdgx/game_framework.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/asset_manager.dart';
+import 'libgdx_compat/game_framework.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'level_data.dart';
 import 'runtime_transform.dart';
-import 'port_libdgx/viewport.dart';
+import 'libgdx_compat/viewport.dart';
 
 class LevelRenderer {
   static const double minDepthProjectionFactor = 0.25;

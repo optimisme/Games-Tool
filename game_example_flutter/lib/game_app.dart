@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
-import 'port_libdgx/asset_manager.dart';
-import 'port_libdgx/game_framework.dart';
-import 'port_libdgx/gdx.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/asset_manager.dart';
+import 'libgdx_compat/game_framework.dart';
+import 'libgdx_compat/gdx.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'menu_screen.dart';
 
 class GameApp extends Game {

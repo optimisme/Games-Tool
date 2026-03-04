@@ -1,8 +1,8 @@
-import 'port_libdgx/gdx.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/gdx.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'gameplay_controller_base.dart';
 import 'level_data.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/math_types.dart';
 
 class GameplayControllerTopDown extends GameplayControllerBase {
   static const double moveSpeedPerSecond = 95;

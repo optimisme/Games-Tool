@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
 import 'game_app.dart';
-import 'port_libdgx/gdx.dart';
+import 'libgdx_compat/gdx.dart';
 import 'level_loader.dart';
 import 'play_screen.dart';
 

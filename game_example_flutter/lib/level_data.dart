@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
-import 'port_libdgx/gdx_collections.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/gdx_collections.dart';
+import 'libgdx_compat/math_types.dart';
 
 class LevelData {
   final String name;
