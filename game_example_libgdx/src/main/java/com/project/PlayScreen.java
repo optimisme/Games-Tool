@@ -47,6 +47,9 @@ public class PlayScreen extends ScreenAdapter {
     private static final float END_OVERLAY_TITLE_SCALE = 2.4f;
     private static final float END_OVERLAY_PROMPT_SCALE = 1.25f;
     private static final float END_OVERLAY_PROMPT_GAP = 44f;
+    private static final float CAMERA_DEAD_ZONE_FRACTION_X = 0.22f;
+    private static final float CAMERA_DEAD_ZONE_FRACTION_Y = 0.18f;
+    private static final float CAMERA_FOLLOW_SMOOTHNESS_PER_SECOND = 10f;
     private static final Color HUD_TEXT_COLOR = Color.valueOf("FFFFFF");
     private static final Color HUD_LIFE_BAR_BG = Color.valueOf("5B0D0D");
     private static final Color HUD_LIFE_BAR_FILL = Color.valueOf("3DE67D");
@@ -847,8 +850,36 @@ public class PlayScreen extends ScreenAdapter {
         float minYDown = Math.min(halfH, worldH - halfH);
         float maxYDown = Math.max(halfH, worldH - halfH);
 
-        float centerX = MathUtils.clamp(gameplayController.getCameraTargetX(), minX, maxX);
-        float centerYDown = MathUtils.clamp(gameplayController.getCameraTargetY(), minYDown, maxYDown);
+        float playerX = gameplayController.getCameraTargetX();
+        float playerYDown = gameplayController.getCameraTargetY();
+        float currentCenterX = camera.position.x;
+        float currentCenterYDown = worldH - camera.position.y;
+        float deadZoneHalfW = viewW * CAMERA_DEAD_ZONE_FRACTION_X * 0.5f;
+        float deadZoneHalfH = viewH * CAMERA_DEAD_ZONE_FRACTION_Y * 0.5f;
+
+        float targetCenterX = currentCenterX;
+        if (playerX < currentCenterX - deadZoneHalfW) {
+            targetCenterX = playerX + deadZoneHalfW;
+        } else if (playerX > currentCenterX + deadZoneHalfW) {
+            targetCenterX = playerX - deadZoneHalfW;
+        }
+
+        float targetCenterYDown = currentCenterYDown;
+        if (playerYDown < currentCenterYDown - deadZoneHalfH) {
+            targetCenterYDown = playerYDown + deadZoneHalfH;
+        } else if (playerYDown > currentCenterYDown + deadZoneHalfH) {
+            targetCenterYDown = playerYDown - deadZoneHalfH;
+        }
+
+        targetCenterX = MathUtils.clamp(targetCenterX, minX, maxX);
+        targetCenterYDown = MathUtils.clamp(targetCenterYDown, minYDown, maxYDown);
+
+        float dt = Math.max(0f, Math.min(MAX_FRAME_SECONDS, Gdx.graphics.getDeltaTime()));
+        float followAlpha = 1f - (float) Math.exp(-CAMERA_FOLLOW_SMOOTHNESS_PER_SECOND * dt);
+        float centerX = MathUtils.lerp(currentCenterX, targetCenterX, followAlpha);
+        float centerYDown = MathUtils.lerp(currentCenterYDown, targetCenterYDown, followAlpha);
+        centerX = MathUtils.clamp(centerX, minX, maxX);
+        centerYDown = MathUtils.clamp(centerYDown, minYDown, maxYDown);
         float centerY = worldH - centerYDown;
         camera.position.set(centerX, centerY, 0f);
         camera.update();
