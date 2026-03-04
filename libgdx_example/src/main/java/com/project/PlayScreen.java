@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -744,10 +745,13 @@ public class PlayScreen extends ScreenAdapter {
 
         ShapeRenderer shapeRenderer = game.getShapeRenderer();
         shapeRenderer.setProjectionMatrix(hudCamera.combined);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(END_OVERLAY_DIM);
         shapeRenderer.rect(0f, 0f, hudWidth, hudHeight);
         shapeRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
 
         BitmapFont font = game.getFont();
         font.setColor(HUD_TEXT_COLOR);
