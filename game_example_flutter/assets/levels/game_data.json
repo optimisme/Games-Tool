@@ -1,0 +1,663 @@
+{
+  "name": "Demo game",
+  "description": "Tileset: https://merchant-shade.itch.io/16x16-puny-world\nCharacter: https://erisesra.itch.io/character-templates-pack\nLevel 1: https://ansimuz.itch.io/sunny-land-pixel-game-art",
+  "levels": [
+    {
+      "name": "El prat xampinyó",
+      "description": "",
+      "gameplayData": "",
+      "layers": [
+        {
+          "name": "Decoracions",
+          "gameplayData": "",
+          "x": 0,
+          "y": 0,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_000.json"
+        },
+        {
+          "name": "Pont Amagat",
+          "gameplayData": "",
+          "x": 656,
+          "y": 384,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": false,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_001.json"
+        },
+        {
+          "name": "Illa llac",
+          "gameplayData": "",
+          "x": 624,
+          "y": 352,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_002.json"
+        },
+        {
+          "name": "Terreny",
+          "gameplayData": "",
+          "x": 0,
+          "y": 0,
+          "depth": 0.0,
+          "tilesSheetFile": "media/punyworld-overworld-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_000_layer_003.json"
+        }
+      ],
+      "layerGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "sprites": [
+        {
+          "name": "Heroi",
+          "gameplayData": "",
+          "type": "Heroi",
+          "animationId": "anim_1772099194341380",
+          "x": 494,
+          "y": 296,
+          "width": 20,
+          "height": 20,
+          "imageFile": "media/16x16 Idle-Sheet.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__main__"
+        }
+      ],
+      "spriteGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "groupId": "__main__",
+      "viewportWidth": 320,
+      "viewportHeight": 180,
+      "viewportX": 280,
+      "viewportY": 175,
+      "viewportAdaptation": "expand",
+      "viewportInitialColor": "yellow",
+      "viewportPreviewColor": "pink",
+      "backgroundColorHex": "#000000",
+      "depthSensitivity": 0.08,
+      "zonesFile": "zones/level_000_zones.json",
+      "pathsFile": "paths/level_000_paths.json"
+    },
+    {
+      "name": "Foxy World",
+      "description": "",
+      "gameplayData": "",
+      "layers": [
+        {
+          "name": "Front Trees",
+          "gameplayData": "",
+          "x": 0,
+          "y": 450,
+          "depth": -0.5,
+          "tilesSheetFile": "media/decoration-trees.png",
+          "tilesWidth": 144,
+          "tilesHeight": 130,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_000.json"
+        },
+        {
+          "name": "Moving Platform",
+          "gameplayData": "",
+          "x": 597,
+          "y": 440,
+          "depth": 0.0,
+          "tilesSheetFile": "media/plaform-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_001.json"
+        },
+        {
+          "name": "Start Platform",
+          "gameplayData": "",
+          "x": 181,
+          "y": 362,
+          "depth": 0.0,
+          "tilesSheetFile": "media/plaform-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_002.json"
+        },
+        {
+          "name": "Floor",
+          "gameplayData": "",
+          "x": 0,
+          "y": 250,
+          "depth": 0.0,
+          "tilesSheetFile": "media/plaform-tileset.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_003.json"
+        },
+        {
+          "name": "Back Clouds 0",
+          "gameplayData": "",
+          "x": 85,
+          "y": 332,
+          "depth": 2.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_004.json"
+        },
+        {
+          "name": "Back Clouds 1",
+          "gameplayData": "",
+          "x": 600,
+          "y": 296,
+          "depth": 4.0,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_005.json"
+        },
+        {
+          "name": "Back Clouds 2",
+          "gameplayData": "",
+          "x": 1054,
+          "y": 330,
+          "depth": 2.5,
+          "tilesSheetFile": "media/decoration-clouds.png",
+          "tilesWidth": 459,
+          "tilesHeight": 142,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_006.json"
+        },
+        {
+          "name": "Back Sky",
+          "gameplayData": "",
+          "x": -75,
+          "y": 0,
+          "depth": 5.0,
+          "tilesSheetFile": "media/decoration-sky.png",
+          "tilesWidth": 16,
+          "tilesHeight": 16,
+          "visible": true,
+          "groupId": "__main__",
+          "tileMapFile": "tilemaps/level_001_layer_007.json"
+        }
+      ],
+      "layerGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        }
+      ],
+      "sprites": [
+        {
+          "name": "Foxy",
+          "gameplayData": "",
+          "type": "Foxy",
+          "animationId": "anim_1772439416290292",
+          "x": 210,
+          "y": 357,
+          "width": 32,
+          "height": 32,
+          "imageFile": "media/FoxySpritesheet.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__main__"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 88,
+          "y": 429,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 134,
+          "y": 429,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 172,
+          "y": 429,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 392,
+          "y": 429,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 437,
+          "y": 406,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 482,
+          "y": 407,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 797,
+          "y": 237,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 832,
+          "y": 259,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 858,
+          "y": 290,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 880,
+          "y": 326,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 862,
+          "y": 458,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 912,
+          "y": 459,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 1108,
+          "y": 458,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Gem",
+          "gameplayData": "",
+          "type": "Gem",
+          "animationId": "anim_1772440074459800",
+          "x": 1071,
+          "y": 458,
+          "width": 15,
+          "height": 14,
+          "imageFile": "media/gem.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445277804542_0"
+        },
+        {
+          "name": "Dragon",
+          "gameplayData": "",
+          "type": "Dragon",
+          "animationId": "anim_1772439605687385",
+          "x": 269,
+          "y": 416,
+          "width": 46,
+          "height": 49,
+          "imageFile": "media/gator-sheet.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445390454183_0"
+        },
+        {
+          "name": "Dragon",
+          "gameplayData": "Moving",
+          "type": "Dragon",
+          "animationId": "anim_1772439605687385",
+          "x": 551,
+          "y": 415,
+          "width": 46,
+          "height": 49,
+          "imageFile": "media/gator-sheet.png",
+          "flipX": false,
+          "flipY": false,
+          "depth": 0.0,
+          "groupId": "__group_1772445390454183_0"
+        }
+      ],
+      "spriteGroups": [
+        {
+          "id": "__main__",
+          "name": "Main",
+          "collapsed": false
+        },
+        {
+          "id": "__group_1772445277804542_0",
+          "name": "Gems",
+          "collapsed": false
+        },
+        {
+          "id": "__group_1772445390454183_0",
+          "name": "Dragons",
+          "collapsed": false
+        }
+      ],
+      "groupId": "__main__",
+      "viewportWidth": 320,
+      "viewportHeight": 180,
+      "viewportX": 23,
+      "viewportY": 289,
+      "viewportAdaptation": "letterbox",
+      "viewportInitialColor": "orange",
+      "viewportPreviewColor": "blue",
+      "backgroundColorHex": "#10659C",
+      "depthSensitivity": 0.08,
+      "zonesFile": "zones/level_001_zones.json",
+      "pathsFile": "paths/level_001_paths.json"
+    }
+  ],
+  "levelGroups": [
+    {
+      "id": "__main__",
+      "name": "Main",
+      "collapsed": false
+    }
+  ],
+  "mediaAssets": [
+    {
+      "name": "Terreny",
+      "fileName": "media/punyworld-overworld-tileset.png",
+      "mediaType": "tileset",
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "selectionColorHex": "#FF2D55",
+      "groupId": "__main__"
+    },
+    {
+      "name": "Heroi Aturat",
+      "fileName": "media/16x16 Idle-Sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 20,
+      "tileHeight": 20,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__main__"
+    },
+    {
+      "name": "Heroi Camina",
+      "fileName": "media/16x16 Walk-Sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 20,
+      "tileHeight": 20,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__main__"
+    },
+    {
+      "name": "Foxy",
+      "fileName": "media/FoxySpritesheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 32,
+      "tileHeight": 32,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Dragon",
+      "fileName": "media/gator-sheet.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 46,
+      "tileHeight": 49,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "DragonDeath",
+      "fileName": "media/DragonDeath.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 28,
+      "tileHeight": 26,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Gem",
+      "fileName": "media/gem.png",
+      "mediaType": "spritesheet",
+      "tileWidth": 15,
+      "tileHeight": 14,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Clouds",
+      "fileName": "media/decoration-clouds.png",
+      "mediaType": "tileset",
+      "tileWidth": 459,
+      "tileHeight": 142,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Sky",
+      "fileName": "media/decoration-sky.png",
+      "mediaType": "tileset",
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Decoration Trees",
+      "fileName": "media/decoration-trees.png",
+      "mediaType": "tileset",
+      "tileWidth": 144,
+      "tileHeight": 130,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    },
+    {
+      "name": "Plaform Tileset",
+      "fileName": "media/plaform-tileset.png",
+      "mediaType": "tileset",
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "selectionColorHex": "#FFCC00",
+      "groupId": "__group_1772438434842839_0"
+    }
+  ],
+  "mediaGroups": [
+    {
+      "id": "__main__",
+      "name": "Main",
+      "collapsed": true
+    },
+    {
+      "id": "__group_1772438434842839_0",
+      "name": "Platform",
+      "collapsed": false
+    }
+  ],
+  "zoneTypes": [
+    {
+      "name": "Aigua",
+      "color": "yellow"
+    },
+    {
+      "name": "Aigua temporal",
+      "color": "amber"
+    },
+    {
+      "name": "Mur",
+      "color": "red"
+    },
+    {
+      "name": "Pont",
+      "color": "amber"
+    },
+    {
+      "name": "Arbre",
+      "color": "teal"
+    },
+    {
+      "name": "Floor",
+      "color": "purple"
+    },
+    {
+      "name": "Foxy Death",
+      "color": "red"
+    }
+  ],
+  "animationsFile": "animations/animations.json"
+}
