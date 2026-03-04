@@ -16,7 +16,8 @@ public class LoadingScreen extends ScreenAdapter {
 
     private static final float WORLD_WIDTH = 1280f;
     private static final float WORLD_HEIGHT = 720f;
-    private static final float MIN_SECONDS_ON_SCREEN = 0.35f;
+    private static final float MIN_SECONDS_ON_SCREEN = 0.85f;
+    private static final float VISUAL_PROGRESS_SPEED = 3.2f;
 
     private static final Color BACKGROUND = Color.valueOf("050A06");
     private static final Color BAR_BG = Color.valueOf("0A1A0F");
@@ -30,6 +31,7 @@ public class LoadingScreen extends ScreenAdapter {
     private final GlyphLayout layout = new GlyphLayout();
 
     private float elapsedSeconds = 0f;
+    private float visualProgress = 0f;
 
     public LoadingScreen(GameApp game, int levelIndex) {
         this.game = game;
@@ -39,16 +41,21 @@ public class LoadingScreen extends ScreenAdapter {
     @Override
     public void show() {
         game.queueReferencedAssetsForLevel(levelIndex);
+        elapsedSeconds = 0f;
+        visualProgress = 0f;
     }
 
     @Override
     public void render(float delta) {
         elapsedSeconds += delta;
 
-        float progress = game.getAssetManager().getProgress();
         boolean done = game.getAssetManager().update(17);
+        float actualProgress = MathUtils.clamp(game.getAssetManager().getProgress(), 0f, 1f);
+        float maxProgressForTime = MathUtils.clamp(elapsedSeconds / MIN_SECONDS_ON_SCREEN, 0f, 1f);
+        float targetProgress = Math.min(actualProgress, maxProgressForTime);
+        visualProgress = Math.min(targetProgress, visualProgress + Math.max(0f, delta) * VISUAL_PROGRESS_SPEED);
 
-        if (done && elapsedSeconds >= MIN_SECONDS_ON_SCREEN) {
+        if (done && elapsedSeconds >= MIN_SECONDS_ON_SCREEN && visualProgress >= 0.999f) {
             game.setScreen(new PlayScreen(game, levelIndex));
             return;
         }
@@ -57,8 +64,8 @@ public class LoadingScreen extends ScreenAdapter {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         viewport.apply();
 
-        renderBar(progress);
-        renderText(progress);
+        renderBar(visualProgress);
+        renderText(visualProgress);
     }
 
     private void renderBar(float progress) {
