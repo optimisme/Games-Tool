@@ -19,6 +19,7 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
     private static final float FLOOR_WALL_LIKE_RATIO = 1.2f;
     private static final float DRAGON_STOMP_MIN_FALL_SPEED = 25f;
     private static final float DRAGON_DAMAGE_PERCENT = 20f;
+    private static final float DRAGON_TOUCH_DAMAGE_INTERVAL_SECONDS = 0.5f;
     private static final float START_LIFE_PERCENT = 100f;
     private static final float DRAGON_DEATH_FALLBACK_DURATION_SECONDS = 0.7f;
     private static final String DRAGON_DEATH_ANIMATION_NAME = "Dragon Death";
@@ -35,6 +36,8 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
     private final IntSet removedDragonSpriteIndices = new IntSet();
     private final IntSet touchingDragonSpriteIndices = new IntSet();
     private final IntSet touchingDragonNowCache = new IntSet();
+    private final IntFloatMap nextDragonDamageSecondsBySprite = new IntFloatMap();
+    private final IntArray expiredDragonDamageSpriteIndices = new IntArray();
     private final Rectangle previousPlayerRectCache = new Rectangle();
     private final float dragonDeathDurationSeconds;
     private float velocityX = 0f;
@@ -445,13 +448,16 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
             }
 
             touchingDragonNowCache.add(spriteIndex);
-            if (touchingDragonSpriteIndices.contains(spriteIndex)) {
-                continue;
-            }
-
-            applyDragonDamage();
-            if (gameOver) {
-                break;
+            float nextDamageSeconds = nextDragonDamageSecondsBySprite.get(spriteIndex, Float.NEGATIVE_INFINITY);
+            if (simulationTimeSeconds >= nextDamageSeconds) {
+                applyDragonDamage();
+                nextDragonDamageSecondsBySprite.put(
+                    spriteIndex,
+                    simulationTimeSeconds + DRAGON_TOUCH_DAMAGE_INTERVAL_SECONDS
+                );
+                if (gameOver) {
+                    break;
+                }
             }
         }
 
@@ -460,6 +466,20 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
         while (iterator.hasNext) {
             touchingDragonSpriteIndices.add(iterator.next());
         }
+
+        expiredDragonDamageSpriteIndices.clear();
+        IntFloatMap.Keys cooldownKeys = nextDragonDamageSecondsBySprite.keys();
+        while (cooldownKeys.hasNext) {
+            int spriteIndex = cooldownKeys.next();
+            if (!touchingDragonNowCache.contains(spriteIndex)) {
+                expiredDragonDamageSpriteIndices.add(spriteIndex);
+            }
+        }
+        for (int i = 0; i < expiredDragonDamageSpriteIndices.size; i++) {
+            int spriteIndex = expiredDragonDamageSpriteIndices.get(i);
+            nextDragonDamageSecondsBySprite.remove(spriteIndex, -1f);
+        }
+        expiredDragonDamageSpriteIndices.clear();
     }
 
     private void startDragonDeath(int spriteIndex) {
@@ -471,6 +491,7 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
         }
         dragonDeathStartSecondsBySprite.put(spriteIndex, simulationTimeSeconds);
         touchingDragonSpriteIndices.remove(spriteIndex);
+        nextDragonDamageSecondsBySprite.remove(spriteIndex, -1f);
         setAnimationOverrideByName(spriteIndex, DRAGON_DEATH_ANIMATION_NAME);
     }
 
@@ -557,6 +578,8 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
         onGround = isStandingOnFloor();
         touchingDragonSpriteIndices.clear();
         touchingDragonNowCache.clear();
+        nextDragonDamageSecondsBySprite.clear();
+        expiredDragonDamageSpriteIndices.clear();
         collectedGemSpriteIndices.clear();
         removedDragonSpriteIndices.clear();
         dragonDeathStartSecondsBySprite.clear();
