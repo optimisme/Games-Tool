@@ -52,6 +52,10 @@ public final class GameplayControllerTopDown extends GameplayControllerBase {
         return collectibleArbreTileKeys.size;
     }
 
+    public boolean isWin() {
+        return collectibleArbreTileKeys.size > 0 && collectedArbreTileKeys.size >= collectibleArbreTileKeys.size;
+    }
+
     @Override
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
