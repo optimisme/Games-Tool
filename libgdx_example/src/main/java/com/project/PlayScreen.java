@@ -51,7 +51,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final Color HUD_LIFE_BAR_BG = Color.valueOf("5B0D0D");
     private static final Color HUD_LIFE_BAR_FILL = Color.valueOf("3DE67D");
     private static final Color HUD_LIFE_BAR_BORDER = Color.valueOf("E8FFE8");
-    private static final Color END_OVERLAY_DIM = Color.valueOf("000000B8");
+    private static final Color END_OVERLAY_DIM = Color.valueOf("000000A8");
 
     private final GameApp game;
     private final int levelIndex;
@@ -787,7 +787,7 @@ public class PlayScreen extends ScreenAdapter {
             case LEVEL0_WIN:
                 return "Has Guanyat";
             case LEVEL1_LOSE:
-                return "You Losse";
+                return "You Lose";
             case LEVEL1_WIN:
                 return "You Win";
             case NONE:

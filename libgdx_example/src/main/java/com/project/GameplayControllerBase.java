@@ -424,8 +424,10 @@ public abstract class GameplayControllerBase implements GameplayController {
         float worldY,
         Rectangle out
     ) {
-        float left = worldX - sprite.width * sprite.anchorX;
-        float top = worldY - sprite.height * sprite.anchorY;
+        float anchorX = runtime == null ? sprite.anchorX : runtime.anchorX;
+        float anchorY = runtime == null ? sprite.anchorY : runtime.anchorY;
+        float left = worldX - sprite.width * anchorX;
+        float top = worldY - sprite.height * anchorY;
         out.set(left, top, sprite.width, sprite.height);
     }
 
@@ -437,15 +439,17 @@ public abstract class GameplayControllerBase implements GameplayController {
         LevelData.HitBox hitBox,
         Rectangle out
     ) {
-        float left = worldX - sprite.width * sprite.anchorX;
-        float top = worldY - sprite.height * sprite.anchorY;
+        float anchorX = runtime == null ? sprite.anchorX : runtime.anchorX;
+        float anchorY = runtime == null ? sprite.anchorY : runtime.anchorY;
+        float left = worldX - sprite.width * anchorX;
+        float top = worldY - sprite.height * anchorY;
 
         float normalizedX = hitBox.x;
         float normalizedY = hitBox.y;
-        if (runtime.flipX) {
+        if (runtime != null && runtime.flipX) {
             normalizedX = 1f - hitBox.x - hitBox.width;
         }
-        if (runtime.flipY) {
+        if (runtime != null && runtime.flipY) {
             normalizedY = 1f - hitBox.y - hitBox.height;
         }
 
@@ -462,7 +466,11 @@ public abstract class GameplayControllerBase implements GameplayController {
             return null;
         }
         LevelData.LevelSprite sprite = levelData.sprites.get(spriteIndex);
-        String animationId = sprite.animationId;
+        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
+        String animationId = runtime == null ? null : runtime.animationId;
+        if (animationId == null || animationId.isEmpty()) {
+            animationId = sprite.animationId;
+        }
         if (animationId == null || animationId.isEmpty()) {
             return null;
         }
@@ -470,8 +478,8 @@ public abstract class GameplayControllerBase implements GameplayController {
         if (clip == null) {
             return null;
         }
-        LevelRenderer.SpriteRuntimeState runtime = spriteRuntimeStates.get(spriteIndex);
-        LevelData.FrameRig frameRig = clip.frameRigs.get(runtime.frameIndex);
+        int frameIndex = runtime == null ? sprite.frameIndex : runtime.frameIndex;
+        LevelData.FrameRig frameRig = clip.frameRigs.get(frameIndex);
         if (frameRig != null && frameRig.hitBoxes != null && frameRig.hitBoxes.size > 0) {
             return frameRig.hitBoxes;
         }

@@ -186,6 +186,9 @@ public final class LevelRenderer {
         float topDown = worldY - sprite.height * anchorY;
         float x = leftDown;
         float y = worldHeight - topDown - sprite.height;
+        float originX = sprite.width * anchorX;
+        // anchorY is defined from top in y-down space; SpriteBatch origin is from bottom in y-up space.
+        float originY = sprite.height * (1f - anchorY);
         int frameWidth = runtimeState == null ? Math.max(1, Math.round(sprite.width)) : Math.max(1, runtimeState.frameWidth);
         int frameHeight = runtimeState == null ? Math.max(1, Math.round(sprite.height)) : Math.max(1, runtimeState.frameHeight);
         frameWidth = Math.min(frameWidth, texture.getWidth());
@@ -210,8 +213,8 @@ public final class LevelRenderer {
             region,
             x,
             y,
-            sprite.width * 0.5f,
-            sprite.height * 0.5f,
+            originX,
+            originY,
             sprite.width,
             sprite.height,
             flipX ? -1f : 1f,
