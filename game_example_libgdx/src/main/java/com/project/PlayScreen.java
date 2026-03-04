@@ -63,7 +63,7 @@ public class PlayScreen extends ScreenAdapter {
     private final OrthographicCamera hudCamera = new OrthographicCamera();
     private final Viewport hudViewport = new ScreenViewport(hudCamera);
     private final LevelRenderer levelRenderer = new LevelRenderer();
-    private final DebugOverlayRenderer debugOverlayRenderer = new DebugOverlayRenderer();
+    private final DebugOverlay debugOverlayRenderer = new DebugOverlay();
     private final Array<LevelRenderer.SpriteRuntimeState> spriteRuntimeStates = new Array<>();
     private final Array<RuntimeTransform> layerRuntimeStates = new Array<>();
     private final Array<RuntimeTransform> zoneRuntimeStates = new Array<>();

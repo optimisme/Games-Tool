@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Disposable;
 
-public final class DebugOverlayRenderer implements Disposable {
+public final class DebugOverlay implements Disposable {
 
     private static final float ZONE_FILL_ALPHA = 0.20f;
     private static final float ZONE_STROKE_ALPHA = 0.85f;
