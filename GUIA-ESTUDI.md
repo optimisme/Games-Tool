@@ -15,7 +15,7 @@ Tens dos runtimes:
 - `game_example_libgdx` (Java + LibGDX)
 - `game_example_flutter` (Flutter/Dart)
 
-Tots dos implementen les mateixes idees de gameplay, així que pots aprendre comparant-los.
+Tots dos implementen les mateixes idees de gameplay, així que pots comparar-los.
 
 ## 2. Ordre recomanat per aprendre
 
