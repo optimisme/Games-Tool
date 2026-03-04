@@ -36,6 +36,10 @@ public class GameApp extends Game {
         shapeRenderer = new ShapeRenderer();
         font = new BitmapFont();
         font.getData().markupEnabled = false;
+        font.setUseIntegerPositions(false);
+        for (int i = 0; i < font.getRegions().size; i++) {
+            font.getRegions().get(i).getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
         loadProjectData();
         setScreen(new MenuScreen(this));
     }
