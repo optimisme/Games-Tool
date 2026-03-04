@@ -98,8 +98,6 @@ public final class GameplayControllerTopDown extends GameplayControllerBase {
         float dy = inputY * MOVE_SPEED_PER_SECOND * dtSeconds;
         updateDirection(up, down, left, right);
 
-        float previousX = playerX;
-        float previousY = playerY;
         if (dx != 0f) {
             float nextX = playerX + dx;
             if (!wouldCollideBlocked(nextX, playerY)) {
@@ -113,7 +111,7 @@ public final class GameplayControllerTopDown extends GameplayControllerBase {
             }
         }
 
-        moving = Math.abs(playerX - previousX) > 0.001f || Math.abs(playerY - previousY) > 0.001f;
+        moving = left || right || up || down;
         updatePlayerAnimationSelection();
 
         revealHiddenBridgeIfNeeded();
