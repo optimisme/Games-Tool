@@ -1,49 +1,89 @@
-# Games-Tool
+# Games Tool
 
-`Games-Tool` is a repository with two related parts:
+`games_tool` is a Flutter application for learning the fundamentals of 2D game development through practical level authoring.
 
-1. `games_tool`: a Flutter level editor used to create and export 2D game data.
-2. `game_example`: a Flutter runtime sample that loads exported data and runs it
-   as a playable game.
+Instead of starting from engine code, you design the game world visually and export structured data that can be executed by runtime projects. It is meant for students and developers who want to understand how level data, gameplay rules, and rendering connect.
 
-The goal is to provide both sides of the workflow in one place:
-design content with the editor, then run/validate that content in a game app.
+## What You Can Define With `games_tool`
 
-## Repository structure
+`games_tool` lets you create complete 2D levels by editing:
 
-- `games_tool/`: editor application (authoring side).
-- `game_example/`: runtime/game sample (consumer side).
-- `Enunciat.md`: project statement/context.
+- project and level organization
+- media assets and groups
+- tilemap layers (tile size, map data, depth, visibility, offsets)
+- sprites (position, size, type, animation link, depth, flips)
+- zones (collision, triggers, gameplay metadata, grouping)
+- paths and path bindings (move layers, zones, or sprites over time)
+- animation clips, frame rigs, anchors, and hit boxes
+- viewport and camera setup (size, position, adaptation mode)
+- level-wide settings (background color, depth sensitivity, extra gameplay data)
 
-## Documentation map
+This gives you a clean data-driven workflow: author once, run in multiple runtimes.
 
-### Editor docs
+## Levels Section (Example)
 
-- `games_tool/README.md`
-  - Setup and run instructions for the editor.
-  - Project storage paths and project-management behavior.
+![Levels section](games_tool_tutorial/assets/section_levels.png)
 
-### Runtime docs (`game_example`)
+## Repository Structure
 
-- `game_example/README.md`
-  - Runtime project overview, architecture, module layout, and game flow.
-  - Best starting point to understand how the playable sample is organized.
+- `games_tool/`
+  - Flutter editor/authoring app (where levels and assets are configured).
+- `game_example_libgdx/`
+  - Java + LibGDX runtime that loads the exported JSON data and runs the game.
+- `game_example_flutter/`
+  - Flutter runtime port that loads the same exported data model.
+- `games_tool_tutorial/`
+  - Tutorial/support assets used for documentation and learning materials.
 
-- `game_example/README-API.md`
-  - Detailed runtime API reference for `utils_gamestool`.
-  - Documents `GamesToolApi`, `GameDataRuntimeApi`, rendering helpers, math,
-    collisions, and frame-delta behavior.
-  - Includes generic zone lookup helpers (`type` OR `name`) and hot-loop
-    guidance for resolving zone rects once per simulation tick.
+## Why Two Runtime Examples?
 
-- `GUIA-ESTUDI.md`
-  - Learning guide in Catalan for students.
-  - Recommends reading order, key methods, practical exercises, and common
-    mistakes when building new levels/games from this template.
+The two examples show that the same authored data can drive different engines/frameworks:
 
-## Suggested reading order
+- `game_example_libgdx`: reference implementation in a traditional game-engine stack.
+- `game_example_flutter`: equivalent runtime in Flutter, useful for mobile/web/desktop Flutter workflows.
 
-1. `games_tool/README.md` (understand the editor and exported data source).
-2. `game_example/README.md` (understand runtime app structure).
-3. `game_example/README-API.md` (deep dive into runtime API surface).
-4. `GUIA-ESTUDI.md` (Catalan guided learning path).
+This helps you compare architecture and behavior across platforms while keeping the level content source unified.
+
+## Recommended Workflow
+
+1. Build/edit levels in `games_tool`.
+2. Export/update JSON and assets.
+3. Run `game_example_libgdx` to validate engine-style runtime behavior.
+4. Run `game_example_flutter` to validate Flutter runtime parity.
+
+## Quick Start
+
+### `games_tool`
+
+```bash
+cd games_tool
+flutter pub get
+flutter run -d macos
+```
+
+### `game_example_flutter`
+
+```bash
+cd game_example_flutter
+flutter pub get
+flutter run -d macos
+```
+
+### `game_example_libgdx`
+
+```bash
+cd game_example_libgdx
+./run.sh
+```
+
+## Projects Storage (`games_tool`)
+
+Projects are stored in OS app-data under `GamesTool`:
+
+- macOS: `~/Library/Application Support/GamesTool/projects`
+- Linux: `~/.local/share/GamesTool/projects` (or `$XDG_DATA_HOME/GamesTool/projects`)
+- Windows: `%APPDATA%\\GamesTool\\projects`
+
+Index file:
+
+- `.../GamesTool/projects_index.json`

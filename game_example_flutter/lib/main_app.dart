@@ -7,12 +7,14 @@ import 'game_app.dart';
 import 'libgdx_compat/gdx.dart';
 import 'level_loader.dart';
 import 'play_screen.dart';
+import 'window_config.dart';
 
 class MainApp {
   MainApp._();
 
   static Future<void> main() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await configureGameWindow('Game Example - Flutter');
     runApp(const _GameRoot());
   }
 }
@@ -23,6 +25,7 @@ class _GameRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      title: 'Game Example - Flutter',
       debugShowCheckedModeBanner: false,
       home: Scaffold(body: SafeArea(child: _GameView())),
     );

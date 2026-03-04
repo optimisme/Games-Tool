@@ -26,7 +26,6 @@ public class MenuScreen extends ScreenAdapter {
     private static final Color BACKGROUND = Color.valueOf("000000");
     private static final Color PRIMARY = Color.valueOf("35FF74");
     private static final Color DIM = Color.valueOf("146F34");
-    private static final Color SCANLINE = Color.valueOf("17A84022");
     private static final Color SELECTED_FILL = Color.valueOf("0E1E12");
     private static final Color UNSELECTED_FILL = Color.valueOf("060B08");
     private static final Color UNSELECTED_TEXT = Color.valueOf("23AA54");
@@ -106,7 +105,6 @@ public class MenuScreen extends ScreenAdapter {
         ShapeRenderer shapes = game.getShapeRenderer();
         shapes.setProjectionMatrix(viewport.getCamera().combined);
 
-        renderBackground(shapes);
         renderOptions(shapes);
 
         SpriteBatch batch = game.getBatch();
@@ -122,15 +120,6 @@ public class MenuScreen extends ScreenAdapter {
             blinkAccumulator -= BLINK_INTERVAL_SECONDS;
             cursorVisible = !cursorVisible;
         }
-    }
-
-    private void renderBackground(ShapeRenderer shapes) {
-        shapes.begin(ShapeRenderer.ShapeType.Line);
-        shapes.setColor(SCANLINE);
-        for (float y = 0; y <= WORLD_HEIGHT; y += 4f) {
-            shapes.line(0f, y, WORLD_WIDTH, y);
-        }
-        shapes.end();
     }
 
     private void renderOptions(ShapeRenderer shapes) {
