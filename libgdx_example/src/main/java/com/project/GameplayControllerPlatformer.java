@@ -76,6 +76,14 @@ public final class GameplayControllerPlatformer extends GameplayControllerBase {
         return lifePercent;
     }
 
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    public boolean isWin() {
+        return win;
+    }
+
     @Override
     public void handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)

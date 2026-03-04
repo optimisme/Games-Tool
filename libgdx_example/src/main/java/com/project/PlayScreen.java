@@ -42,10 +42,15 @@ public class PlayScreen extends ScreenAdapter {
     private static final float HUD_LIFE_BAR_HEIGHT = 14f;
     private static final float HUD_LIFE_BAR_TOP_GAP = 8f;
     private static final float HUD_ROW_GAP = 10f;
+    private static final float END_OVERLAY_RETURN_DELAY_SECONDS = 1f;
+    private static final float END_OVERLAY_TITLE_SCALE = 2.4f;
+    private static final float END_OVERLAY_PROMPT_SCALE = 1.25f;
+    private static final float END_OVERLAY_PROMPT_GAP = 44f;
     private static final Color HUD_TEXT_COLOR = Color.valueOf("FFFFFF");
     private static final Color HUD_LIFE_BAR_BG = Color.valueOf("5B0D0D");
     private static final Color HUD_LIFE_BAR_FILL = Color.valueOf("3DE67D");
     private static final Color HUD_LIFE_BAR_BORDER = Color.valueOf("E8FFE8");
+    private static final Color END_OVERLAY_DIM = Color.valueOf("000000B8");
 
     private final GameApp game;
     private final int levelIndex;
@@ -74,6 +79,8 @@ public class PlayScreen extends ScreenAdapter {
     private Texture backIconTexture;
 
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
+    private EndOverlayState endOverlayState = EndOverlayState.NONE;
+    private float endOverlayElapsedSeconds = 0f;
     private float fixedStepAccumulator = 0f;
     private float pathMotionTimeSeconds = 0f;
 
@@ -109,13 +116,21 @@ public class PlayScreen extends ScreenAdapter {
         }
 
         updateBackButtonBounds();
-        if (handleHudBackInput()) {
+        if (!isEndOverlayActive() && handleHudBackInput()) {
             return;
         }
 
-        handleDebugOverlayInput();
-        gameplayController.handleInput();
-        stepSimulation(delta);
+        if (isEndOverlayActive()) {
+            updateEndOverlay(delta);
+            if (game.getScreen() != this) {
+                return;
+            }
+        } else {
+            handleDebugOverlayInput();
+            gameplayController.handleInput();
+            stepSimulation(delta);
+            updateEndOverlayStateIfNeeded();
+        }
 
         viewport.apply();
         updateCameraForGameplay();
@@ -143,6 +158,7 @@ public class PlayScreen extends ScreenAdapter {
         );
 
         renderHud();
+        renderEndOverlayIfActive();
     }
 
     @Override
@@ -665,6 +681,124 @@ public class PlayScreen extends ScreenAdapter {
         font.setColor(Color.WHITE);
     }
 
+    private boolean isEndOverlayActive() {
+        return endOverlayState != EndOverlayState.NONE;
+    }
+
+    private void updateEndOverlayStateIfNeeded() {
+        if (isEndOverlayActive()) {
+            return;
+        }
+        EndOverlayState detectedState = detectEndOverlayState();
+        if (detectedState == EndOverlayState.NONE) {
+            return;
+        }
+        endOverlayState = detectedState;
+        endOverlayElapsedSeconds = 0f;
+    }
+
+    private EndOverlayState detectEndOverlayState() {
+        if (levelIndex == 0 && gameplayController instanceof GameplayControllerTopDown) {
+            GameplayControllerTopDown topDownController = (GameplayControllerTopDown) gameplayController;
+            return topDownController.isWin() ? EndOverlayState.LEVEL0_WIN : EndOverlayState.NONE;
+        }
+        if (levelIndex == 1 && gameplayController instanceof GameplayControllerPlatformer) {
+            GameplayControllerPlatformer platformerController = (GameplayControllerPlatformer) gameplayController;
+            if (platformerController.isGameOver()) {
+                return EndOverlayState.LEVEL1_LOSE;
+            }
+            if (platformerController.isWin()) {
+                return EndOverlayState.LEVEL1_WIN;
+            }
+        }
+        return EndOverlayState.NONE;
+    }
+
+    private void updateEndOverlay(float delta) {
+        endOverlayElapsedSeconds += Math.max(0f, delta);
+        if (endOverlayElapsedSeconds < END_OVERLAY_RETURN_DELAY_SECONDS) {
+            return;
+        }
+        if (Gdx.input.justTouched() || isAnyKeyJustPressed()) {
+            returnToMenu();
+        }
+    }
+
+    private boolean isAnyKeyJustPressed() {
+        for (int key = 0; key <= 255; key++) {
+            if (Gdx.input.isKeyJustPressed(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void renderEndOverlayIfActive() {
+        if (!isEndOverlayActive()) {
+            return;
+        }
+
+        hudViewport.apply();
+        float hudWidth = hudViewport.getWorldWidth();
+        float hudHeight = hudViewport.getWorldHeight();
+
+        ShapeRenderer shapeRenderer = game.getShapeRenderer();
+        shapeRenderer.setProjectionMatrix(hudCamera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(END_OVERLAY_DIM);
+        shapeRenderer.rect(0f, 0f, hudWidth, hudHeight);
+        shapeRenderer.end();
+
+        BitmapFont font = game.getFont();
+        font.setColor(HUD_TEXT_COLOR);
+
+        SpriteBatch batch = game.getBatch();
+        batch.setProjectionMatrix(hudCamera.combined);
+        batch.begin();
+
+        String title = endOverlayTitle();
+        font.getData().setScale(END_OVERLAY_TITLE_SCALE);
+        hudLayout.setText(font, title);
+        float titleX = (hudWidth - hudLayout.width) * 0.5f;
+        float titleY = (hudHeight + hudLayout.height) * 0.5f;
+        font.draw(batch, title, titleX, titleY);
+
+        if (endOverlayElapsedSeconds >= END_OVERLAY_RETURN_DELAY_SECONDS) {
+            String prompt = endOverlayPrompt();
+            font.getData().setScale(END_OVERLAY_PROMPT_SCALE);
+            hudLayout.setText(font, prompt);
+            float promptX = (hudWidth - hudLayout.width) * 0.5f;
+            float promptY = titleY - END_OVERLAY_PROMPT_GAP;
+            font.draw(batch, prompt, promptX, promptY);
+        }
+
+        batch.end();
+
+        font.getData().setScale(1f);
+        font.setColor(Color.WHITE);
+    }
+
+    private String endOverlayTitle() {
+        switch (endOverlayState) {
+            case LEVEL0_WIN:
+                return "Has Guanyat";
+            case LEVEL1_LOSE:
+                return "You Losse";
+            case LEVEL1_WIN:
+                return "You Win";
+            case NONE:
+            default:
+                return "";
+        }
+    }
+
+    private String endOverlayPrompt() {
+        if (endOverlayState == EndOverlayState.LEVEL0_WIN) {
+            return "Apreta qualsevol tecla per tornar";
+        }
+        return "Press any key to return to main menu";
+    }
+
     private void handleDebugOverlayInput() {
         if (!Gdx.input.isKeyJustPressed(Input.Keys.F3)) {
             return;
@@ -901,5 +1035,12 @@ public class PlayScreen extends ScreenAdapter {
         ZONES,
         PATHS,
         BOTH
+    }
+
+    private enum EndOverlayState {
+        NONE,
+        LEVEL0_WIN,
+        LEVEL1_LOSE,
+        LEVEL1_WIN
     }
 }
