@@ -115,6 +115,11 @@ class LayoutLayersState extends State<LayoutLayers> {
     return GameListGroup.mainId;
   }
 
+  bool _isLayerTilesheetAsset(GameMediaAsset asset) {
+    final String type = asset.mediaType.trim().toLowerCase();
+    return type == 'tileset' || type == 'atlas';
+  }
+
   GameListGroup? _findLayerGroupById(GameLevel level, String groupId) {
     for (final group in _layerGroups(level)) {
       if (group.id == groupId) {
@@ -931,7 +936,7 @@ class LayoutLayersState extends State<LayoutLayers> {
         .where((index) => index >= 0 && index < level.layers.length)
         .toSet();
     final List<GameMediaAsset> tilesetAssets = appData.gameData.mediaAssets
-        .where((a) => a.hasTileGrid)
+        .where(_isLayerTilesheetAsset)
         .toList(growable: false);
     final bool hasTilesets = tilesetAssets.isNotEmpty;
 
@@ -963,7 +968,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                 )
               else
                 CDKText(
-                  'Add a tileset in Media first.',
+                  'Add a tileset or atlas in Media first.',
                   role: CDKTextRole.caption,
                   secondary: true,
                 ),
@@ -1396,6 +1401,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
 
   late bool _visible = widget.initialData.visible;
   late int _selectedAssetIndex = _resolveInitialAssetIndex();
+  late bool _useSelectedAsset = _hasInitialSelectedAsset();
   late String _selectedGroupId = _resolveInitialGroupId();
   EditSession<_LayerDialogData>? _editSession;
 
@@ -1407,6 +1413,14 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
       if (found != -1) return found;
     }
     return 0;
+  }
+
+  bool _hasInitialSelectedAsset() {
+    final String current = widget.initialData.tilesSheetFile;
+    if (current.isEmpty) {
+      return widget.tilesetAssets.isNotEmpty;
+    }
+    return widget.tilesetAssets.any((a) => a.fileName == current);
   }
 
   String _resolveInitialGroupId() {
@@ -1421,8 +1435,16 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
     return GameListGroup.mainId;
   }
 
-  GameMediaAsset get _selectedAsset =>
-      widget.tilesetAssets[_selectedAssetIndex];
+  GameMediaAsset? get _selectedAsset {
+    if (!_useSelectedAsset) {
+      return null;
+    }
+    if (_selectedAssetIndex < 0 ||
+        _selectedAssetIndex >= widget.tilesetAssets.length) {
+      return null;
+    }
+    return widget.tilesetAssets[_selectedAssetIndex];
+  }
 
   double? _parseDepthValue(String raw) {
     final String cleaned = raw.trim();
@@ -1444,7 +1466,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
       _nameController.text.trim().isNotEmpty && _depthErrorText == null;
 
   _LayerDialogData _currentData() {
-    final GameMediaAsset asset = _selectedAsset;
+    final GameMediaAsset? asset = _selectedAsset;
     final double parsedDepth = _parseDepthValue(_depthController.text) ?? 0.0;
     return _LayerDialogData(
       name: _nameController.text.trim(),
@@ -1452,9 +1474,9 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
       x: int.tryParse(_xController.text.trim()) ?? 0,
       y: int.tryParse(_yController.text.trim()) ?? 0,
       depth: parsedDepth,
-      tilesSheetFile: asset.fileName,
-      tileWidth: asset.tileWidth,
-      tileHeight: asset.tileHeight,
+      tilesSheetFile: asset?.fileName ?? widget.initialData.tilesSheetFile,
+      tileWidth: asset?.tileWidth ?? widget.initialData.tileWidth,
+      tileHeight: asset?.tileHeight ?? widget.initialData.tileHeight,
       tilemapWidth: int.tryParse(_tilemapWidthController.text.trim()) ?? 32,
       tilemapHeight: int.tryParse(_tilemapHeightController.text.trim()) ?? 16,
       visible: _visible,
@@ -1484,7 +1506,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
       return;
     }
 
-    final GameMediaAsset asset = _selectedAsset;
+    final GameMediaAsset? asset = _selectedAsset;
     widget.onConfirm(
       _LayerDialogData(
         name: _nameController.text.trim(),
@@ -1492,9 +1514,9 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
         x: int.tryParse(_xController.text.trim()) ?? 0,
         y: int.tryParse(_yController.text.trim()) ?? 0,
         depth: parsedDepth,
-        tilesSheetFile: asset.fileName,
-        tileWidth: asset.tileWidth,
-        tileHeight: asset.tileHeight,
+        tilesSheetFile: asset?.fileName ?? widget.initialData.tilesSheetFile,
+        tileWidth: asset?.tileWidth ?? widget.initialData.tileWidth,
+        tileHeight: asset?.tileHeight ?? widget.initialData.tileHeight,
         tilemapWidth: int.tryParse(_tilemapWidthController.text.trim()) ?? 32,
         tilemapHeight: int.tryParse(_tilemapHeightController.text.trim()) ?? 16,
         visible: _visible,
@@ -1547,10 +1569,15 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
 
-    final GameMediaAsset asset = _selectedAsset;
+    final GameMediaAsset? asset = _selectedAsset;
     final List<String> assetOptions = widget.tilesetAssets
         .map((a) => a.name.trim().isNotEmpty ? a.name : a.fileName)
         .toList(growable: false);
+    final int selectedAssetIndex = assetOptions.isEmpty
+        ? 0
+        : _selectedAssetIndex.clamp(0, assetOptions.length - 1);
+    final int tileWidth = asset?.tileWidth ?? widget.initialData.tileWidth;
+    final int tileHeight = asset?.tileHeight ?? widget.initialData.tileHeight;
 
     return EditorFormDialogScaffold(
       title: widget.title,
@@ -1684,19 +1711,27 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    CDKButtonSelect(
-                      selectedIndex: _selectedAssetIndex,
-                      options: assetOptions,
-                      onSelected: (int index) {
-                        setState(() {
-                          _selectedAssetIndex = index;
-                        });
-                        _onInputChanged();
-                      },
-                    ),
+                    if (assetOptions.isEmpty)
+                      const CDKText(
+                        'No tileset or atlas available',
+                        role: CDKTextRole.caption,
+                        secondary: true,
+                      )
+                    else
+                      CDKButtonSelect(
+                        selectedIndex: selectedAssetIndex,
+                        options: assetOptions,
+                        onSelected: (int index) {
+                          setState(() {
+                            _selectedAssetIndex = index;
+                            _useSelectedAsset = true;
+                          });
+                          _onInputChanged();
+                        },
+                      ),
                     SizedBox(width: spacing.sm),
                     CDKText(
-                      'Tile size: ${asset.tileWidth}×${asset.tileHeight} px',
+                      'Tile size: $tileWidth×$tileHeight px',
                       role: CDKTextRole.caption,
                       color: cdkColors.colorText,
                     ),
@@ -1731,6 +1766,14 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                     ),
                   ],
                 ),
+                if (!_useSelectedAsset) ...[
+                  SizedBox(height: spacing.xs),
+                  const CDKText(
+                    'Current layer tilesheet is not a tileset/atlas. Select one to replace it.',
+                    role: CDKTextRole.caption,
+                    secondary: true,
+                  ),
+                ],
               ],
             ),
           ),
