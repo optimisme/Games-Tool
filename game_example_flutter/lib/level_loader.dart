@@ -3,10 +3,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 
-import 'port_libdgx/gdx.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/gdx.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'level_data.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/math_types.dart';
 
 class LevelLoader {
   static const String gameDataPath = 'levels/game_data.json';

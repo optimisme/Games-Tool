@@ -1,10 +1,10 @@
 import 'dart:ui' as ui;
 
-import 'port_libdgx/game_framework.dart';
+import 'libgdx_compat/game_framework.dart';
 import 'level_data.dart';
 import 'runtime_transform.dart';
-import 'port_libdgx/viewport.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/viewport.dart';
+import 'libgdx_compat/gdx_collections.dart';
 
 class DebugOverlay {
   static const double zoneFillAlpha = 0.20;

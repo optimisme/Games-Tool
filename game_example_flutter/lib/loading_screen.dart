@@ -2,10 +2,10 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import 'game_app.dart';
-import 'port_libdgx/game_framework.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/game_framework.dart';
+import 'libgdx_compat/math_types.dart';
 import 'play_screen.dart';
-import 'port_libdgx/viewport.dart';
+import 'libgdx_compat/viewport.dart';
 
 class LoadingScreen extends ScreenAdapter {
   static const double worldWidth = 1280;

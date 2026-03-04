@@ -1,22 +1,22 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'port_libdgx/asset_manager.dart';
+import 'libgdx_compat/asset_manager.dart';
 import 'debug_overlay.dart';
 import 'game_app.dart';
-import 'port_libdgx/game_framework.dart';
+import 'libgdx_compat/game_framework.dart';
 import 'gameplay_controller.dart';
 import 'gameplay_controller_platformer.dart';
 import 'gameplay_controller_top_down.dart';
-import 'port_libdgx/gdx.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/gdx.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'level_data.dart';
 import 'level_loader.dart';
 import 'level_renderer.dart';
-import 'port_libdgx/math_types.dart';
+import 'libgdx_compat/math_types.dart';
 import 'menu_screen.dart';
 import 'runtime_transform.dart';
-import 'port_libdgx/viewport.dart';
+import 'libgdx_compat/viewport.dart';
 
 class PlayScreen extends ScreenAdapter {
   static const double defaultAnimationFps = 8;

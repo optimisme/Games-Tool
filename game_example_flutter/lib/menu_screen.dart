@@ -2,12 +2,12 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import 'game_app.dart';
-import 'port_libdgx/game_framework.dart';
-import 'port_libdgx/gdx.dart';
-import 'port_libdgx/gdx_collections.dart';
+import 'libgdx_compat/game_framework.dart';
+import 'libgdx_compat/gdx.dart';
+import 'libgdx_compat/gdx_collections.dart';
 import 'loading_screen.dart';
-import 'port_libdgx/math_types.dart';
-import 'port_libdgx/viewport.dart';
+import 'libgdx_compat/math_types.dart';
+import 'libgdx_compat/viewport.dart';
 
 class MenuScreen extends ScreenAdapter {
   static const double worldWidth = 1280;
