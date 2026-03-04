@@ -374,7 +374,7 @@ public class PlayScreen extends ScreenAdapter {
         }
         float t = Math.max(0f, timeSeconds);
         String normalizedBehavior = behavior == null ? "" : behavior.trim().toLowerCase();
-        if ("ping_pong".equals(normalizedBehavior)) {
+        if ("ping_pong".equals(normalizedBehavior) || "pingpong".equals(normalizedBehavior)) {
             float cycle = durationSeconds * 2f;
             if (cycle <= 0f) {
                 return 0f;
