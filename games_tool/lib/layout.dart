@@ -68,7 +68,9 @@ enum _LayersCanvasTool { arrow, hand }
 
 class _LayoutState extends State<Layout> {
   static const double _animationRigFrameStripReservedHeight = 74.0;
+  static const double _editToolbarExpandedWidth = 360.0;
   static const double _rightToolbarWidth = 275.0;
+  final ScrollController _editToolbarScrollController = ScrollController();
 
   // Clau del layout escollit
   final GlobalKey<LayoutSpritesState> layoutSpritesKey =
@@ -188,7 +190,9 @@ class _LayoutState extends State<Layout> {
       if (appData.frame > 4096) {
         appData.frame = 0;
       }
-      appData.update();
+      if (appData.selectedSection != 'animation_rigs') {
+        appData.update();
+      }
     });
   }
 
@@ -208,6 +212,7 @@ class _LayoutState extends State<Layout> {
     } catch (_) {}
     _timer?.cancel();
     _clipboardStatusTimer?.cancel();
+    _editToolbarScrollController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -367,6 +372,115 @@ class _LayoutState extends State<Layout> {
     appData.queueAutosave();
   }
 
+  bool _showEditToolbarForSelection(AppData appData) {
+    switch (appData.selectedSection) {
+      case 'projects':
+        return false;
+      case 'media':
+        return appData.selectedMedia >= 0 &&
+            appData.selectedMedia < appData.gameData.mediaAssets.length;
+      case 'animations':
+      case 'animation_rigs':
+        return appData.selectedAnimation >= 0 &&
+            appData.selectedAnimation < appData.gameData.animations.length;
+      case 'levels':
+        return appData.selectedLevel >= 0 &&
+            appData.selectedLevel < appData.gameData.levels.length;
+      case 'layers':
+      case 'tilemap':
+        if (appData.selectedLevel < 0 ||
+            appData.selectedLevel >= appData.gameData.levels.length) {
+          return false;
+        }
+        final int layerCount =
+            appData.gameData.levels[appData.selectedLevel].layers.length;
+        final Set<int> selected = appData.selectedLayerIndices
+            .where((index) => index >= 0 && index < layerCount)
+            .toSet();
+        if (selected.isEmpty &&
+            appData.selectedLayer >= 0 &&
+            appData.selectedLayer < layerCount) {
+          selected.add(appData.selectedLayer);
+        }
+        return selected.length == 1;
+      case 'zones':
+        if (appData.selectedLevel < 0 ||
+            appData.selectedLevel >= appData.gameData.levels.length) {
+          return false;
+        }
+        final int zoneCount =
+            appData.gameData.levels[appData.selectedLevel].zones.length;
+        final Set<int> selected = appData.selectedZoneIndices
+            .where((index) => index >= 0 && index < zoneCount)
+            .toSet();
+        if (selected.isEmpty &&
+            appData.selectedZone >= 0 &&
+            appData.selectedZone < zoneCount) {
+          selected.add(appData.selectedZone);
+        }
+        return selected.length == 1;
+      case 'sprites':
+        if (appData.selectedLevel < 0 ||
+            appData.selectedLevel >= appData.gameData.levels.length) {
+          return false;
+        }
+        final int spriteCount =
+            appData.gameData.levels[appData.selectedLevel].sprites.length;
+        final Set<int> selected = appData.selectedSpriteIndices
+            .where((index) => index >= 0 && index < spriteCount)
+            .toSet();
+        if (selected.isEmpty &&
+            appData.selectedSprite >= 0 &&
+            appData.selectedSprite < spriteCount) {
+          selected.add(appData.selectedSprite);
+        }
+        return selected.length == 1;
+      case 'paths':
+        if (appData.selectedLevel < 0 ||
+            appData.selectedLevel >= appData.gameData.levels.length) {
+          return false;
+        }
+        final int pathCount =
+            appData.gameData.levels[appData.selectedLevel].paths.length;
+        return appData.selectedPath >= 0 && appData.selectedPath < pathCount;
+      default:
+        return false;
+    }
+  }
+
+  Widget _buildEditToolbarContent(AppData appData) {
+    switch (appData.selectedSection) {
+      case 'media':
+        final int index = appData.selectedMedia;
+        if (index < 0 || index >= appData.gameData.mediaAssets.length) {
+          return const SizedBox.shrink();
+        }
+        final GameMediaAsset asset = appData.gameData.mediaAssets[index];
+        return MediaInlineEditPanel(
+          key: ValueKey('media-inline-editor-${asset.fileName}-$index'),
+          mediaIndex: index,
+        );
+      case 'animations':
+        final int index = appData.selectedAnimation;
+        if (index < 0 || index >= appData.gameData.animations.length) {
+          return const SizedBox.shrink();
+        }
+        final GameAnimation animation = appData.gameData.animations[index];
+        return AnimationInlineEditPanel(
+          key: ValueKey('animation-inline-editor-${animation.id}-$index'),
+          animationIndex: index,
+        );
+      case 'animation_rigs':
+        final LayoutAnimationRigsState? state = layoutAnimationRigsKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
@@ -375,6 +489,15 @@ class _LayoutState extends State<Layout> {
         MediaQuery.platformBrightnessOf(context) == Brightness.dark;
     final Color statusBarDividerColor =
         isDarkTheme ? const Color(0xFF545458) : const Color(0xFFD1D1D6);
+    final Color toolbarDividerColor =
+        isDarkTheme ? const Color(0xFF545458) : const Color(0xFFD1D1D6);
+    final Color toolbarShadowColor =
+        isDarkTheme ? const Color(0x66000000) : const Color(0x24000000);
+    final bool showEditToolbar = _showEditToolbarForSelection(appData);
+    final bool useSharedEditToolbarScroll =
+        appData.selectedSection != 'animation_rigs';
+    final double editToolbarWidth =
+        showEditToolbar ? _editToolbarExpandedWidth : 0.0;
     _syncLayerSelectionState(appData);
     _syncZoneSelectionState(appData);
     _syncSpriteSelectionState(appData);
@@ -654,13 +777,86 @@ class _LayoutState extends State<Layout> {
                               },
                             ),
                     ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeInOutCubic,
+                      width: editToolbarWidth,
+                      decoration: BoxDecoration(
+                        color: cdkColors.backgroundSecondary0,
+                        border: Border(
+                          left: BorderSide(
+                            color: cdkColors.colorTextSecondary
+                                .withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                      child: ClipRect(
+                        child: OverflowBox(
+                          alignment: Alignment.topLeft,
+                          minWidth: _editToolbarExpandedWidth,
+                          maxWidth: _editToolbarExpandedWidth,
+                          child: SizedBox(
+                            width: _editToolbarExpandedWidth,
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 220),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                child: showEditToolbar
+                                    ? KeyedSubtree(
+                                        key: ValueKey<String>(
+                                          'edit-toolbar-${appData.selectedSection}',
+                                        ),
+                                        child: useSharedEditToolbarScroll
+                                            ? SingleChildScrollView(
+                                                controller:
+                                                    _editToolbarScrollController,
+                                                primary: false,
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                child:
+                                                    _buildEditToolbarContent(
+                                                  appData,
+                                                ),
+                                              )
+                                            : _buildEditToolbarContent(appData),
+                                      )
+                                    : const SizedBox.shrink(
+                                        key: ValueKey<String>(
+                                          'edit-toolbar-empty',
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     ConstrainedBox(
                       constraints: const BoxConstraints(
                         maxWidth: _rightToolbarWidth,
                         minWidth: _rightToolbarWidth,
                       ),
                       child: Container(
-                        color: cdkColors.background,
+                        decoration: BoxDecoration(
+                          color: cdkColors.background,
+                          border: Border(
+                            left: BorderSide(
+                              color: toolbarDividerColor,
+                              width: 1,
+                            ),
+                          ),
+                          boxShadow: showEditToolbar
+                              ? [
+                                  BoxShadow(
+                                    color: toolbarShadowColor,
+                                    blurRadius: 10,
+                                    offset: const Offset(-3, 0),
+                                  ),
+                                ]
+                              : const [],
+                        ),
                         child: _getSelectedLayout(appData),
                       ),
                     ),

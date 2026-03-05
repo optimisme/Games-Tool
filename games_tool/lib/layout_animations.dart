@@ -26,7 +26,6 @@ class LayoutAnimations extends StatefulWidget {
 
 class _LayoutAnimationsState extends State<LayoutAnimations> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupToolbarAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
@@ -239,18 +238,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
               asset.mediaType == 'spritesheet' || asset.mediaType == 'atlas',
         )
         .toList(growable: false);
-  }
-
-  int _animationUsageCount(AppData appData, String animationId) {
-    int count = 0;
-    for (final level in appData.gameData.levels) {
-      for (final sprite in level.sprites) {
-        if (sprite.animationId == animationId) {
-          count += 1;
-        }
-      }
-    }
-    return count;
   }
 
   List<GameListGroup> _animationGroups(AppData appData) {
@@ -544,26 +531,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     appData.animationSelectionEndFrame = animation.endFrame;
   }
 
-  void _applyAnimationMediaToSprites(
-    AppData appData,
-    GameAnimation animation,
-  ) {
-    final GameMediaAsset? media =
-        appData.mediaAssetByFileName(animation.mediaFile);
-    for (final level in appData.gameData.levels) {
-      for (final sprite in level.sprites) {
-        if (sprite.animationId != animation.id) {
-          continue;
-        }
-        sprite.imageFile = animation.mediaFile;
-        if (media != null && media.tileWidth > 0 && media.tileHeight > 0) {
-          sprite.spriteWidth = media.tileWidth;
-          sprite.spriteHeight = media.tileHeight;
-        }
-      }
-    }
-  }
-
   void _addAnimation({
     required AppData appData,
     required _AnimationDialogData data,
@@ -588,36 +555,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     );
     appData.selectedAnimation = -1;
     appData.update();
-  }
-
-  void _updateAnimation({
-    required AppData appData,
-    required int index,
-    required _AnimationDialogData data,
-  }) {
-    final animations = appData.gameData.animations;
-    if (index < 0 || index >= animations.length) {
-      return;
-    }
-    final previous = animations[index];
-    final updated = GameAnimation(
-      id: previous.id,
-      name: data.name,
-      mediaFile: data.mediaFile,
-      startFrame: data.startFrame,
-      endFrame: data.endFrame,
-      fps: data.fps,
-      loop: data.loop,
-      groupId: previous.groupId,
-      anchorX: previous.anchorX,
-      anchorY: previous.anchorY,
-      anchorColor: previous.anchorColor,
-      hitBoxes: previous.hitBoxes,
-    );
-    animations[index] = updated;
-    _applyAnimationMediaToSprites(appData, updated);
-    appData.selectedAnimation = index;
-    _syncFrameSelectionToAnimation(appData, updated);
   }
 
   Future<_AnimationDialogData?> _promptAnimationData({
@@ -741,93 +678,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
       mutate: () {
         _addAnimation(appData: appData, data: data);
       },
-    );
-  }
-
-  Future<void> _confirmAndDeleteAnimation(int index) async {
-    if (!mounted) {
-      return;
-    }
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    final animations = appData.gameData.animations;
-    if (index < 0 || index >= animations.length) {
-      return;
-    }
-    final GameAnimation animation = animations[index];
-    final int usageCount = _animationUsageCount(appData, animation.id);
-    if (usageCount > 0) {
-      appData.projectStatusMessage =
-          'Animation "${animation.name}" is in use by $usageCount sprite(s).';
-      appData.update();
-      return;
-    }
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete animation',
-      message: 'Delete "${animation.name}"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
-    await appData.runProjectMutation(
-      debugLabel: 'animation-delete',
-      mutate: () {
-        animations.removeAt(index);
-        appData.selectedAnimation = -1;
-        _syncFrameSelectionToAnimation(appData, null);
-      },
-    );
-  }
-
-  Future<void> _promptAndEditAnimation(
-    int index,
-    GlobalKey anchorKey,
-    List<GameMediaAsset> sourceAssets,
-  ) async {
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    final animations = appData.gameData.animations;
-    if (index < 0 || index >= animations.length) {
-      return;
-    }
-    final animation = animations[index];
-    final int usageCount = _animationUsageCount(appData, animation.id);
-    final String undoGroupKey =
-        'animation-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-
-    await _promptAnimationData(
-      title: 'Edit animation',
-      confirmLabel: 'Save',
-      initialData: _AnimationDialogData(
-        name: animation.name,
-        mediaFile: animation.mediaFile,
-        startFrame: animation.startFrame,
-        endFrame: animation.endFrame,
-        fps: animation.fps,
-        loop: animation.loop,
-        groupId: _effectiveAnimationGroupId(appData, animation),
-      ),
-      sourceAssets: sourceAssets,
-      groupOptions: _animationGroups(appData),
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
-      liveEdit: true,
-      onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'animation-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateAnimation(appData: appData, index: index, data: value);
-          },
-        );
-      },
-      onDelete:
-          usageCount == 0 ? () => _confirmAndDeleteAnimation(index) : null,
     );
   }
 
@@ -1288,29 +1138,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                                       ],
                                     ),
                                   ),
-                                  if (isSelected && hasSources)
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: CupertinoButton(
-                                        key: _selectedEditAnchorKey,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                        ),
-                                        minimumSize: const Size(20, 20),
-                                        onPressed: () async {
-                                          await _promptAndEditAnimation(
-                                            animationIndex,
-                                            _selectedEditAnchorKey,
-                                            sourceAssets,
-                                          );
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.ellipsis_circle,
-                                          size: 16,
-                                          color: cdkColors.colorText,
-                                        ),
-                                      ),
-                                    ),
                                   ReorderableDragStartListener(
                                     index: index,
                                     child: Padding(
@@ -1362,6 +1189,242 @@ class _AnimationDialogData {
   final String groupId;
 }
 
+class AnimationInlineEditPanel extends StatefulWidget {
+  const AnimationInlineEditPanel({
+    super.key,
+    required this.animationIndex,
+  });
+
+  final int animationIndex;
+
+  @override
+  State<AnimationInlineEditPanel> createState() =>
+      _AnimationInlineEditPanelState();
+}
+
+class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
+  late final String _undoGroupKey =
+      'animation-inline-${DateTime.now().microsecondsSinceEpoch}';
+
+  List<GameMediaAsset> _animationSourceAssets(AppData appData) {
+    return appData.gameData.mediaAssets
+        .where(
+          (asset) =>
+              asset.mediaType == 'spritesheet' || asset.mediaType == 'atlas',
+        )
+        .toList(growable: false);
+  }
+
+  List<GameListGroup> _animationGroups(AppData appData) {
+    if (appData.gameData.animationGroups.isEmpty) {
+      return <GameListGroup>[GameListGroup.main()];
+    }
+    final bool hasMain = appData.gameData.animationGroups
+        .any((group) => group.id == GameListGroup.mainId);
+    if (hasMain) {
+      return appData.gameData.animationGroups;
+    }
+    return <GameListGroup>[
+      GameListGroup.main(),
+      ...appData.gameData.animationGroups,
+    ];
+  }
+
+  void _ensureMainAnimationGroup(AppData appData) {
+    final List<GameListGroup> groups = appData.gameData.animationGroups;
+    final int mainIndex =
+        groups.indexWhere((group) => group.id == GameListGroup.mainId);
+    if (mainIndex == -1) {
+      groups.insert(0, GameListGroup.main());
+      return;
+    }
+    final GameListGroup mainGroup = groups[mainIndex];
+    final String normalizedName = mainGroup.name.trim().isEmpty
+        ? GameListGroup.defaultMainName
+        : mainGroup.name.trim();
+    if (mainGroup.name != normalizedName) {
+      mainGroup.name = normalizedName;
+    }
+  }
+
+  String _effectiveAnimationGroupId(AppData appData, GameAnimation animation) {
+    final String groupId = animation.groupId.trim();
+    final Set<String> validGroupIds =
+        _animationGroups(appData).map((group) => group.id).toSet();
+    if (groupId.isNotEmpty && validGroupIds.contains(groupId)) {
+      return groupId;
+    }
+    return GameListGroup.mainId;
+  }
+
+  int _animationUsageCount(AppData appData, String animationId) {
+    int count = 0;
+    for (final level in appData.gameData.levels) {
+      for (final sprite in level.sprites) {
+        if (sprite.animationId == animationId) {
+          count += 1;
+        }
+      }
+    }
+    return count;
+  }
+
+  void _applyAnimationMediaToSprites(
+    AppData appData,
+    GameAnimation animation,
+  ) {
+    final GameMediaAsset? media =
+        appData.mediaAssetByFileName(animation.mediaFile);
+    for (final level in appData.gameData.levels) {
+      for (final sprite in level.sprites) {
+        if (sprite.animationId != animation.id) {
+          continue;
+        }
+        sprite.imageFile = animation.mediaFile;
+        if (media != null && media.tileWidth > 0 && media.tileHeight > 0) {
+          sprite.spriteWidth = media.tileWidth;
+          sprite.spriteHeight = media.tileHeight;
+        }
+      }
+    }
+  }
+
+  Future<void> _applyAnimationChange(
+    AppData appData,
+    _AnimationDialogData value, {
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel:
+          groupedUndo ? 'animation-inline-live-edit' : 'animation-inline-edit',
+      undoGroupKey: groupedUndo ? _undoGroupKey : null,
+      mutate: () {
+        _ensureMainAnimationGroup(appData);
+        final List<GameAnimation> animations = appData.gameData.animations;
+        final int index = widget.animationIndex;
+        if (index < 0 || index >= animations.length) {
+          return;
+        }
+        final GameAnimation previous = animations[index];
+        final Set<String> validGroupIds =
+            appData.gameData.animationGroups.map((group) => group.id).toSet();
+        final String targetGroupId = validGroupIds.contains(value.groupId)
+            ? value.groupId
+            : GameListGroup.mainId;
+        final GameAnimation updated = GameAnimation(
+          id: previous.id,
+          name: value.name,
+          mediaFile: value.mediaFile,
+          startFrame: value.startFrame,
+          endFrame: value.endFrame,
+          fps: value.fps,
+          loop: value.loop,
+          groupId: targetGroupId,
+          anchorX: previous.anchorX,
+          anchorY: previous.anchorY,
+          anchorColor: previous.anchorColor,
+          hitBoxes: previous.hitBoxes,
+        );
+        animations[index] = updated;
+        _applyAnimationMediaToSprites(appData, updated);
+        appData.selectedAnimation = index;
+        appData.animationSelectionStartFrame = updated.startFrame;
+        appData.animationSelectionEndFrame = updated.endFrame;
+      },
+    );
+  }
+
+  Future<void> _confirmAndDeleteAnimation(AppData appData, int index) async {
+    final List<GameAnimation> animations = appData.gameData.animations;
+    if (index < 0 || index >= animations.length) {
+      return;
+    }
+    final GameAnimation animation = animations[index];
+    final int usageCount = _animationUsageCount(appData, animation.id);
+    if (usageCount > 0) {
+      appData.projectStatusMessage =
+          'Animation "${animation.name}" is in use by $usageCount sprite(s).';
+      appData.update();
+      return;
+    }
+
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: 'Delete animation',
+      message: 'Delete "${animation.name}"? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    await appData.runProjectMutation(
+      debugLabel: 'animation-delete',
+      mutate: () {
+        if (index < 0 || index >= animations.length) {
+          return;
+        }
+        animations.removeAt(index);
+        appData.selectedAnimation = -1;
+        LayoutUtils.clearAnimationFrameSelection(appData);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppData appData = Provider.of<AppData>(context);
+    final List<GameAnimation> animations = appData.gameData.animations;
+    final int index = widget.animationIndex;
+    if (index < 0 || index >= animations.length) {
+      return const SizedBox.shrink();
+    }
+    final GameAnimation animation = animations[index];
+    final List<GameMediaAsset> sourceAssets = _animationSourceAssets(appData);
+    final int usageCount = _animationUsageCount(appData, animation.id);
+
+    return _AnimationFormDialog(
+      title: 'Edit animation',
+      confirmLabel: 'Save',
+      initialData: _AnimationDialogData(
+        name: animation.name,
+        mediaFile: animation.mediaFile,
+        startFrame: animation.startFrame,
+        endFrame: animation.endFrame,
+        fps: animation.fps,
+        loop: animation.loop,
+        groupId: _effectiveAnimationGroupId(appData, animation),
+      ),
+      sourceAssets: sourceAssets,
+      groupOptions: _animationGroups(appData),
+      showGroupSelector: true,
+      groupFieldLabel: 'Animation Group',
+      liveEdit: true,
+      minWidth: 280,
+      maxWidth: 360,
+      onLiveChanged: (value) async {
+        await _applyAnimationChange(appData, value, groupedUndo: true);
+      },
+      onConfirm: (value) {
+        unawaited(_applyAnimationChange(appData, value, groupedUndo: false));
+      },
+      onCancel: () {
+        appData.selectedAnimation = -1;
+        LayoutUtils.clearAnimationFrameSelection(appData);
+        appData.update();
+      },
+      onDelete: usageCount == 0
+          ? () {
+              unawaited(_confirmAndDeleteAnimation(appData, index));
+            }
+          : null,
+    );
+  }
+}
+
 class _AnimationFormDialog extends StatefulWidget {
   const _AnimationFormDialog({
     required this.title,
@@ -1374,6 +1437,8 @@ class _AnimationFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 400,
+    this.maxWidth = 540,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1389,6 +1454,8 @@ class _AnimationFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_AnimationDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_AnimationDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1412,6 +1479,25 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
   late int _selectedAssetIndex = _resolveInitialAssetIndex();
   late String _selectedGroupId = _resolveInitialGroupId();
   EditSession<_AnimationDialogData>? _editSession;
+
+  void _setControllerText(TextEditingController controller, String value) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
+  void _setFpsFromNumericValue(double value) {
+    final String next = value.toStringAsFixed(1);
+    if (_fpsController.text != next) {
+      _setControllerText(_fpsController, next);
+    }
+    setState(() {});
+    _onInputChanged();
+  }
 
   int _resolveInitialAssetIndex() {
     final String current = widget.initialData.mediaFile;
@@ -1543,6 +1629,29 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
   }
 
   @override
+  void didUpdateWidget(covariant _AnimationFormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialData.startFrame != widget.initialData.startFrame) {
+      _setControllerText(
+        _startFrameController,
+        widget.initialData.startFrame.toString(),
+      );
+    }
+    if (oldWidget.initialData.endFrame != widget.initialData.endFrame) {
+      _setControllerText(
+        _endFrameController,
+        widget.initialData.endFrame.toString(),
+      );
+    }
+    if ((oldWidget.initialData.fps - widget.initialData.fps).abs() > 0.0001) {
+      _setControllerText(
+        _fpsController,
+        widget.initialData.fps.toStringAsFixed(1),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     if (_editSession != null) {
       unawaited(_editSession!.flush());
@@ -1586,8 +1695,8 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 400,
-      maxWidth: 540,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1647,84 +1756,75 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
           SizedBox(height: spacing.sm),
           Row(
             children: [
-              Flexible(
-                flex: 3,
-                child: Padding(
-                  padding: EdgeInsets.only(right: spacing.xs),
-                  child: EditorLabeledField(
-                    label: 'Start Frame',
-                    child: CDKFieldText(
-                      placeholder: 'Start',
-                      controller: _startFrameController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) {
-                        setState(() {});
-                        _onInputChanged();
-                      },
-                    ),
+              Expanded(
+                child: EditorLabeledField(
+                  label: 'Start Frame',
+                  child: CDKFieldText(
+                    placeholder: 'Start',
+                    controller: _startFrameController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) {
+                      setState(() {});
+                      _onInputChanged();
+                    },
                   ),
                 ),
               ),
-              Flexible(
-                flex: 3,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                  child: EditorLabeledField(
-                    label: 'End Frame',
-                    child: CDKFieldText(
-                      placeholder: 'End',
-                      controller: _endFrameController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) {
-                        setState(() {});
-                        _onInputChanged();
-                      },
-                    ),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child: EditorLabeledField(
+                  label: 'End Frame',
+                  child: CDKFieldText(
+                    placeholder: 'End',
+                    controller: _endFrameController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) {
+                      setState(() {});
+                      _onInputChanged();
+                    },
                   ),
                 ),
               ),
-              Flexible(
-                flex: 3,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: spacing.xs),
-                  child: EditorLabeledField(
-                    label: 'FPS',
-                    child: CDKFieldText(
-                      placeholder: 'Frames per second',
-                      controller: _fpsController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      onChanged: (_) {
-                        setState(() {});
-                        _onInputChanged();
-                      },
-                    ),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: EditorLabeledField(
+                  label: 'FPS',
+                  child: CDKFieldNumeric(
+                    value: _parseFps(_fpsController.text) ??
+                        widget.initialData.fps,
+                    min: 0.1,
+                    max: 999.0,
+                    increment: 0.5,
+                    decimals: 1,
+                    onTextChanged: _setFpsFromNumericValue,
+                    onValueChanged: _setFpsFromNumericValue,
                   ),
                 ),
               ),
-              Flexible(
-                flex: 1,
-                child: Padding(
-                  padding: EdgeInsets.only(left: spacing.xs),
-                  child: EditorLabeledField(
-                    label: 'Loop',
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: 39,
-                        height: 24,
-                        child: FittedBox(
-                          fit: BoxFit.fill,
-                          child: CupertinoSwitch(
-                            value: _loop,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _loop = value;
-                              });
-                              _onInputChanged();
-                            },
-                          ),
+              SizedBox(width: spacing.sm),
+              SizedBox(
+                width: 74,
+                child: EditorLabeledField(
+                  label: 'Loop',
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 39,
+                      height: 24,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _loop,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _loop = value;
+                            });
+                            _onInputChanged();
+                          },
                         ),
                       ),
                     ),
