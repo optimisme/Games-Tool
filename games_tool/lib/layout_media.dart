@@ -1030,7 +1030,7 @@ class _LayoutMediaState extends State<LayoutMedia> {
           child: Row(
             children: [
               CDKText(
-                'Game Media',
+                'Media',
                 role: CDKTextRole.title,
                 style: sectionTitleStyle,
               ),
