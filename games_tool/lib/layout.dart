@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
+import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter/services.dart'
     show
         HardwareKeyboard,
@@ -19,8 +22,14 @@ import 'game_animation.dart';
 import 'game_animation_hit_box.dart';
 import 'game_layer.dart';
 import 'game_level.dart';
+import 'game_list_group.dart';
+import 'game_media_asset.dart';
+import 'game_media_group.dart';
+import 'game_path.dart';
+import 'game_path_binding.dart';
 import 'game_sprite.dart';
 import 'game_zone.dart';
+import 'game_zone_group.dart';
 import 'layout_animation_rigs.dart';
 import 'layout_animations.dart';
 import 'layout_layers.dart';
@@ -44,6 +53,7 @@ part 'layout_part_sprite_selection.dart';
 part 'layout_part_viewport_tools.dart';
 part 'layout_part_animation_rig_ui.dart';
 part 'layout_part_gestures.dart';
+part 'layout_part_clipboard.dart';
 
 class Layout extends StatefulWidget {
   const Layout({super.key, required this.title});
@@ -135,6 +145,10 @@ class _LayoutState extends State<Layout> {
   Offset? _spritesMarqueeStartLocal;
   Offset? _spritesMarqueeCurrentLocal;
   Set<int> _marqueeBaseSpriteSelection = <int>{};
+  _EditorClipboardPayload? _clipboardPayload;
+  String _clipboardStatusMessage = '';
+  bool _clipboardStatusIsError = false;
+  Timer? _clipboardStatusTimer;
   final FocusNode _focusNode = FocusNode();
   _LayersCanvasTool _layersCanvasTool = _LayersCanvasTool.hand;
   List<String> sections = [
@@ -177,6 +191,13 @@ class _LayoutState extends State<Layout> {
     });
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) {
+      return;
+    }
+    setState(fn);
+  }
+
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
@@ -185,6 +206,7 @@ class _LayoutState extends State<Layout> {
       unawaited(appData.flushPendingAutosave());
     } catch (_) {}
     _timer?.cancel();
+    _clipboardStatusTimer?.cancel();
     _focusNode.dispose();
     super.dispose();
   }
@@ -401,7 +423,17 @@ class _LayoutState extends State<Layout> {
           final bool meta = HardwareKeyboard.instance.isMetaPressed;
           final bool ctrl = HardwareKeyboard.instance.isControlPressed;
           final bool shift = HardwareKeyboard.instance.isShiftPressed;
+          final bool isC = event.logicalKey == LogicalKeyboardKey.keyC;
+          final bool isV = event.logicalKey == LogicalKeyboardKey.keyV;
           final bool isZ = event.logicalKey == LogicalKeyboardKey.keyZ;
+          if ((meta || ctrl) && !shift && isC && !_isTextInputFocused()) {
+            _handleCopyShortcut(appData);
+            return KeyEventResult.handled;
+          }
+          if ((meta || ctrl) && !shift && isV && !_isTextInputFocused()) {
+            unawaited(_handlePasteShortcut(appData));
+            return KeyEventResult.handled;
+          }
           if (!(meta || ctrl) || !isZ) return KeyEventResult.ignored;
           if (shift) {
             appData.redo();
@@ -626,6 +658,10 @@ class _LayoutState extends State<Layout> {
                           ),
                           Expanded(
                             child: _getSelectedLayout(appData),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                            child: _buildClipboardStatusRow(appData, context),
                           ),
                         ],
                       ),
