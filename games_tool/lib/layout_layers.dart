@@ -1822,12 +1822,6 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                           _onInputChanged();
                         },
                       ),
-                    SizedBox(width: spacing.sm),
-                    CDKText(
-                      'Tile size: $tileWidth×$tileHeight px',
-                      role: CDKTextRole.caption,
-                      color: cdkColors.colorText,
-                    ),
                   ],
                 ),
                 if (!_useSelectedAsset) ...[
@@ -1839,6 +1833,15 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                   ),
                 ],
               ],
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          EditorLabeledField(
+            label: 'Tile size',
+            child: CDKText(
+              '$tileWidth×$tileHeight px',
+              role: CDKTextRole.caption,
+              color: cdkColors.colorText,
             ),
           ),
           SizedBox(height: spacing.xs),
