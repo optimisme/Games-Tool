@@ -242,6 +242,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Level Group',
         existingNames: _levelGroups(appData).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -765,7 +766,19 @@ class LayoutLevelsState extends State<LayoutLevels> {
                 onPressed: () async {
                   await _promptAndAddLevel();
                 },
-                child: const Text('+ Add Level'),
+                child: const Text('+ Level'),
+              ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -791,30 +804,10 @@ class LayoutLevelsState extends State<LayoutLevels> {
                       ],
                       child: ReorderableListView.builder(
                         buildDefaultDragHandles: false,
-                        itemCount: levelRows.length + 1,
+                        itemCount: levelRows.length,
                         onReorder: (oldIndex, newIndex) =>
                             _onReorder(appData, levelRows, oldIndex, newIndex),
                         itemBuilder: (context, index) {
-                          if (index == levelRows.length) {
-                            return Container(
-                              key: const ValueKey('level-add-group-row'),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 6,
-                                horizontal: 8,
-                              ),
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: CDKButton(
-                                  key: _addGroupAnchorKey,
-                                  style: CDKButtonStyle.normal,
-                                  onPressed: () async {
-                                    await _showAddGroupPopover(appData);
-                                  },
-                                  child: const Text('+ Add Level Group'),
-                                ),
-                              ),
-                            );
-                          }
                           final GroupedListRow<GameListGroup, GameLevel> row =
                               levelRows[index];
                           if (row.isGroup) {

@@ -351,6 +351,7 @@ class _LayoutMediaState extends State<LayoutMedia> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Media Group',
         existingNames: _mediaGroups(appData).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -1044,7 +1045,19 @@ class _LayoutMediaState extends State<LayoutMedia> {
                 onPressed: () async {
                   await _pickAndPromptAddMedia();
                 },
-                child: const Text('+ Add Media'),
+                child: const Text('+ Media'),
+              ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -1069,30 +1082,10 @@ class _LayoutMediaState extends State<LayoutMedia> {
                     ],
                     child: ReorderableListView.builder(
                       buildDefaultDragHandles: false,
-                      itemCount: mediaRows.length + 1,
+                      itemCount: mediaRows.length,
                       onReorder: (oldIndex, newIndex) =>
                           _onReorder(appData, mediaRows, oldIndex, newIndex),
                       itemBuilder: (context, index) {
-                        if (index == mediaRows.length) {
-                          return Container(
-                            key: const ValueKey('media-add-group-row'),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                              horizontal: 8,
-                            ),
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: CDKButton(
-                                key: _addGroupAnchorKey,
-                                style: CDKButtonStyle.normal,
-                                onPressed: () async {
-                                  await _showAddGroupPopover(appData);
-                                },
-                                child: const Text('+ Add Media Group'),
-                              ),
-                            ),
-                          );
-                        }
                         final _MediaListRow row = mediaRows[index];
                         if (row.isGroup) {
                           final GameMediaGroup group = row.group!;
