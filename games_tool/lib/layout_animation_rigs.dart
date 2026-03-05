@@ -254,18 +254,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     );
   }
 
-  String? _selectedFramesLabel(List<int> selectedFrames) {
-    if (selectedFrames.isEmpty) {
-      return null;
-    }
-    final List<int> sorted = selectedFrames.toSet().toList(growable: false)
-      ..sort();
-    if (sorted.length == 1) {
-      return 'Frame selected: ${sorted.first}';
-    }
-    return 'Frames selected: ${sorted.join(',')}';
-  }
-
   String _selectedFramesValueLabel(List<int> selectedFrames) {
     if (selectedFrames.isEmpty) {
       return 'None';
@@ -844,27 +832,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     _syncPreviewSelection(selectedAnimation);
     final bool hasSelectedAnimation = selectedAnimation != null;
     final bool isPreviewPlaying = hasSelectedAnimation && _previewPlaying;
-    final GameAnimationFrameRig? selectedRig = selectedAnimation == null
-        ? null
-        : _activeRig(
-            appData,
-            selectedAnimation,
-            writeBack: true,
-          );
-    final List<int> selectedFrames = selectedAnimation == null
-        ? const <int>[]
-        : _selectedRigFrames(
-            appData,
-            selectedAnimation,
-            writeBack: true,
-          );
-    final String? selectedFramesLabel = _selectedFramesLabel(selectedFrames);
-    final GameAnimationHitBox? selectedHitBox = selectedAnimation != null &&
-            selectedRig != null &&
-            appData.selectedAnimationHitBox >= 0 &&
-            appData.selectedAnimationHitBox < selectedRig.hitBoxes.length
-        ? selectedRig.hitBoxes[appData.selectedAnimationHitBox]
-        : null;
     final List<GroupedListRow<GameListGroup, GameAnimation>> rows =
         _buildAnimationRows(appData);
 
@@ -887,39 +854,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
               ),
             ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-          child: selectedAnimation == null
-              ? const CDKText(
-                  'Select an animation to edit anchor point and hit boxes.',
-                  role: CDKTextRole.caption,
-                  secondary: true,
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (selectedFramesLabel != null)
-                      CDKText(
-                        selectedFramesLabel,
-                        role: CDKTextRole.caption,
-                        secondary: true,
-                      ),
-                    if (selectedFramesLabel != null)
-                      SizedBox(height: spacing.xs),
-                    SizedBox(
-                      height: 18,
-                      child: CDKText(
-                        selectedHitBox == null
-                            ? 'Anchor tool active. Select or create a hit box to drag/resize it on canvas.'
-                            : 'Hit box: ${selectedHitBox.name} (${selectedHitBox.width.toStringAsFixed(2)}x${selectedHitBox.height.toStringAsFixed(2)})',
-                        role: CDKTextRole.caption,
-                        secondary: true,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
