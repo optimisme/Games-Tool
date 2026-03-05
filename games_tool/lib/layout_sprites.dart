@@ -1610,7 +1610,6 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    final GameAnimation? animation = _selectedAnimation;
     final GameMediaAsset? media = _selectedMedia;
     final List<String> animationOptions = widget.animations
         .map((a) => a.name.trim().isNotEmpty ? a.name : a.id)
@@ -1785,19 +1784,16 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                       secondary: true,
                     ),
                   ),
-                if (animation != null) ...[
-                  SizedBox(width: spacing.sm),
-                  Flexible(
-                    child: CDKText(
-                      'Frame size: ${(media?.tileWidth ?? widget.initialData.width)}×${(media?.tileHeight ?? widget.initialData.height)} px',
-                      role: CDKTextRole.caption,
-                      color: cdkColors.colorText,
-                      textAlign: TextAlign.right,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
               ],
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          EditorLabeledField(
+            label: 'Frame size',
+            child: CDKText(
+              '${(media?.tileWidth ?? widget.initialData.width)}×${(media?.tileHeight ?? widget.initialData.height)} px',
+              role: CDKTextRole.caption,
+              color: cdkColors.colorText,
             ),
           ),
           SizedBox(height: spacing.md),

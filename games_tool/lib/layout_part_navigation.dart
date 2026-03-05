@@ -203,7 +203,8 @@ extension _LayoutNavigation on _LayoutState {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final double clipboardWidth =
-                (constraints.maxWidth * 0.42).clamp(280.0, 460.0);
+                ((constraints.maxWidth * 0.42).clamp(280.0, 460.0) - 100.0)
+                    .clamp(180.0, 360.0);
             return Row(
               children: [
                 Expanded(
