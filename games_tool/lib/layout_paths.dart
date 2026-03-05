@@ -1671,6 +1671,55 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     );
   }
 
+  bool _pointsMatchDraft(List<GamePathPoint> points) {
+    if (points.length != _draftPoints.length) return false;
+    for (int i = 0; i < points.length; i++) {
+      final int dx = int.tryParse(_draftPoints[i].xController.text.trim()) ?? 0;
+      final int dy = int.tryParse(_draftPoints[i].yController.text.trim()) ?? 0;
+      if (dx != points[i].x || dy != points[i].y) return false;
+    }
+    return true;
+  }
+
+  @override
+  void didUpdateWidget(_PathEditPopover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final List<GamePathPoint> oldPoints = oldWidget.initialData.points;
+    final List<GamePathPoint> newPoints = widget.initialData.points;
+    final bool externalChange = !_pointsListEqual(oldPoints, newPoints);
+    if (!externalChange) return;
+    // Only sync if the user hasn't modified the draft points beyond what was
+    // previously persisted (i.e. draft still matches the old initialData).
+    if (!_pointsMatchDraft(oldPoints)) return;
+    setState(() {
+      // Dispose extra drafts if count shrank.
+      while (_draftPoints.length > newPoints.length) {
+        _draftPoints.removeLast().dispose();
+      }
+      // Update existing or add new drafts.
+      for (int i = 0; i < newPoints.length; i++) {
+        if (i < _draftPoints.length) {
+          _draftPoints[i].xController.text = newPoints[i].x.toString();
+          _draftPoints[i].yController.text = newPoints[i].y.toString();
+        } else {
+          _draftPoints.add(_PathPointDraft.fromPoint(newPoints[i]));
+        }
+      }
+    });
+    _editSession?.resetToValue(_buildData());
+  }
+
+  static bool _pointsListEqual(
+    List<GamePathPoint> a,
+    List<GamePathPoint> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].x != b[i].x || a[i].y != b[i].y) return false;
+    }
+    return true;
+  }
+
   @override
   void dispose() {
     if (_editSession != null) {

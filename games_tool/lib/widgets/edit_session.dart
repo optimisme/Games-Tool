@@ -36,6 +36,16 @@ class EditSession<T> {
     _schedule();
   }
 
+  /// Resets both current and last-persisted to [value], cancelling any pending
+  /// debounce. Use when external data changes and the session should treat the
+  /// new value as the already-persisted baseline.
+  void resetToValue(T value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _current = value;
+    _lastPersisted = value;
+  }
+
   Future<void> flush() async {
     _debounceTimer?.cancel();
     _debounceTimer = null;
