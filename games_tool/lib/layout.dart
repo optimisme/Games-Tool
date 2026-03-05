@@ -79,6 +79,8 @@ class _LayoutState extends State<Layout> {
       GlobalKey<LayoutZonesState>();
   final GlobalKey<LayoutViewportState> layoutViewportKey =
       GlobalKey<LayoutViewportState>();
+  final GlobalKey<LayoutLayersState> layoutLayersKey =
+      GlobalKey<LayoutLayersState>();
   final GlobalKey<LayoutLevelsState> layoutLevelsKey =
       GlobalKey<LayoutLevelsState>();
   final GlobalKey<LayoutAnimationRigsState> layoutAnimationRigsKey =
@@ -389,7 +391,6 @@ class _LayoutState extends State<Layout> {
         return appData.selectedLevel >= 0 &&
             appData.selectedLevel < appData.gameData.levels.length;
       case 'layers':
-      case 'tilemap':
         if (appData.selectedLevel < 0 ||
             appData.selectedLevel >= appData.gameData.levels.length) {
           return false;
@@ -405,6 +406,9 @@ class _LayoutState extends State<Layout> {
           selected.add(appData.selectedLayer);
         }
         return selected.length == 1;
+      case 'tilemap':
+      case 'viewport':
+        return false;
       case 'zones':
         if (appData.selectedLevel < 0 ||
             appData.selectedLevel >= appData.gameData.levels.length) {
@@ -473,13 +477,33 @@ class _LayoutState extends State<Layout> {
           animationIndex: index,
         );
       case 'animation_rigs':
-        final LayoutAnimationRigsState? state = layoutAnimationRigsKey.currentState;
+        final LayoutAnimationRigsState? state =
+            layoutAnimationRigsKey.currentState;
         if (state == null) {
           return const SizedBox.shrink();
         }
         return state.buildEditToolbarContent(appData);
       case 'levels':
         final LayoutLevelsState? state = layoutLevelsKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      case 'layers':
+      case 'tilemap':
+        final LayoutLayersState? state = layoutLayersKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      case 'zones':
+        final LayoutZonesState? state = layoutZonesKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      case 'sprites':
+        final LayoutSpritesState? state = layoutSpritesKey.currentState;
         if (state == null) {
           return const SizedBox.shrink();
         }
@@ -823,8 +847,7 @@ class _LayoutState extends State<Layout> {
                                                 primary: false,
                                                 padding:
                                                     const EdgeInsets.all(8),
-                                                child:
-                                                    _buildEditToolbarContent(
+                                                child: _buildEditToolbarContent(
                                                   appData,
                                                 ),
                                               )

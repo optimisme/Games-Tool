@@ -255,7 +255,7 @@ extension _LayoutNavigation on _LayoutState {
       case 'levels':
         return LayoutLevels(key: layoutLevelsKey);
       case 'layers':
-        return const LayoutLayers();
+        return LayoutLayers(key: layoutLayersKey);
       case 'tilemap':
         return const LayoutTilemaps();
       case 'zones':

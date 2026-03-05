@@ -51,12 +51,13 @@ class LayoutZones extends StatefulWidget {
 
 class LayoutZonesState extends State<LayoutZones> {
   final ScrollController scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _zoneTypesAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
+  String _inlineEditUndoGroupKey = '';
+  int _inlineEditUndoZoneIndex = -1;
 
   void updateForm(AppData appData) {
     if (mounted) {
@@ -833,23 +834,73 @@ class LayoutZonesState extends State<LayoutZones> {
     );
   }
 
-  Future<void> _promptAndEditZone(int index, GlobalKey anchorKey) async {
-    final appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) {
-      return;
+  int _inlineSelectedZoneIndex(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return -1;
     }
-    final zones = appData.gameData.levels[appData.selectedLevel].zones;
+    final int zoneCount =
+        appData.gameData.levels[appData.selectedLevel].zones.length;
+    if (zoneCount <= 0) {
+      return -1;
+    }
+    if (appData.selectedZone >= 0 && appData.selectedZone < zoneCount) {
+      return appData.selectedZone;
+    }
+    final Set<int> selected = appData.selectedZoneIndices
+        .where((index) => index >= 0 && index < zoneCount)
+        .toSet();
+    if (selected.length != 1) {
+      return -1;
+    }
+    return selected.first;
+  }
+
+  String _inlineUndoGroupKeyForZone(int index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty &&
+        _inlineEditUndoZoneIndex == index) {
+      return _inlineEditUndoGroupKey;
+    }
+    _inlineEditUndoZoneIndex = index;
+    _inlineEditUndoGroupKey =
+        'zone-inline-$index-${DateTime.now().microsecondsSinceEpoch}';
+    return _inlineEditUndoGroupKey;
+  }
+
+  Future<void> _applyZoneChange(
+    AppData appData, {
+    required int index,
+    required _ZoneDialogData value,
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel: groupedUndo ? 'zone-inline-live-edit' : 'zone-inline-edit',
+      undoGroupKey: groupedUndo ? _inlineUndoGroupKeyForZone(index) : null,
+      mutate: () {
+        _updateZone(appData: appData, index: index, data: value);
+      },
+    );
+  }
+
+  Widget buildEditToolbarContent(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return const SizedBox.shrink();
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    final int index = _inlineSelectedZoneIndex(appData);
+    if (index < 0 || index >= level.zones.length) {
+      return const SizedBox.shrink();
+    }
     final List<GameZoneType> zoneTypes = _zoneTypes(appData);
-    if (index < 0 || index >= zones.length || zoneTypes.isEmpty) {
-      return;
+    if (zoneTypes.isEmpty) {
+      return const SizedBox.shrink();
     }
-    final zone = zones[index];
+    final GameZone zone = level.zones[index];
     final bool typeExists = zoneTypes.any((type) => type.name == zone.type);
-    final String undoGroupKey =
-        'zone-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-    await _promptZoneData(
-      title: "Edit zone",
-      confirmLabel: "Save",
+    return _ZoneFormDialog(
+      title: 'Edit zone',
+      confirmLabel: 'Save',
       initialData: _ZoneDialogData(
         name: zone.name,
         type: typeExists ? zone.type : zoneTypes.first.name,
@@ -858,28 +909,39 @@ class LayoutZonesState extends State<LayoutZones> {
         y: zone.y,
         width: zone.width,
         height: zone.height,
-        groupId: _effectiveZoneGroupId(
-          appData.gameData.levels[appData.selectedLevel],
-          zone,
-        ),
+        groupId: _effectiveZoneGroupId(level, zone),
       ),
       zoneTypes: zoneTypes,
-      groupOptions: _zoneGroups(
-        appData.gameData.levels[appData.selectedLevel],
-      ),
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
+      groupOptions: _zoneGroups(level),
+      showGroupSelector: false,
+      groupFieldLabel: 'Zone Group',
       liveEdit: true,
+      minWidth: 280,
+      maxWidth: 340,
       onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'zone-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateZone(appData: appData, index: index, data: value);
-          },
+        await _applyZoneChange(
+          appData,
+          index: index,
+          value: value,
+          groupedUndo: true,
         );
       },
-      onDelete: () => _confirmAndDeleteZone(index),
+      onConfirm: (value) {
+        unawaited(
+          _applyZoneChange(
+            appData,
+            index: index,
+            value: value,
+            groupedUndo: false,
+          ),
+        );
+      },
+      onCancel: () {
+        _selectZone(appData, index, true);
+      },
+      onDelete: () {
+        unawaited(_confirmAndDeleteZone(index));
+      },
     );
   }
 
@@ -1415,8 +1477,6 @@ class LayoutZonesState extends State<LayoutZones> {
                   final bool isSelected =
                       multiSelectedZoneIndices.contains(zoneIndex) ||
                           zoneIndex == appData.selectedZone;
-                  final bool isPrimarySelected =
-                      zoneIndex == appData.selectedZone;
                   final GameZone zone = row.zone!;
                   final String zoneColorName = _zoneColorName(appData, zone);
                   final bool hiddenByCollapse = row.hiddenByCollapse;
@@ -1483,34 +1543,6 @@ class LayoutZonesState extends State<LayoutZones> {
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 32,
-                                    height: 20,
-                                    child: isPrimarySelected
-                                        ? MouseRegion(
-                                            cursor: SystemMouseCursors.click,
-                                            child: CupertinoButton(
-                                              key: _selectedEditAnchorKey,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                              ),
-                                              minimumSize: const Size(20, 20),
-                                              onPressed: () async {
-                                                await _promptAndEditZone(
-                                                  zoneIndex,
-                                                  _selectedEditAnchorKey,
-                                                );
-                                              },
-                                              child: Icon(
-                                                CupertinoIcons.ellipsis_circle,
-                                                size: 16,
-                                                color: cdkColors.colorText,
-                                              ),
-                                            ),
-                                          )
-                                        : const SizedBox.shrink(),
                                   ),
                                   ReorderableDragStartListener(
                                     index: index,
@@ -1624,6 +1656,8 @@ class _ZoneFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 360,
+    this.maxWidth = 500,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1639,6 +1673,8 @@ class _ZoneFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_ZoneDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_ZoneDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1671,6 +1707,28 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   late String _selectedType = _resolveInitialType();
   late String _selectedGroupId = _resolveInitialGroupId();
   EditSession<_ZoneDialogData>? _editSession;
+
+  bool _didInitialDataChange(_ZoneDialogData previous, _ZoneDialogData next) {
+    return previous.name != next.name ||
+        previous.type != next.type ||
+        previous.gameplayData != next.gameplayData ||
+        previous.x != next.x ||
+        previous.y != next.y ||
+        previous.width != next.width ||
+        previous.height != next.height ||
+        previous.groupId != next.groupId;
+  }
+
+  void _setControllerTextIfNeeded(
+      TextEditingController controller, String value) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
 
   String _resolveInitialType() {
     if (widget.zoneTypes.any((type) => type.name == widget.initialData.type)) {
@@ -1808,6 +1866,55 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   }
 
   @override
+  void didUpdateWidget(covariant _ZoneFormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final bool initialDataChanged =
+        _didInitialDataChange(oldWidget.initialData, widget.initialData);
+    bool shouldRebuild = false;
+
+    if (initialDataChanged) {
+      _setControllerTextIfNeeded(_nameController, widget.initialData.name);
+      _setControllerTextIfNeeded(
+        _gameplayDataController,
+        widget.initialData.gameplayData,
+      );
+      _setControllerTextIfNeeded(_xController, widget.initialData.x.toString());
+      _setControllerTextIfNeeded(_yController, widget.initialData.y.toString());
+      _setControllerTextIfNeeded(
+        _widthController,
+        widget.initialData.width.toString(),
+      );
+      _setControllerTextIfNeeded(
+        _heightController,
+        widget.initialData.height.toString(),
+      );
+    }
+
+    if (initialDataChanged ||
+        !widget.zoneTypes.any((t) => t.name == _selectedType)) {
+      final String nextType = _resolveInitialType();
+      if (_selectedType != nextType) {
+        _selectedType = nextType;
+        shouldRebuild = true;
+      }
+    }
+
+    if (initialDataChanged ||
+        !widget.groupOptions.any((group) => group.id == _selectedGroupId)) {
+      final String nextGroupId = _resolveInitialGroupId();
+      if (_selectedGroupId != nextGroupId) {
+        _selectedGroupId = nextGroupId;
+        shouldRebuild = true;
+      }
+    }
+
+    if (shouldRebuild && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
     if (_editSession != null) {
       unawaited(_editSession!.flush());
@@ -1849,8 +1956,8 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 360,
-      maxWidth: 500,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1954,7 +2061,11 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                   ),
                 ),
               ),
-              SizedBox(width: spacing.sm),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          Row(
+            children: [
               Expanded(
                 child: EditorLabeledField(
                   label: 'Width (px)',

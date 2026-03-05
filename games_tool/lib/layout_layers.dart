@@ -26,11 +26,12 @@ class LayoutLayers extends StatefulWidget {
 
 class LayoutLayersState extends State<LayoutLayers> {
   final ScrollController scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
+  String _inlineEditUndoGroupKey = '';
+  int _inlineEditUndoLayerIndex = -1;
 
   String _formatDepthDisplacement(double depth) {
     if (depth == depth.roundToDouble()) {
@@ -586,29 +587,71 @@ class LayoutLayersState extends State<LayoutLayers> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _promptAndEditLayer(
-    int index,
-    GlobalKey anchorKey,
-    List<GameMediaAsset> tilesetAssets,
-  ) async {
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) {
-      return;
+  int _inlineSelectedLayerIndex(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return -1;
     }
-
-    final List<GameLayer> layers =
-        appData.gameData.levels[appData.selectedLevel].layers;
-    if (index < 0 || index >= layers.length) {
-      return;
+    final int layerCount =
+        appData.gameData.levels[appData.selectedLevel].layers.length;
+    if (layerCount <= 0) {
+      return -1;
     }
+    if (appData.selectedLayer >= 0 && appData.selectedLayer < layerCount) {
+      return appData.selectedLayer;
+    }
+    final Set<int> selected = appData.selectedLayerIndices
+        .where((index) => index >= 0 && index < layerCount)
+        .toSet();
+    if (selected.length != 1) {
+      return -1;
+    }
+    return selected.first;
+  }
 
-    final GameLayer layer = layers[index];
+  String _inlineUndoGroupKeyForLayer(int index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty &&
+        _inlineEditUndoLayerIndex == index) {
+      return _inlineEditUndoGroupKey;
+    }
+    _inlineEditUndoLayerIndex = index;
+    _inlineEditUndoGroupKey =
+        'layer-inline-$index-${DateTime.now().microsecondsSinceEpoch}';
+    return _inlineEditUndoGroupKey;
+  }
+
+  Future<void> _applyLayerChange(
+    AppData appData, {
+    required int index,
+    required _LayerDialogData value,
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel: groupedUndo ? 'layer-inline-live-edit' : 'layer-inline-edit',
+      undoGroupKey: groupedUndo ? _inlineUndoGroupKeyForLayer(index) : null,
+      mutate: () {
+        _updateLayer(appData: appData, index: index, data: value);
+      },
+    );
+  }
+
+  Widget buildEditToolbarContent(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return const SizedBox.shrink();
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    final int index = _inlineSelectedLayerIndex(appData);
+    if (index < 0 || index >= level.layers.length) {
+      return const SizedBox.shrink();
+    }
+    final List<GameMediaAsset> tilesetAssets = appData.gameData.mediaAssets
+        .where(_isLayerTilesheetAsset)
+        .toList(growable: false);
+    final GameLayer layer = level.layers[index];
     final int mapWidth = layer.tileMap.isEmpty ? 0 : layer.tileMap.first.length;
     final int mapHeight = layer.tileMap.length;
-    final String undoGroupKey =
-        'layer-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-
-    await _promptLayerData(
+    return _LayerFormDialog(
       title: 'Edit layer',
       confirmLabel: 'Save',
       initialData: _LayerDialogData(
@@ -623,28 +666,39 @@ class LayoutLayersState extends State<LayoutLayers> {
         tilemapWidth: mapWidth,
         tilemapHeight: mapHeight,
         visible: layer.visible,
-        groupId: _effectiveLayerGroupId(
-          appData.gameData.levels[appData.selectedLevel],
-          layer,
-        ),
+        groupId: _effectiveLayerGroupId(level, layer),
       ),
       tilesetAssets: tilesetAssets,
-      groupOptions: _layerGroups(
-        appData.gameData.levels[appData.selectedLevel],
-      ),
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
+      groupOptions: _layerGroups(level),
+      showGroupSelector: false,
+      groupFieldLabel: 'Layer Group',
       liveEdit: true,
+      minWidth: 280,
+      maxWidth: 340,
       onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'layer-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateLayer(appData: appData, index: index, data: value);
-          },
+        await _applyLayerChange(
+          appData,
+          index: index,
+          value: value,
+          groupedUndo: true,
         );
       },
-      onDelete: () => _confirmAndDeleteLayer(index),
+      onConfirm: (value) {
+        unawaited(
+          _applyLayerChange(
+            appData,
+            index: index,
+            value: value,
+            groupedUndo: false,
+          ),
+        );
+      },
+      onCancel: () {
+        _selectLayer(appData, index, true);
+      },
+      onDelete: () {
+        unawaited(_confirmAndDeleteLayer(index));
+      },
     );
   }
 
@@ -1205,30 +1259,6 @@ class LayoutLayersState extends State<LayoutLayers> {
                                               ),
                                             ),
                                           ),
-                                        if (isPrimarySelected && hasTilesets)
-                                          MouseRegion(
-                                            cursor: SystemMouseCursors.click,
-                                            child: CupertinoButton(
-                                              key: _selectedEditAnchorKey,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                              ),
-                                              minimumSize: const Size(20, 20),
-                                              onPressed: () async {
-                                                await _promptAndEditLayer(
-                                                  layerIndex,
-                                                  _selectedEditAnchorKey,
-                                                  tilesetAssets,
-                                                );
-                                              },
-                                              child: Icon(
-                                                CupertinoIcons.ellipsis_circle,
-                                                size: 16,
-                                                color: cdkColors.colorText,
-                                              ),
-                                            ),
-                                          ),
                                         ReorderableDragStartListener(
                                           index: index,
                                           child: Padding(
@@ -1302,6 +1332,8 @@ class _LayerFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 380,
+    this.maxWidth = 520,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1317,6 +1349,8 @@ class _LayerFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_LayerDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_LayerDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1356,6 +1390,32 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
   late bool _useSelectedAsset = _hasInitialSelectedAsset();
   late String _selectedGroupId = _resolveInitialGroupId();
   EditSession<_LayerDialogData>? _editSession;
+
+  bool _didInitialDataChange(_LayerDialogData previous, _LayerDialogData next) {
+    return previous.name != next.name ||
+        previous.gameplayData != next.gameplayData ||
+        previous.x != next.x ||
+        previous.y != next.y ||
+        previous.depth != next.depth ||
+        previous.tilesSheetFile != next.tilesSheetFile ||
+        previous.tileWidth != next.tileWidth ||
+        previous.tileHeight != next.tileHeight ||
+        previous.tilemapWidth != next.tilemapWidth ||
+        previous.tilemapHeight != next.tilemapHeight ||
+        previous.visible != next.visible ||
+        previous.groupId != next.groupId;
+  }
+
+  void _setControllerTextIfNeeded(
+      TextEditingController controller, String value) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
 
   int _resolveInitialAssetIndex() {
     final String current = widget.initialData.tilesSheetFile;
@@ -1501,6 +1561,68 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
   }
 
   @override
+  void didUpdateWidget(covariant _LayerFormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final bool initialDataChanged =
+        _didInitialDataChange(oldWidget.initialData, widget.initialData);
+    bool shouldRebuild = false;
+
+    if (initialDataChanged) {
+      _setControllerTextIfNeeded(_nameController, widget.initialData.name);
+      _setControllerTextIfNeeded(
+        _gameplayDataController,
+        widget.initialData.gameplayData,
+      );
+      _setControllerTextIfNeeded(_xController, widget.initialData.x.toString());
+      _setControllerTextIfNeeded(_yController, widget.initialData.y.toString());
+      _setControllerTextIfNeeded(
+        _depthController,
+        widget.initialData.depth.toString(),
+      );
+      _setControllerTextIfNeeded(
+        _tilemapWidthController,
+        widget.initialData.tilemapWidth.toString(),
+      );
+      _setControllerTextIfNeeded(
+        _tilemapHeightController,
+        widget.initialData.tilemapHeight.toString(),
+      );
+      if (_visible != widget.initialData.visible) {
+        _visible = widget.initialData.visible;
+        shouldRebuild = true;
+      }
+    }
+
+    if (initialDataChanged ||
+        _selectedAssetIndex >= widget.tilesetAssets.length) {
+      final int nextAssetIndex = _resolveInitialAssetIndex();
+      final bool nextUseSelectedAsset = _hasInitialSelectedAsset();
+      if (_selectedAssetIndex != nextAssetIndex) {
+        _selectedAssetIndex = nextAssetIndex;
+        shouldRebuild = true;
+      }
+      if (_useSelectedAsset != nextUseSelectedAsset) {
+        _useSelectedAsset = nextUseSelectedAsset;
+        shouldRebuild = true;
+      }
+    }
+
+    if (initialDataChanged ||
+        !widget.groupOptions.any((group) => group.id == _selectedGroupId)) {
+      final String nextGroupId = _resolveInitialGroupId();
+      if (_selectedGroupId != nextGroupId) {
+        _selectedGroupId = nextGroupId;
+        shouldRebuild = true;
+      }
+    }
+
+    if (shouldRebuild && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
     if (_editSession != null) {
       unawaited(_editSession!.flush());
@@ -1553,8 +1675,8 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 380,
-      maxWidth: 520,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1602,7 +1724,11 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                   ),
                 ),
               ),
-              SizedBox(width: spacing.sm),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          Row(
+            children: [
               Expanded(
                 child: EditorLabeledField(
                   label: 'Tiles Width',
@@ -1626,7 +1752,11 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                   ),
                 ),
               ),
-              SizedBox(width: spacing.sm),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          Row(
+            children: [
               Expanded(
                 child: EditorLabeledField(
                   label: 'Depth displacement',
@@ -1641,6 +1771,31 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                       setState(() {});
                       _onInputChanged();
                     },
+                  ),
+                ),
+              ),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child: EditorLabeledField(
+                  label: 'Visible',
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 39,
+                      height: 24,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _visible,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _visible = value;
+                            });
+                            _onInputChanged();
+                          },
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1686,35 +1841,6 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                       'Tile size: $tileWidth×$tileHeight px',
                       role: CDKTextRole.caption,
                       color: cdkColors.colorText,
-                    ),
-                    const Spacer(),
-                    SizedBox(width: spacing.md),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CDKText(
-                          'Visible',
-                          role: CDKTextRole.caption,
-                          color: cdkColors.colorText,
-                        ),
-                        const SizedBox(width: 6),
-                        SizedBox(
-                          width: 39,
-                          height: 24,
-                          child: FittedBox(
-                            fit: BoxFit.fill,
-                            child: CupertinoSwitch(
-                              value: _visible,
-                              onChanged: (bool value) {
-                                setState(() {
-                                  _visible = value;
-                                });
-                                _onInputChanged();
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
