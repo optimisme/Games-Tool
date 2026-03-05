@@ -164,10 +164,10 @@ extension _LayoutClipboard on _LayoutState {
       children: [
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: chipBackground,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7),
               border: Border.all(color: chipBorder),
             ),
             child: Row(
@@ -176,10 +176,10 @@ extension _LayoutClipboard on _LayoutState {
                   showErrorMessage
                       ? CupertinoIcons.exclamationmark_triangle
                       : CupertinoIcons.doc_text,
-                  size: 14,
+                  size: 12,
                   color: chipColor,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 Expanded(
                   child: CDKText(
                     clipboardSummary,
@@ -193,7 +193,7 @@ extension _LayoutClipboard on _LayoutState {
             ),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         _buildClipboardActionButton(
           context: context,
           icon: CupertinoIcons.doc_on_doc,
@@ -203,7 +203,7 @@ extension _LayoutClipboard on _LayoutState {
               ? () => _handleCopyShortcut(appData)
               : null,
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         _buildClipboardActionButton(
           context: context,
           icon: CupertinoIcons.doc_on_clipboard,
@@ -233,12 +233,12 @@ extension _LayoutClipboard on _LayoutState {
         padding: EdgeInsets.zero,
         onPressed: onPressed,
         child: Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: cdkColors.backgroundSecondary1.withValues(
               alpha: enabled ? 1.0 : 0.7,
             ),
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: cdkColors.colorTextSecondary.withValues(
                 alpha: enabled ? 0.35 : 0.20,
@@ -247,7 +247,7 @@ extension _LayoutClipboard on _LayoutState {
           ),
           child: Icon(
             icon,
-            size: 14,
+            size: 12,
             color: enabled
                 ? cdkColors.colorText
                 : cdkColors.colorTextSecondary.withValues(alpha: 0.6),
