@@ -266,6 +266,15 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     return 'Frames selected: ${sorted.join(',')}';
   }
 
+  String _selectedFramesValueLabel(List<int> selectedFrames) {
+    if (selectedFrames.isEmpty) {
+      return 'None';
+    }
+    final List<int> sorted = selectedFrames.toSet().toList(growable: false)
+      ..sort();
+    return sorted.join(',');
+  }
+
   List<GameListGroup> _animationGroups(AppData appData) {
     if (appData.gameData.animationGroups.isEmpty) {
       return <GameListGroup>[GameListGroup.main()];
@@ -534,14 +543,17 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
 
   Future<_AutoHitBoxDraft?> _autoDetectHitBoxDraft(
     AppData appData,
-    GameAnimation animation,
-  ) async {
+    GameAnimation animation, {
+    bool reportFailure = true,
+  }) async {
     final GameMediaAsset? media =
         appData.mediaAssetByFileName(animation.mediaFile);
     if (media == null || media.tileWidth <= 0 || media.tileHeight <= 0) {
-      appData.projectStatusMessage =
-          'Auto hit box failed: missing valid media tile size.';
-      appData.update();
+      if (reportFailure) {
+        appData.projectStatusMessage =
+            'Auto hit box failed: missing valid media tile size.';
+        appData.update();
+      }
       return null;
     }
 
@@ -564,18 +576,22 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     final int srcRight = math.min(image.width, srcLeft + frameWidth);
     final int srcBottom = math.min(image.height, srcTop + frameHeight);
     if (srcRight <= srcLeft || srcBottom <= srcTop) {
-      appData.projectStatusMessage =
-          'Auto hit box failed: frame area is outside sprite sheet.';
-      appData.update();
+      if (reportFailure) {
+        appData.projectStatusMessage =
+            'Auto hit box failed: frame area is outside sprite sheet.';
+        appData.update();
+      }
       return null;
     }
 
     final ByteData? data =
         await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     if (data == null) {
-      appData.projectStatusMessage =
-          'Auto hit box failed: pixel data unavailable.';
-      appData.update();
+      if (reportFailure) {
+        appData.projectStatusMessage =
+            'Auto hit box failed: pixel data unavailable.';
+        appData.update();
+      }
       return null;
     }
     final Uint8List rgba = data.buffer.asUint8List();
@@ -608,9 +624,11 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     }
 
     if (maxX < minX || maxY < minY) {
-      appData.projectStatusMessage =
-          'Auto hit box failed: selected frame is fully transparent.';
-      appData.update();
+      if (reportFailure) {
+        appData.projectStatusMessage =
+            'Auto hit box failed: selected frame is fully transparent.';
+        appData.update();
+      }
       return null;
     }
 
@@ -697,7 +715,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
       writeBack: true,
     );
     final String selectedFramesLabel =
-        _selectedFramesLabel(selectedFrames) ?? 'No frames selected';
+        _selectedFramesValueLabel(selectedFrames);
 
     CDKDialogsManager.showPopoverArrowed(
       context: context,
@@ -714,7 +732,11 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
         hitBoxColorPalette: GameAnimationHitBox.colorPalette,
         anchorColorPalette: GameAnimation.anchorColorPalette,
         selectedFramesLabel: selectedFramesLabel,
-        onAutoHitBox: () => _autoDetectHitBoxDraft(appData, animation),
+        onAutoBoundsDetect: () => _autoDetectHitBoxDraft(
+          appData,
+          animation,
+          reportFailure: false,
+        ),
         onSelectedHitBoxChanged: (int index) {
           if (appData.selectedAnimationHitBox == index) {
             return;
@@ -850,7 +872,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
           child: Row(
             children: [
               CDKText(
@@ -867,7 +889,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
           child: selectedAnimation == null
               ? const CDKText(
                   'Select an animation to edit anchor point and hit boxes.',
@@ -877,18 +899,14 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CDKText(
-                      'Selected: ${selectedAnimation.name}',
-                      role: CDKTextRole.bodyStrong,
-                    ),
-                    SizedBox(height: spacing.xs),
                     if (selectedFramesLabel != null)
                       CDKText(
                         selectedFramesLabel,
                         role: CDKTextRole.caption,
                         secondary: true,
                       ),
-                    SizedBox(height: spacing.xs),
+                    if (selectedFramesLabel != null)
+                      SizedBox(height: spacing.xs),
                     SizedBox(
                       height: 18,
                       child: CDKText(
@@ -904,7 +922,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                 ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1216,7 +1234,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
     required this.hitBoxColorPalette,
     required this.anchorColorPalette,
     required this.selectedFramesLabel,
-    required this.onAutoHitBox,
+    required this.onAutoBoundsDetect,
     required this.onSelectedHitBoxChanged,
     required this.onDraftChanged,
   });
@@ -1226,7 +1244,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
   final List<String> hitBoxColorPalette;
   final List<String> anchorColorPalette;
   final String selectedFramesLabel;
-  final Future<_AutoHitBoxDraft?> Function() onAutoHitBox;
+  final Future<_AutoHitBoxDraft?> Function() onAutoBoundsDetect;
   final ValueChanged<int> onSelectedHitBoxChanged;
   final Future<void> Function(_AnimationRigDraft draft) onDraftChanged;
 
@@ -1461,48 +1479,28 @@ class _AnimationRigEditorPopoverState
     _emitChanged();
   }
 
-  void _addHitBox() {
-    final _HitBoxDraft next = _HitBoxDraft(
-      id: '__hb_${DateTime.now().microsecondsSinceEpoch}_${_newKeyCounter++}',
-      name: 'Hit Box ${_drafts.length + 1}',
-      color: GameAnimationHitBox.defaultColor,
-      x: 0.25,
-      y: 0.25,
-      width: 0.5,
-      height: 0.5,
-    );
-    setState(() {
-      _drafts.add(next);
-      _nameControllers.add(TextEditingController(text: next.name));
-      _xControllers.add(TextEditingController(text: _formatUnit(next.x)));
-      _yControllers.add(TextEditingController(text: _formatUnit(next.y)));
-      _widthControllers
-          .add(TextEditingController(text: _formatUnit(next.width)));
-      _heightControllers
-          .add(TextEditingController(text: _formatUnit(next.height)));
-      _hitBoxColorAnchorKeys.add(GlobalKey());
-    });
-    _setSelectedIndex(_drafts.length - 1, notifyParent: true);
-    _emitChanged();
-  }
+  static const _AutoHitBoxDraft _defaultAutoHitBoxDraft = _AutoHitBoxDraft(
+    x: 0.25,
+    y: 0.25,
+    width: 0.5,
+    height: 0.5,
+  );
 
-  Future<void> _addAutoHitBox() async {
+  Future<void> _addHitBox() async {
     if (_isAutoDetecting) {
       return;
     }
     setState(() {
       _isAutoDetecting = true;
     });
-    final _AutoHitBoxDraft? autoDraft = await widget.onAutoHitBox();
+    final _AutoHitBoxDraft autoDraft =
+        (await widget.onAutoBoundsDetect()) ?? _defaultAutoHitBoxDraft;
     if (!mounted) {
       return;
     }
     setState(() {
       _isAutoDetecting = false;
     });
-    if (autoDraft == null) {
-      return;
-    }
 
     final _HitBoxDraft next = _HitBoxDraft(
       id: '__hb_${DateTime.now().microsecondsSinceEpoch}_${_newKeyCounter++}',
@@ -1525,6 +1523,38 @@ class _AnimationRigEditorPopoverState
       _hitBoxColorAnchorKeys.add(GlobalKey());
     });
     _setSelectedIndex(_drafts.length - 1, notifyParent: true);
+    _emitChanged();
+  }
+
+  Future<void> _autoAnchorFromBounds() async {
+    if (_isAutoDetecting) {
+      return;
+    }
+    setState(() {
+      _isAutoDetecting = true;
+    });
+    final _AutoHitBoxDraft? autoDraft = await widget.onAutoBoundsDetect();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isAutoDetecting = false;
+    });
+    final double nextAnchorX = autoDraft == null
+        ? 0.5
+        : (autoDraft.x + (autoDraft.width / 2)).clamp(0.0, 1.0);
+    final double nextAnchorY = autoDraft == null
+        ? 0.5
+        : (autoDraft.y + (autoDraft.height / 2)).clamp(0.0, 1.0);
+    if ((_anchorX - nextAnchorX).abs() < 0.0005 &&
+        (_anchorY - nextAnchorY).abs() < 0.0005) {
+      return;
+    }
+    setState(() {
+      _anchorX = nextAnchorX;
+      _anchorY = nextAnchorY;
+      _refreshAnchorControllers();
+    });
     _emitChanged();
   }
 
@@ -1762,6 +1792,18 @@ class _AnimationRigEditorPopoverState
                 onSubmitted: (_) => _refreshAnchorControllers(),
               ),
             ),
+            SizedBox(width: spacing.sm),
+            CDKButton(
+              style: CDKButtonStyle.action,
+              onPressed: _isAutoDetecting ? null : _autoAnchorFromBounds,
+              child: _isAutoDetecting
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CupertinoActivityIndicator(radius: 6),
+                    )
+                  : const Text('Auto'),
+            ),
           ],
         ),
         SizedBox(height: spacing.sm),
@@ -1826,8 +1868,14 @@ class _AnimationRigEditorPopoverState
           alignment: Alignment.centerLeft,
           child: CDKButton(
             style: CDKButtonStyle.action,
-            onPressed: _addHitBox,
-            child: const Text('Add Hit Box'),
+            onPressed: _isAutoDetecting ? null : _addHitBox,
+            child: _isAutoDetecting
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CupertinoActivityIndicator(radius: 6),
+                  )
+                : const Text('Add Hit Box'),
           ),
         ),
       ],
@@ -1846,25 +1894,7 @@ class _AnimationRigEditorPopoverState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child:
-                        CDKText('Edit animation rigs', role: CDKTextRole.title),
-                  ),
-                  CDKButton(
-                    style: CDKButtonStyle.action,
-                    onPressed: _isAutoDetecting ? null : _addAutoHitBox,
-                    child: _isAutoDetecting
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CupertinoActivityIndicator(radius: 6),
-                          )
-                        : const Text('Auto'),
-                  ),
-                ],
-              ),
+              const CDKText('Edit animation rigs', role: CDKTextRole.title),
               SizedBox(height: spacing.md),
               const CDKText('Selected Frames', role: CDKTextRole.caption),
               const SizedBox(height: 4),
