@@ -832,40 +832,6 @@ class LayoutZonesState extends State<LayoutZones> {
     );
   }
 
-  Future<void> _duplicateZone(int index) async {
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1 ||
-        appData.selectedLevel >= appData.gameData.levels.length) {
-      return;
-    }
-
-    await appData.runProjectMutation(
-      debugLabel: 'zone-duplicate',
-      mutate: () {
-        final GameLevel level = appData.gameData.levels[appData.selectedLevel];
-        final List<GameZone> zones = level.zones;
-        if (index < 0 || index >= zones.length) {
-          return;
-        }
-        final GameZone source = zones[index];
-        final GameZone duplicate = GameZone(
-          name: source.name,
-          type: source.type,
-          gameplayData: source.gameplayData,
-          x: source.x,
-          y: source.y,
-          width: source.width,
-          height: source.height,
-          color: source.color,
-          groupId: _effectiveZoneGroupId(level, source),
-        );
-        zones.insert(index + 1, duplicate);
-        appData.selectedZone = index + 1;
-        appData.selectedZoneIndices = <int>{index + 1};
-      },
-    );
-  }
-
   Future<void> _promptAndEditZone(int index, GlobalKey anchorKey) async {
     final appData = Provider.of<AppData>(context, listen: false);
     if (appData.selectedLevel == -1) {
@@ -1570,23 +1536,6 @@ class LayoutZonesState extends State<LayoutZones> {
                                       ],
                                     ),
                                   ),
-                                  if (isPrimarySelected)
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: CupertinoButton(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6),
-                                        minimumSize: const Size(20, 20),
-                                        onPressed: () async {
-                                          await _duplicateZone(zoneIndex);
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.doc_on_doc,
-                                          size: 16,
-                                          color: cdkColors.colorText,
-                                        ),
-                                      ),
-                                    ),
                                   if (isPrimarySelected)
                                     MouseRegion(
                                       cursor: SystemMouseCursors.click,
