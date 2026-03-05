@@ -68,6 +68,7 @@ enum _LayersCanvasTool { arrow, hand }
 
 class _LayoutState extends State<Layout> {
   static const double _animationRigFrameStripReservedHeight = 74.0;
+  static const double _rightToolbarWidth = 275.0;
 
   // Clau del layout escollit
   final GlobalKey<LayoutSpritesState> layoutSpritesKey =
@@ -654,8 +655,10 @@ class _LayoutState extends State<Layout> {
                             ),
                     ),
                     ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(maxWidth: 350, minWidth: 350),
+                      constraints: const BoxConstraints(
+                        maxWidth: _rightToolbarWidth,
+                        minWidth: _rightToolbarWidth,
+                      ),
                       child: Container(
                         color: cdkColors.background,
                         child: _getSelectedLayout(appData),
