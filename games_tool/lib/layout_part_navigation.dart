@@ -262,7 +262,7 @@ extension _LayoutNavigation on _LayoutState {
       case 'zones':
         return LayoutZones(key: layoutZonesKey);
       case 'animations':
-        return const LayoutAnimations();
+        return LayoutAnimations(key: _layoutAnimationsKey);
       case 'animation_rigs':
         return LayoutAnimationRigs(key: layoutAnimationRigsKey);
       case 'sprites':
@@ -272,7 +272,7 @@ extension _LayoutNavigation on _LayoutState {
       case 'viewport':
         return LayoutViewport(key: layoutViewportKey);
       case 'media':
-        return const LayoutMedia();
+        return LayoutMedia(key: _layoutMediaKey);
       default:
         return const Center(
           child: CDKText(

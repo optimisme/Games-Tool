@@ -701,6 +701,55 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     appData.update();
   }
 
+  int _selectedAnimationUsageCount(AppData appData, String animationId) {
+    int count = 0;
+    for (final level in appData.gameData.levels) {
+      for (final sprite in level.sprites) {
+        if (sprite.animationId == animationId) {
+          count += 1;
+        }
+      }
+    }
+    return count;
+  }
+
+  Future<bool> confirmAndDeleteSelectedAnimationFromKeyboard(
+    AppData appData,
+  ) async {
+    final int index = appData.selectedAnimation;
+    if (index < 0 || index >= appData.gameData.animations.length || !mounted) {
+      return false;
+    }
+    final GameAnimation animation = appData.gameData.animations[index];
+    if (_selectedAnimationUsageCount(appData, animation.id) > 0) {
+      return false;
+    }
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: 'Delete animation',
+      message: 'Delete this animation? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    await appData.runProjectMutation(
+      debugLabel: 'animation-delete',
+      mutate: () {
+        if (index < 0 || index >= appData.gameData.animations.length) {
+          return;
+        }
+        appData.gameData.animations.removeAt(index);
+        appData.selectedAnimation = -1;
+        LayoutUtils.clearAnimationFrameSelection(appData);
+      },
+    );
+    return true;
+  }
+
   Future<void> _toggleGroupCollapsed(AppData appData, String groupId) async {
     await appData.runProjectMutation(
       debugLabel: 'animation-group-toggle-collapse',

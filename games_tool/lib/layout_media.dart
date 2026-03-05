@@ -587,6 +587,94 @@ class _LayoutMediaState extends State<LayoutMedia> {
     appData.update();
   }
 
+  Future<bool> confirmAndDeleteSelectedMediaFromKeyboard(
+    AppData appData,
+  ) async {
+    final int index = appData.selectedMedia;
+    final List<GameMediaAsset> assets = appData.gameData.mediaAssets;
+    if (index < 0 || index >= assets.length || !mounted) {
+      return false;
+    }
+
+    final String fileName = assets[index].fileName;
+    int mediaAssets = 0;
+    int animations = 0;
+    int layers = 0;
+    int sprites = 0;
+
+    for (int i = 0; i < assets.length; i++) {
+      if (i == index) {
+        continue;
+      }
+      if (assets[i].fileName == fileName) {
+        mediaAssets += 1;
+      }
+    }
+    for (final animation in appData.gameData.animations) {
+      if (animation.mediaFile == fileName) {
+        animations += 1;
+      }
+    }
+    for (final level in appData.gameData.levels) {
+      for (final layer in level.layers) {
+        if (layer.tilesSheetFile == fileName) {
+          layers += 1;
+        }
+      }
+      for (final sprite in level.sprites) {
+        if (sprite.imageFile == fileName) {
+          sprites += 1;
+        }
+      }
+    }
+
+    final int totalRefs = mediaAssets + animations + layers + sprites;
+    String message = 'Delete this media item? This cannot be undone.';
+    if (totalRefs > 0) {
+      final List<String> references = <String>[];
+      if (mediaAssets > 0) {
+        references.add('$mediaAssets other media item(s)');
+      }
+      if (animations > 0) {
+        references.add('$animations animation(s)');
+      }
+      if (layers > 0) {
+        references.add('$layers layer(s)');
+      }
+      if (sprites > 0) {
+        references.add('$sprites sprite(s)');
+      }
+      message =
+          'This file is still used by ${references.join(', ')}. Delete this media entry anyway? The file will only be removed from disk when no references remain.';
+    }
+
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: 'Delete media',
+      message: message,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+
+    await appData.runProjectMutation(
+      debugLabel: 'media-delete',
+      mutate: () {
+        if (index < 0 || index >= appData.gameData.mediaAssets.length) {
+          return;
+        }
+        appData.gameData.mediaAssets.removeAt(index);
+        appData.selectedMedia = -1;
+      },
+    );
+    await appData.deleteProjectMediaFileIfUnreferenced(fileName);
+    return true;
+  }
+
   Future<void> _toggleGroupCollapsed(AppData appData, String groupId) async {
     await appData.runProjectMutation(
       debugLabel: 'media-group-toggle-collapse',

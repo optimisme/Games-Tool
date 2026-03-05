@@ -730,6 +730,41 @@ class LayoutPathsState extends State<LayoutPaths> {
     await _autoSaveIfPossible(appData);
   }
 
+  Future<bool> confirmAndDeleteSelectedPathFromKeyboard(
+    AppData appData,
+  ) async {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length ||
+        !mounted) {
+      return false;
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    final bool appSelectionValid =
+        appData.selectedPath >= 0 && appData.selectedPath < level.paths.length;
+    final bool localSelectionValid =
+        _selectedPathIndex >= 0 && _selectedPathIndex < level.paths.length;
+    final int index = appSelectionValid
+        ? appData.selectedPath
+        : (localSelectionValid ? _selectedPathIndex : -1);
+    if (index < 0 || index >= level.paths.length) {
+      return false;
+    }
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: 'Delete path',
+      message: 'Delete this path? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    await _deletePath(appData, index);
+    return true;
+  }
+
   void _selectPath(int index, bool isSelected) {
     final AppData appData = Provider.of<AppData>(context, listen: false);
     _setSelectedPathIndex(appData, isSelected ? -1 : index);
@@ -1117,7 +1152,7 @@ class LayoutPathsState extends State<LayoutPaths> {
                   final String subtitle = '${path.points.length} point(s)';
 
                   return AnimatedSize(
-                    key: ValueKey(path),
+                    key: ValueKey('path-item-${path.id}'),
                     duration: const Duration(milliseconds: 300),
                     reverseDuration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOutCubic,
