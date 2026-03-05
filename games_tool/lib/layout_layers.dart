@@ -293,6 +293,7 @@ class LayoutLayersState extends State<LayoutLayers> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Layer Group',
         existingNames: _layerGroups(level).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -964,7 +965,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                   onPressed: () async {
                     await _promptAndAddLayer(tilesetAssets);
                   },
-                  child: const Text('+ Add Layer'),
+                  child: const Text('+ Layer'),
                 )
               else
                 CDKText(
@@ -972,6 +973,18 @@ class LayoutLayersState extends State<LayoutLayers> {
                   role: CDKTextRole.caption,
                   secondary: true,
                 ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
+              ),
             ],
           ),
         ),
@@ -988,30 +1001,10 @@ class LayoutLayersState extends State<LayoutLayers> {
                     ],
                     child: ReorderableListView.builder(
                       buildDefaultDragHandles: false,
-                      itemCount: layerRows.length + 1,
+                      itemCount: layerRows.length,
                       onReorder: (oldIndex, newIndex) =>
                           _onReorder(appData, layerRows, oldIndex, newIndex),
                       itemBuilder: (context, index) {
-                        if (index == layerRows.length) {
-                          return Container(
-                            key: const ValueKey('layer-add-group-row'),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                              horizontal: 8,
-                            ),
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: CDKButton(
-                                key: _addGroupAnchorKey,
-                                style: CDKButtonStyle.normal,
-                                onPressed: () async {
-                                  await _showAddGroupPopover(appData);
-                                },
-                                child: const Text('+ Add Layer Group'),
-                              ),
-                            ),
-                          );
-                        }
                         final GroupedListRow<GameListGroup, GameLayer> row =
                             layerRows[index];
                         if (row.isGroup) {

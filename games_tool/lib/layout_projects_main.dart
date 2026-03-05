@@ -430,7 +430,7 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
             CDKButton(
               style: CDKButtonStyle.action,
               onPressed: _promptAndAddProject,
-              child: const Text('+ Add Project'),
+              child: const Text('+ Project'),
             ),
           ],
         ),
@@ -453,7 +453,7 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
               CDKButton(
                 style: CDKButtonStyle.action,
                 onPressed: _promptAndAddProject,
-                child: const Text('+ Add Project'),
+                child: const Text('+ Project'),
               ),
             ],
           ),

@@ -285,6 +285,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Sprite Group',
         existingNames: _spriteGroups(level).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -991,7 +992,19 @@ class LayoutSpritesState extends State<LayoutSprites> {
                         await _promptAndAddSprite(animations);
                       }
                     : null,
-                child: const Text('+ Add Sprite'),
+                child: const Text('+ Sprite'),
+              ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -1018,30 +1031,10 @@ class LayoutSpritesState extends State<LayoutSprites> {
               ],
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
-                itemCount: spriteRows.length + 1,
+                itemCount: spriteRows.length,
                 onReorder: (oldIndex, newIndex) =>
                     _onReorder(appData, spriteRows, oldIndex, newIndex),
                 itemBuilder: (context, index) {
-                  if (index == spriteRows.length) {
-                    return Container(
-                      key: const ValueKey('sprite-add-group-row'),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 8,
-                      ),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: CDKButton(
-                          key: _addGroupAnchorKey,
-                          style: CDKButtonStyle.normal,
-                          onPressed: () async {
-                            await _showAddGroupPopover(appData);
-                          },
-                          child: const Text('+ Add Sprite Group'),
-                        ),
-                      ),
-                    );
-                  }
                   final GroupedListRow<GameListGroup, GameSprite> row =
                       spriteRows[index];
                   if (row.isGroup) {

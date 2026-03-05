@@ -27,7 +27,7 @@ class LayoutAnimations extends StatefulWidget {
 class _LayoutAnimationsState extends State<LayoutAnimations> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _selectedEditAnchorKey = GlobalKey();
-  final GlobalKey _addGroupAnchorKey = GlobalKey();
+  final GlobalKey _addGroupToolbarAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
@@ -453,7 +453,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     final CDKDialogController controller = CDKDialogController();
     CDKDialogsManager.showPopoverArrowed(
       context: context,
-      anchorKey: _addGroupAnchorKey,
+      anchorKey: _addGroupToolbarAnchorKey,
       isAnimated: true,
       animateContentResize: false,
       dismissOnEscape: true,
@@ -461,6 +461,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Animation Group',
         existingNames: _animationGroups(appData).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -1044,7 +1045,19 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                         await _promptAndAddAnimation(sourceAssets);
                       }
                     : null,
-                child: const Text('+ Add Animation'),
+                child: const Text('+ Animation'),
+              ),
+              SizedBox(width: spacing.xs),
+              CDKButton(
+                key: _addGroupToolbarAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -1105,7 +1118,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
               ],
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
-                itemCount: animationRows.length + 1,
+                itemCount: animationRows.length,
                 onReorder: (oldIndex, newIndex) => _onReorder(
                   appData,
                   animationRows,
@@ -1113,26 +1126,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                   newIndex,
                 ),
                 itemBuilder: (context, index) {
-                  if (index == animationRows.length) {
-                    return Container(
-                      key: const ValueKey('animation-add-group-row'),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 8,
-                      ),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: CDKButton(
-                          key: _addGroupAnchorKey,
-                          style: CDKButtonStyle.normal,
-                          onPressed: () async {
-                            await _showAddGroupPopover(appData);
-                          },
-                          child: const Text('+ Add Animation Group'),
-                        ),
-                      ),
-                    );
-                  }
                   final GroupedListRow<GameListGroup, GameAnimation> row =
                       animationRows[index];
                   if (row.isGroup) {

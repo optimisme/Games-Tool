@@ -295,6 +295,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Path Group',
         existingNames: _pathGroups(level).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -993,7 +994,19 @@ class _LayoutPathsState extends State<LayoutPaths> {
                 key: _addPathAnchorKey,
                 style: CDKButtonStyle.action,
                 onPressed: _promptAndAddPath,
-                child: const Text('+ Add Path'),
+                child: const Text('+ Path'),
+              ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -1018,31 +1031,10 @@ class _LayoutPathsState extends State<LayoutPaths> {
               ],
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
-                itemCount: pathRows.length + 1,
+                itemCount: pathRows.length,
                 onReorder: (oldIndex, newIndex) =>
                     _onReorder(appData, pathRows, oldIndex, newIndex),
                 itemBuilder: (context, index) {
-                  if (index == pathRows.length) {
-                    return Container(
-                      key: const ValueKey('path-add-group-row'),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 8,
-                      ),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: CDKButton(
-                          key: _addGroupAnchorKey,
-                          style: CDKButtonStyle.normal,
-                          onPressed: () async {
-                            await _showAddGroupPopover(appData);
-                          },
-                          child: const Text('+ Add Path Group'),
-                        ),
-                      ),
-                    );
-                  }
-
                   final GroupedListRow<GameListGroup, GamePath> row =
                       pathRows[index];
                   if (row.isGroup) {

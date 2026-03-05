@@ -543,6 +543,7 @@ class LayoutZonesState extends State<LayoutZones> {
       showBackgroundShade: false,
       controller: controller,
       child: GroupedListAddGroupPopover(
+        title: 'Add Zone Group',
         existingNames: _zoneGroups(level).map((group) => group.name),
         onCancel: controller.close,
         onAdd: (name) async {
@@ -1273,7 +1274,19 @@ class LayoutZonesState extends State<LayoutZones> {
                     : () async {
                         await _promptAndAddZone();
                       },
-                child: const Text('+ Add Zone'),
+                child: const Text('+ Zone'),
+              ),
+              const SizedBox(width: 8),
+              CDKButton(
+                key: _addGroupAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: () async {
+                  await _showAddGroupPopover(appData);
+                },
+                child: const Icon(
+                  CupertinoIcons.rectangle_stack,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -1289,30 +1302,10 @@ class LayoutZonesState extends State<LayoutZones> {
               ],
               child: ReorderableListView.builder(
                 buildDefaultDragHandles: false,
-                itemCount: zoneRows.length + 1,
+                itemCount: zoneRows.length,
                 onReorder: (oldIndex, newIndex) =>
                     _onReorder(appData, zoneRows, oldIndex, newIndex),
                 itemBuilder: (context, index) {
-                  if (index == zoneRows.length) {
-                    return Container(
-                      key: const ValueKey('zone-add-group-row'),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 8,
-                      ),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: CDKButton(
-                          key: _addGroupAnchorKey,
-                          style: CDKButtonStyle.normal,
-                          onPressed: () async {
-                            await _showAddGroupPopover(appData);
-                          },
-                          child: const Text('+ Add Zone Group'),
-                        ),
-                      ),
-                    );
-                  }
                   final _ZoneListRow row = zoneRows[index];
                   if (row.isGroup) {
                     final GameZoneGroup group = row.group!;
