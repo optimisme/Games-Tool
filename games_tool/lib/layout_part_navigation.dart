@@ -155,6 +155,7 @@ extension _LayoutNavigation on _LayoutState {
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     final typography = CDKThemeNotifier.typographyTokensOf(context);
     const Color breadcrumbLabelColor = Color(0xFF66B2FF);
+    final TextStyle textStyle = typography.caption;
     final List<MapEntry<String, String>> parts =
         _selectedBreadcrumbParts(appData);
     final List<InlineSpan> spans = [];
@@ -164,7 +165,7 @@ extension _LayoutNavigation on _LayoutState {
         spans.add(
           TextSpan(
             text: ' > ',
-            style: typography.body.copyWith(
+            style: textStyle.copyWith(
               color: breadcrumbLabelColor,
             ),
           ),
@@ -173,7 +174,7 @@ extension _LayoutNavigation on _LayoutState {
       spans.add(
         TextSpan(
           text: '${parts[i].key}: ',
-          style: typography.body.copyWith(
+          style: textStyle.copyWith(
             color: breadcrumbLabelColor,
           ),
         ),
@@ -181,7 +182,7 @@ extension _LayoutNavigation on _LayoutState {
       spans.add(
         TextSpan(
           text: parts[i].value,
-          style: typography.body.copyWith(color: cdkColors.colorText),
+          style: textStyle.copyWith(color: cdkColors.colorText),
         ),
       );
     }
@@ -190,6 +191,34 @@ extension _LayoutNavigation on _LayoutState {
       TextSpan(children: spans),
       overflow: TextOverflow.ellipsis,
       maxLines: 1,
+    );
+  }
+
+  Widget _buildBottomStatusBar(AppData appData, BuildContext context) {
+    final cdkColors = CDKThemeNotifier.colorTokensOf(context);
+    return Container(
+      color: cdkColors.background,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 3, 8, 3),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double clipboardWidth =
+                (constraints.maxWidth * 0.42).clamp(280.0, 460.0);
+            return Row(
+              children: [
+                Expanded(
+                  child: _buildBreadcrumb(appData, context),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: clipboardWidth,
+                  child: _buildClipboardStatusRow(appData, context),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

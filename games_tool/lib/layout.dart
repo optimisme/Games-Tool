@@ -370,6 +370,10 @@ class _LayoutState extends State<Layout> {
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
+    final bool isDarkTheme =
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final Color statusBarDividerColor =
+        isDarkTheme ? const Color(0xFF545458) : const Color(0xFFD1D1D6);
     _syncLayerSelectionState(appData);
     _syncZoneSelectionState(appData);
     _syncSpriteSelectionState(appData);
@@ -443,232 +447,228 @@ class _LayoutState extends State<Layout> {
           return KeyEventResult.handled;
         },
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: appData.selectedSection == 'projects'
-                        ? Container(
-                            color: cdkColors.backgroundSecondary1,
-                            child: const LayoutProjectsMain(),
-                          )
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              final Size viewportSize = Size(
-                                constraints.maxWidth,
-                                constraints.maxHeight,
-                              );
-                              _queueSelectedLevelViewportFit(
-                                appData,
-                                viewportSize,
-                              );
-                              _queueInitialLayersViewportCenter(
-                                appData,
-                                viewportSize,
-                              );
-                              return Container(
-                                color: cdkColors.backgroundSecondary1,
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      bottom: appData.selectedSection ==
-                                              "animation_rigs"
-                                          ? _animationRigFrameStripReservedHeight
-                                          : 0,
-                                      child: Listener(
-                                        onPointerDown: (_) => {
-                                          _isPointerDown = true,
-                                          _focusNode.requestFocus(),
-                                          _refreshSelectionModifierState(),
-                                        },
-                                        onPointerUp: (_) =>
-                                            _isPointerDown = false,
-                                        onPointerCancel: (_) =>
-                                            _isPointerDown = false,
-                                        // macOS trackpad: two-finger scroll → PointerScrollEvent
-                                        onPointerSignal: (event) {
-                                          if (event is! PointerScrollEvent) {
-                                            return;
-                                          }
-                                          if (appData.selectedSection != "levels" &&
-                                              appData.selectedSection !=
-                                                  "layers" &&
-                                              appData.selectedSection !=
-                                                  "tilemap" &&
-                                              appData.selectedSection !=
-                                                  "zones" &&
-                                              appData.selectedSection !=
-                                                  "sprites" &&
-                                              appData.selectedSection !=
-                                                  "paths" &&
-                                              appData.selectedSection !=
-                                                  "viewport") {
-                                            return;
-                                          }
-                                          _applyLayersZoom(
-                                              appData,
-                                              event.localPosition,
-                                              event.scrollDelta.dy);
-                                        },
-                                        // macOS trackpad: two-finger pan-zoom → PointerPanZoomUpdateEvent
-                                        onPointerPanZoomUpdate: (event) {
-                                          if (appData.selectedSection != "levels" &&
-                                              appData.selectedSection !=
-                                                  "layers" &&
-                                              appData.selectedSection !=
-                                                  "tilemap" &&
-                                              appData.selectedSection !=
-                                                  "zones" &&
-                                              appData.selectedSection !=
-                                                  "sprites" &&
-                                              appData.selectedSection !=
-                                                  "paths" &&
-                                              appData.selectedSection !=
-                                                  "viewport") {
-                                            return;
-                                          }
-                                          // pan delta from trackpad scroll
-                                          final double dy = -event.panDelta.dy;
-                                          if (dy == 0) return;
-                                          _applyLayersZoom(
-                                              appData, event.localPosition, dy);
-                                        },
-                                        child: MouseRegion(
-                                          cursor: _tilemapCursor(appData),
-                                          onHover: (event) {
-                                            final bool hoveringTilemapLayer =
-                                                appData.selectedSection ==
-                                                        'tilemap' &&
-                                                    LayoutUtils.getTilemapCoords(
-                                                            appData,
-                                                            event
-                                                                .localPosition) !=
-                                                        null;
-                                            if (hoveringTilemapLayer !=
-                                                _isHoveringSelectedTilemapLayer) {
-                                              setState(() {
-                                                _isHoveringSelectedTilemapLayer =
-                                                    hoveringTilemapLayer;
-                                              });
-                                            }
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: appData.selectedSection == 'projects'
+                          ? Container(
+                              color: cdkColors.backgroundSecondary1,
+                              child: const LayoutProjectsMain(),
+                            )
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                final Size viewportSize = Size(
+                                  constraints.maxWidth,
+                                  constraints.maxHeight,
+                                );
+                                _queueSelectedLevelViewportFit(
+                                  appData,
+                                  viewportSize,
+                                );
+                                _queueInitialLayersViewportCenter(
+                                  appData,
+                                  viewportSize,
+                                );
+                                return Container(
+                                  color: cdkColors.backgroundSecondary1,
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        bottom: appData.selectedSection ==
+                                                "animation_rigs"
+                                            ? _animationRigFrameStripReservedHeight
+                                            : 0,
+                                        child: Listener(
+                                          onPointerDown: (_) => {
+                                            _isPointerDown = true,
+                                            _focusNode.requestFocus(),
+                                            _refreshSelectionModifierState(),
                                           },
-                                          onExit: (_) {
-                                            if (_isHoveringSelectedTilemapLayer) {
-                                              setState(() {
-                                                _isHoveringSelectedTilemapLayer =
-                                                    false;
-                                              });
+                                          onPointerUp: (_) =>
+                                              _isPointerDown = false,
+                                          onPointerCancel: (_) =>
+                                              _isPointerDown = false,
+                                          // macOS trackpad: two-finger scroll → PointerScrollEvent
+                                          onPointerSignal: (event) {
+                                            if (event is! PointerScrollEvent) {
+                                              return;
                                             }
+                                            if (appData.selectedSection != "levels" &&
+                                                appData.selectedSection !=
+                                                    "layers" &&
+                                                appData.selectedSection !=
+                                                    "tilemap" &&
+                                                appData.selectedSection !=
+                                                    "zones" &&
+                                                appData.selectedSection !=
+                                                    "sprites" &&
+                                                appData.selectedSection !=
+                                                    "paths" &&
+                                                appData.selectedSection !=
+                                                    "viewport") {
+                                              return;
+                                            }
+                                            _applyLayersZoom(
+                                                appData,
+                                                event.localPosition,
+                                                event.scrollDelta.dy);
                                           },
-                                          child: GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onPanStart: (details) =>
-                                                _handlePanStart(
-                                                    appData, details),
-                                            onPanUpdate: (details) =>
-                                                _handlePanUpdate(
-                                                    appData, details),
-                                            onPanEnd: (details) =>
-                                                _handlePanEnd(appData, details),
-                                            onTapDown: (details) =>
-                                                _handleTapDown(
-                                                    appData, details),
-                                            onTapUp: (details) =>
-                                                _handleTapUp(appData, details),
+                                          // macOS trackpad: two-finger pan-zoom → PointerPanZoomUpdateEvent
+                                          onPointerPanZoomUpdate: (event) {
+                                            if (appData.selectedSection != "levels" &&
+                                                appData.selectedSection !=
+                                                    "layers" &&
+                                                appData.selectedSection !=
+                                                    "tilemap" &&
+                                                appData.selectedSection !=
+                                                    "zones" &&
+                                                appData.selectedSection !=
+                                                    "sprites" &&
+                                                appData.selectedSection !=
+                                                    "paths" &&
+                                                appData.selectedSection !=
+                                                    "viewport") {
+                                              return;
+                                            }
+                                            // pan delta from trackpad scroll
+                                            final double dy =
+                                                -event.panDelta.dy;
+                                            if (dy == 0) return;
+                                            _applyLayersZoom(appData,
+                                                event.localPosition, dy);
+                                          },
+                                          child: MouseRegion(
+                                            cursor: _tilemapCursor(appData),
+                                            onHover: (event) {
+                                              final bool hoveringTilemapLayer =
+                                                  appData.selectedSection ==
+                                                          'tilemap' &&
+                                                      LayoutUtils.getTilemapCoords(
+                                                              appData,
+                                                              event
+                                                                  .localPosition) !=
+                                                          null;
+                                              if (hoveringTilemapLayer !=
+                                                  _isHoveringSelectedTilemapLayer) {
+                                                setState(() {
+                                                  _isHoveringSelectedTilemapLayer =
+                                                      hoveringTilemapLayer;
+                                                });
+                                              }
+                                            },
+                                            onExit: (_) {
+                                              if (_isHoveringSelectedTilemapLayer) {
+                                                setState(() {
+                                                  _isHoveringSelectedTilemapLayer =
+                                                      false;
+                                                });
+                                              }
+                                            },
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onPanStart: (details) =>
+                                                  _handlePanStart(
+                                                      appData, details),
+                                              onPanUpdate: (details) =>
+                                                  _handlePanUpdate(
+                                                      appData, details),
+                                              onPanEnd: (details) =>
+                                                  _handlePanEnd(
+                                                      appData, details),
+                                              onTapDown: (details) =>
+                                                  _handleTapDown(
+                                                      appData, details),
+                                              onTapUp: (details) =>
+                                                  _handleTapUp(
+                                                      appData, details),
+                                              child: CustomPaint(
+                                                painter: _layerImage != null
+                                                    ? CanvasPainter(
+                                                        _layerImage!,
+                                                        appData,
+                                                        selectedLayerIndices:
+                                                            _selectedLayerIndices,
+                                                      )
+                                                    : null,
+                                                child: Container(),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (appData.selectedSection == "layers")
+                                        Positioned.fill(
+                                          child: IgnorePointer(
                                             child: CustomPaint(
-                                              painter: _layerImage != null
-                                                  ? CanvasPainter(
-                                                      _layerImage!,
-                                                      appData,
-                                                      selectedLayerIndices:
-                                                          _selectedLayerIndices,
-                                                    )
-                                                  : null,
-                                              child: Container(),
+                                              painter: _LayersMarqueePainter(
+                                                rect: _layersMarqueeRect,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    if (appData.selectedSection == "layers")
-                                      Positioned.fill(
-                                        child: IgnorePointer(
-                                          child: CustomPaint(
-                                            painter: _LayersMarqueePainter(
-                                              rect: _layersMarqueeRect,
+                                      if (appData.selectedSection == "zones")
+                                        Positioned.fill(
+                                          child: IgnorePointer(
+                                            child: CustomPaint(
+                                              painter: _LayersMarqueePainter(
+                                                rect: _zonesMarqueeRect,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    if (appData.selectedSection == "zones")
-                                      Positioned.fill(
-                                        child: IgnorePointer(
-                                          child: CustomPaint(
-                                            painter: _LayersMarqueePainter(
-                                              rect: _zonesMarqueeRect,
+                                      if (appData.selectedSection == "sprites")
+                                        Positioned.fill(
+                                          child: IgnorePointer(
+                                            child: CustomPaint(
+                                              painter: _LayersMarqueePainter(
+                                                rect: _spritesMarqueeRect,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    if (appData.selectedSection == "sprites")
-                                      Positioned.fill(
-                                        child: IgnorePointer(
-                                          child: CustomPaint(
-                                            painter: _LayersMarqueePainter(
-                                              rect: _spritesMarqueeRect,
-                                            ),
-                                          ),
+                                      if (_usesWorldViewportSection(
+                                            appData.selectedSection,
+                                          ) ||
+                                          appData.selectedSection == "layers" ||
+                                          appData.selectedSection == "zones" ||
+                                          appData.selectedSection ==
+                                              "tilemap" ||
+                                          appData.selectedSection == "sprites")
+                                        _buildWorldTopControlsOverlay(
+                                          appData,
+                                          viewportSize,
                                         ),
-                                      ),
-                                    if (_usesWorldViewportSection(
-                                          appData.selectedSection,
-                                        ) ||
-                                        appData.selectedSection == "layers" ||
-                                        appData.selectedSection == "zones" ||
-                                        appData.selectedSection == "tilemap" ||
-                                        appData.selectedSection == "sprites")
-                                      _buildWorldTopControlsOverlay(
-                                        appData,
-                                        viewportSize,
-                                      ),
-                                    if (appData.selectedSection ==
-                                        "animation_rigs")
-                                      _buildAnimationRigFrameStripOverlay(
-                                        appData,
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                  ConstrainedBox(
-                    constraints:
-                        const BoxConstraints(maxWidth: 350, minWidth: 350),
-                    child: Container(
-                      color: cdkColors.background,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
-                            child: _buildBreadcrumb(appData, context),
-                          ),
-                          Expanded(
-                            child: _getSelectedLayout(appData),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-                            child: _buildClipboardStatusRow(appData, context),
-                          ),
-                        ],
+                                      if (appData.selectedSection ==
+                                          "animation_rigs")
+                                        _buildAnimationRigFrameStripOverlay(
+                                          appData,
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: 350, minWidth: 350),
+                      child: Container(
+                        color: cdkColors.background,
+                        child: _getSelectedLayout(appData),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              Container(
+                height: 1,
+                color: statusBarDividerColor,
+              ),
+              _buildBottomStatusBar(appData, context),
             ],
           ),
         ),
