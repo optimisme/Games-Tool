@@ -1345,6 +1345,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
         Overlay.maybeOf(context) == null) {
       return;
     }
+    final CDKDialogController controller = CDKDialogController();
     CDKDialogsManager.showPopoverArrowed(
       context: context,
       anchorKey: _colorAnchorKey,
@@ -1353,6 +1354,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       dismissOnEscape: true,
       dismissOnOutsideTap: true,
       showBackgroundShade: false,
+      controller: controller,
       child: _PathColorPickerPopover(
         selectedColor: _selectedColor,
         onSelected: (String colorName) {
@@ -1363,6 +1365,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
             _selectedColor = colorName;
           });
           _onInputChanged();
+          controller.close();
         },
       ),
     );

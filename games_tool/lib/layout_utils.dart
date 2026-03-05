@@ -424,8 +424,11 @@ class LayoutUtils {
   ) {
     final String imageFile = spriteImageFile(appData, sprite);
     final ui.Image? image = appData.imagesCache[imageFile];
-    if (image != null && frameSize.width > 0) {
-      return math.max(1, (image.width / frameSize.width).floor());
+    if (image != null) {
+      return spriteTotalFramesFromImage(
+        image: image,
+        frameSize: frameSize,
+      );
     }
     final GameAnimation? animation = spriteAnimation(appData, sprite);
     if (animation != null) {
@@ -510,6 +513,72 @@ class LayoutUtils {
     final int offset =
         animation.loop ? ticks % span : math.min(ticks, span - 1);
     return start + offset;
+  }
+
+  static int spriteFrameColumnsFromImage({
+    required ui.Image image,
+    required Size frameSize,
+  }) {
+    final double frameWidth = frameSize.width;
+    if (frameWidth <= 0) {
+      return 1;
+    }
+    return math.max(1, (image.width / frameWidth).floor());
+  }
+
+  static int spriteFrameRowsFromImage({
+    required ui.Image image,
+    required Size frameSize,
+  }) {
+    final double frameHeight = frameSize.height;
+    if (frameHeight <= 0) {
+      return 1;
+    }
+    return math.max(1, (image.height / frameHeight).floor());
+  }
+
+  static int spriteTotalFramesFromImage({
+    required ui.Image image,
+    required Size frameSize,
+  }) {
+    final int cols = spriteFrameColumnsFromImage(
+      image: image,
+      frameSize: frameSize,
+    );
+    final int rows = spriteFrameRowsFromImage(
+      image: image,
+      frameSize: frameSize,
+    );
+    return math.max(1, cols * rows);
+  }
+
+  static Rect spriteSourceRectForFrame({
+    required ui.Image image,
+    required Size frameSize,
+    required int frameIndex,
+  }) {
+    final double frameWidth = frameSize.width;
+    final double frameHeight = frameSize.height;
+    if (frameWidth <= 0 || frameHeight <= 0) {
+      return Rect.zero;
+    }
+    final int cols = spriteFrameColumnsFromImage(
+      image: image,
+      frameSize: frameSize,
+    );
+    final int totalFrames = spriteTotalFramesFromImage(
+      image: image,
+      frameSize: frameSize,
+    );
+    final int safeFrame = frameIndex.clamp(0, totalFrames - 1);
+    final int col = safeFrame % cols;
+    final int row = safeFrame ~/ cols;
+    return Rect.fromLTWH(
+      col * frameWidth,
+      row * frameHeight,
+      frameWidth,
+      frameHeight,
+    );
   }
 
   static int animationPlaybackFrameIndex({
@@ -893,7 +962,10 @@ class LayoutUtils {
       final Size frameSize = spriteFrameSize(appData, sprite);
       final double spriteWidth = frameSize.width;
       final double spriteHeight = frameSize.height;
-      final int frames = math.max(1, (spriteImage.width / spriteWidth).floor());
+      final int frames = spriteTotalFramesFromImage(
+        image: spriteImage,
+        frameSize: frameSize,
+      );
       final int frameIndex = spriteFrameIndex(
         appData: appData,
         sprite: sprite,
@@ -908,10 +980,12 @@ class LayoutUtils {
       );
       final double spriteX = worldRect.left;
       final double spriteY = worldRect.top;
-      final double spriteFrameX = frameIndex * spriteWidth;
 
-      final Rect srcRect =
-          Rect.fromLTWH(spriteFrameX, 0, spriteWidth, spriteHeight);
+      final Rect srcRect = spriteSourceRectForFrame(
+        image: spriteImage,
+        frameSize: frameSize,
+        frameIndex: frameIndex,
+      );
       final Rect dstRect =
           Rect.fromLTWH(spriteX, spriteY, spriteWidth, spriteHeight);
       if (sprite.flipX || sprite.flipY) {
