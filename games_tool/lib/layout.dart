@@ -79,6 +79,8 @@ class _LayoutState extends State<Layout> {
       GlobalKey<LayoutZonesState>();
   final GlobalKey<LayoutViewportState> layoutViewportKey =
       GlobalKey<LayoutViewportState>();
+  final GlobalKey<LayoutLevelsState> layoutLevelsKey =
+      GlobalKey<LayoutLevelsState>();
   final GlobalKey<LayoutAnimationRigsState> layoutAnimationRigsKey =
       GlobalKey<LayoutAnimationRigsState>();
   final GlobalKey _animationRigFrameStripRowKey = GlobalKey();
@@ -472,6 +474,12 @@ class _LayoutState extends State<Layout> {
         );
       case 'animation_rigs':
         final LayoutAnimationRigsState? state = layoutAnimationRigsKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      case 'levels':
+        final LayoutLevelsState? state = layoutLevelsKey.currentState;
         if (state == null) {
           return const SizedBox.shrink();
         }
