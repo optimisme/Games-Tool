@@ -352,9 +352,6 @@ class LayoutLayersState extends State<LayoutLayers> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameListGroup.mainId

@@ -300,9 +300,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameListGroup.mainId

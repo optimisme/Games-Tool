@@ -354,9 +354,6 @@ class LayoutPathsState extends State<LayoutPaths> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameListGroup.mainId

@@ -407,9 +407,6 @@ class _LayoutMediaState extends State<LayoutMedia> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameMediaGroup.mainId

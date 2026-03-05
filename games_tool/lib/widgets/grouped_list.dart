@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_cupertino_desktop_kit/flutter_cupertino_desktop_kit.dart';
 
 enum GroupedListRowType { group, item }
@@ -618,6 +617,9 @@ class _GroupedListEditGroupPopoverState
     extends State<GroupedListEditGroupPopover> {
   late final TextEditingController _nameController =
       TextEditingController(text: widget.initialName);
+  late String _lastAppliedName = widget.initialName.trim();
+  Timer? _renameDebounce;
+  String? _queuedName;
   String? _error;
   bool _busy = false;
 
@@ -628,62 +630,98 @@ class _GroupedListEditGroupPopoverState
         .toSet();
   }
 
-  bool get _canSave {
-    final String nextName = _nameController.text.trim();
-    final String initialName = widget.initialName.trim();
-    return !_busy && nextName.isNotEmpty && nextName != initialName;
+  bool _isDuplicateName(String name) {
+    return _normalizedExistingNames.contains(name.toLowerCase());
   }
 
-  Future<void> _rename() async {
-    if (!_canSave) {
+  void _requestRename({required bool immediate}) {
+    final String nextName = _nameController.text.trim();
+    if (nextName.isEmpty || nextName == _lastAppliedName) {
+      _renameDebounce?.cancel();
       return;
     }
-    final String nextName = _nameController.text.trim();
-    if (_normalizedExistingNames.contains(nextName.toLowerCase())) {
-      setState(() {
-        _error = 'A group with this name already exists.';
-      });
+    if (_isDuplicateName(nextName)) {
+      _renameDebounce?.cancel();
+      if (_error != 'A group with this name already exists.') {
+        setState(() {
+          _error = 'A group with this name already exists.';
+        });
+      }
       return;
     }
 
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+    if (_error != null) {
+      setState(() {
+        _error = null;
+      });
+    }
+
+    if (immediate) {
+      _renameDebounce?.cancel();
+      unawaited(_renameTo(nextName));
+      return;
+    }
+    _renameDebounce?.cancel();
+    _renameDebounce = Timer(
+      const Duration(milliseconds: 240),
+      () => unawaited(_renameTo(nextName)),
+    );
+  }
+
+  Future<void> _renameTo(String nextName) async {
+    if (_busy) {
+      _queuedName = nextName;
+      return;
+    }
+    if (nextName.isEmpty || nextName == _lastAppliedName) {
+      return;
+    }
+    if (_isDuplicateName(nextName)) {
+      if (_error != 'A group with this name already exists.' && mounted) {
+        setState(() {
+          _error = 'A group with this name already exists.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
     final bool renamed = await widget.onRename(nextName);
     if (!mounted) {
       return;
     }
     setState(() {
       _busy = false;
-      if (!renamed) {
+      if (renamed) {
+        _lastAppliedName = nextName;
+      } else {
         _error = 'Could not update group.';
       }
     });
+
+    final String queuedName = _queuedName ?? _nameController.text.trim();
+    _queuedName = null;
+    if (queuedName != _lastAppliedName) {
+      _requestRename(immediate: true);
+    }
   }
 
   Future<void> _delete() async {
     if (_busy || widget.onDelete == null) {
       return;
     }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    final bool deleted = await widget.onDelete!();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _busy = false;
-      if (!deleted) {
-        _error = 'Could not delete group.';
-      }
-    });
+    widget.onCancel();
+    await widget.onDelete!();
   }
 
   @override
   void dispose() {
+    _renameDebounce?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -692,6 +730,7 @@ class _GroupedListEditGroupPopoverState
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
+    final double headerToNameSpacing = spacing.sm + 22;
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 180, maxWidth: 220),
       child: Padding(
@@ -700,8 +739,26 @@ class _GroupedListEditGroupPopoverState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CDKText(widget.title, role: CDKTextRole.title),
-            SizedBox(height: spacing.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: CDKText(widget.title, role: CDKTextRole.title),
+                ),
+                if (widget.onDelete != null)
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(20, 20),
+                    onPressed: _busy ? null : _delete,
+                    child: const Icon(
+                      CupertinoIcons.trash,
+                      size: 16,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(height: headerToNameSpacing),
             CDKText(
               'Name',
               role: CDKTextRole.caption,
@@ -712,14 +769,10 @@ class _GroupedListEditGroupPopoverState
               placeholder: widget.placeholder,
               controller: _nameController,
               onChanged: (_) {
-                if (_error != null) {
-                  setState(() {
-                    _error = null;
-                  });
-                }
+                _requestRename(immediate: false);
               },
               onSubmitted: (_) {
-                unawaited(_rename());
+                _requestRename(immediate: true);
               },
             ),
             const SizedBox(height: 4),
@@ -732,40 +785,6 @@ class _GroupedListEditGroupPopoverState
                       role: CDKTextRole.caption,
                       color: CDKTheme.red,
                     ),
-            ),
-            SizedBox(height: spacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                CDKButton(
-                  style: CDKButtonStyle.normal,
-                  enabled: !_busy && widget.onDelete != null,
-                  onPressed: _delete,
-                  child: const Text('Delete group'),
-                ),
-                SizedBox(height: spacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CDKButton(
-                        style: CDKButtonStyle.normal,
-                        enabled: !_busy,
-                        onPressed: widget.onCancel,
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    SizedBox(width: spacing.sm),
-                    Expanded(
-                      child: CDKButton(
-                        style: CDKButtonStyle.action,
-                        enabled: _canSave,
-                        onPressed: _rename,
-                        child: const Text('Save'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
           ],
         ),
