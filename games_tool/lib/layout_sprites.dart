@@ -1718,55 +1718,60 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              SizedBox(
-                width: 72,
-                child: EditorLabeledField(
-                  label: 'Flip X',
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: 39,
-                      height: 24,
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        child: CupertinoSwitch(
-                          value: _flipX,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _flipX = value;
-                            });
-                            _onInputChanged();
-                          },
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: EditorLabeledField(
+                        label: 'Flip X',
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            width: 39,
+                            height: 24,
+                            child: FittedBox(
+                              fit: BoxFit.fill,
+                              child: CupertinoSwitch(
+                                value: _flipX,
+                                onChanged: (bool value) {
+                                  setState(() {
+                                    _flipX = value;
+                                  });
+                                  _onInputChanged();
+                                },
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              SizedBox(
-                width: 72,
-                child: EditorLabeledField(
-                  label: 'Flip Y',
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: 39,
-                      height: 24,
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        child: CupertinoSwitch(
-                          value: _flipY,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _flipY = value;
-                            });
-                            _onInputChanged();
-                          },
+                    SizedBox(width: spacing.sm),
+                    Expanded(
+                      child: EditorLabeledField(
+                        label: 'Flip Y',
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            width: 39,
+                            height: 24,
+                            child: FittedBox(
+                              fit: BoxFit.fill,
+                              child: CupertinoSwitch(
+                                value: _flipY,
+                                onChanged: (bool value) {
+                                  setState(() {
+                                    _flipY = value;
+                                  });
+                                  _onInputChanged();
+                                },
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
