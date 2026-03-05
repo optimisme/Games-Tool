@@ -341,7 +341,6 @@ class GroupedListAlgorithms {
         }
 
         targetGroupId = targetRow.groupId;
-        final bool targetGroupHasItems = groupHasItems(targetGroupId);
         if (targetRowIndex > 0) {
           final GroupedListRow<G, I> previousRow =
               rowsWithoutMovedItem[targetRowIndex - 1];
@@ -354,7 +353,7 @@ class GroupedListAlgorithms {
               groupIdOf: groupIdOf,
               effectiveGroupIdOfItem: effectiveGroupIdOfItem,
             );
-          } else if (previousRow.isItem && targetGroupHasItems) {
+          } else if (previousRow.isItem) {
             targetGroupId = previousRow.groupId;
             final int previousItemIndex = items.indexOf(previousRow.item as I);
             insertItemIndex = previousItemIndex == -1
