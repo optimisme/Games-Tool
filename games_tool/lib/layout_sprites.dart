@@ -13,9 +13,11 @@ import 'game_list_group.dart';
 import 'game_media_asset.dart';
 import 'game_sprite.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 
@@ -521,7 +523,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
 
   Future<_SpriteDialogData?> _promptSpriteData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     required _SpriteDialogData initialData,
     required List<GameAnimation> animations,
     List<GameListGroup> groupOptions = const <GameListGroup>[],
@@ -529,7 +531,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
     String groupFieldLabel = 'Sprite Group',
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_SpriteDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -545,14 +546,13 @@ class LayoutSpritesState extends State<LayoutSprites> {
 
     final dialogChild = _SpriteFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialData: initialData,
       animations: animations,
       groupOptions: groupOptions,
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
       resolveMediaByFileName: appData.mediaAssetByFileName,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -615,6 +615,9 @@ class LayoutSpritesState extends State<LayoutSprites> {
         appData.selectedLevel >= appData.gameData.levels.length) {
       return;
     }
+    appData.selectedSprite = -1;
+    appData.selectedSpriteIndices = <int>{};
+    appData.update();
     final GameLevel level = appData.gameData.levels[appData.selectedLevel];
     _ensureMainSpriteGroup(level);
     final GameAnimation? defaultAnimation =
@@ -625,7 +628,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
 
     final _SpriteDialogData? data = await _promptSpriteData(
       title: 'New sprite',
-      confirmLabel: 'Add',
+      mode: EditorEntityFormMode.add,
       initialData: _dialogDataFromAnimation(
         name: '',
         x: 0,
@@ -727,7 +730,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
     final GameSprite sprite = level.sprites[index];
     return _SpriteFormDialog(
       title: 'Edit sprite',
-      confirmLabel: 'Save',
+      mode: EditorEntityFormMode.edit,
       initialData: _dialogDataFromSprite(
         appData: appData,
         sprite: sprite,
@@ -738,7 +741,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
       showGroupSelector: false,
       groupFieldLabel: 'Sprite Group',
       resolveMediaByFileName: appData.mediaAssetByFileName,
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 340,
       onLiveChanged: (value) async {
@@ -1324,14 +1326,13 @@ class _SpriteDialogData {
 class _SpriteFormDialog extends StatefulWidget {
   const _SpriteFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialData,
     required this.animations,
     required this.groupOptions,
     required this.showGroupSelector,
     required this.groupFieldLabel,
     required this.resolveMediaByFileName,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 380,
@@ -1342,14 +1343,13 @@ class _SpriteFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final _SpriteDialogData initialData;
   final List<GameAnimation> animations;
   final List<GameListGroup> groupOptions;
   final bool showGroupSelector;
   final String groupFieldLabel;
   final GameMediaAsset? Function(String fileName) resolveMediaByFileName;
-  final bool liveEdit;
   final Future<void> Function(_SpriteDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1502,9 +1502,11 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
   }
 
   void _onInputChanged() {
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   void _confirm() {
@@ -1517,26 +1519,25 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_SpriteDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.gameplayData == b.gameplayData &&
-            a.x == b.x &&
-            a.y == b.y &&
-            a.depth == b.depth &&
-            a.animationId == b.animationId &&
-            a.width == b.width &&
-            a.height == b.height &&
-            a.imageFile == b.imageFile &&
-            a.flipX == b.flipX &&
-            a.flipY == b.flipY &&
-            a.groupId == b.groupId,
-      );
-    }
+    _editSession = createEditorLiveEditSession<_SpriteDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.gameplayData == b.gameplayData &&
+          a.x == b.x &&
+          a.y == b.y &&
+          a.depth == b.depth &&
+          a.animationId == b.animationId &&
+          a.width == b.width &&
+          a.height == b.height &&
+          a.imageFile == b.imageFile &&
+          a.flipX == b.flipX &&
+          a.flipY == b.flipY &&
+          a.groupId == b.groupId,
+    );
   }
 
   @override
@@ -1618,11 +1619,11 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Configure sprite details.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1647,7 +1648,7 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                 _onInputChanged();
               },
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -1832,7 +1833,7 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                       controller: _gameplayDataController,
                       onChanged: (_) => _onInputChanged(),
                       onSubmitted: (_) {
-                        if (widget.liveEdit) {
+                        if (widget.mode.isLiveEdit) {
                           _onInputChanged();
                           return;
                         }
@@ -1851,7 +1852,7 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                 controller: _gameplayDataController,
                 onChanged: (_) => _onInputChanged(),
                 onSubmitted: (_) {
-                  if (widget.liveEdit) {
+                  if (widget.mode.isLiveEdit) {
                     _onInputChanged();
                     return;
                   }

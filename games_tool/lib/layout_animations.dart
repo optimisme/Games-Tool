@@ -12,9 +12,11 @@ import 'game_list_group.dart';
 import 'game_media_asset.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 
@@ -560,7 +562,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
 
   Future<_AnimationDialogData?> _promptAnimationData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     required _AnimationDialogData initialData,
     required List<GameMediaAsset> sourceAssets,
     List<GameListGroup> groupOptions = const <GameListGroup>[],
@@ -568,7 +570,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     String groupFieldLabel = 'Animation Group',
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_AnimationDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -584,13 +585,12 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
 
     final dialogChild = _AnimationFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialData: initialData,
       sourceAssets: sourceAssets,
       groupOptions: groupOptions,
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -653,10 +653,13 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
     }
     final AppData appData = Provider.of<AppData>(context, listen: false);
     _ensureMainAnimationGroup(appData);
+    appData.selectedAnimation = -1;
+    _syncFrameSelectionToAnimation(appData, null);
+    appData.update();
     final GameMediaAsset first = sourceAssets.first;
     final _AnimationDialogData? data = await _promptAnimationData(
       title: 'New animation',
-      confirmLabel: 'Add',
+      mode: EditorEntityFormMode.add,
       initialData: _AnimationDialogData(
         name: '',
         mediaFile: first.fileName,
@@ -1368,7 +1371,7 @@ class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
 
     return _AnimationFormDialog(
       title: 'Edit animation',
-      confirmLabel: 'Save',
+      mode: EditorEntityFormMode.edit,
       initialData: _AnimationDialogData(
         name: animation.name,
         mediaFile: animation.mediaFile,
@@ -1382,7 +1385,6 @@ class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
       groupOptions: _animationGroups(appData),
       showGroupSelector: true,
       groupFieldLabel: 'Animation Group',
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 360,
       onLiveChanged: (value) async {
@@ -1408,13 +1410,12 @@ class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
 class _AnimationFormDialog extends StatefulWidget {
   const _AnimationFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialData,
     required this.sourceAssets,
     required this.groupOptions,
     required this.showGroupSelector,
     required this.groupFieldLabel,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 400,
@@ -1425,13 +1426,12 @@ class _AnimationFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final _AnimationDialogData initialData;
   final List<GameMediaAsset> sourceAssets;
   final List<GameListGroup> groupOptions;
   final bool showGroupSelector;
   final String groupFieldLabel;
-  final bool liveEdit;
   final Future<void> Function(_AnimationDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1576,9 +1576,11 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
   }
 
   void _onInputChanged() {
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   void _confirm() {
@@ -1591,21 +1593,20 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_AnimationDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.mediaFile == b.mediaFile &&
-            a.startFrame == b.startFrame &&
-            a.endFrame == b.endFrame &&
-            a.fps == b.fps &&
-            a.loop == b.loop &&
-            a.groupId == b.groupId,
-      );
-    }
+    _editSession = createEditorLiveEditSession<_AnimationDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.mediaFile == b.mediaFile &&
+          a.startFrame == b.startFrame &&
+          a.endFrame == b.endFrame &&
+          a.fps == b.fps &&
+          a.loop == b.loop &&
+          a.groupId == b.groupId,
+    );
   }
 
   @override
@@ -1656,11 +1657,11 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Configure animation details.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1685,7 +1686,7 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
                 _onInputChanged();
               },
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }

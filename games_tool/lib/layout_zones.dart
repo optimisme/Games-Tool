@@ -13,9 +13,11 @@ import 'game_zone_group.dart';
 import 'game_zone_type.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 import 'widgets/selectable_color_swatch.dart';
@@ -679,7 +681,7 @@ class LayoutZonesState extends State<LayoutZones> {
 
   Future<_ZoneDialogData?> _promptZoneData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     required _ZoneDialogData initialData,
     required List<GameZoneType> zoneTypes,
     List<GameZoneGroup> groupOptions = const <GameZoneGroup>[],
@@ -687,7 +689,6 @@ class LayoutZonesState extends State<LayoutZones> {
     String groupFieldLabel = 'Zone Group',
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_ZoneDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -702,13 +703,12 @@ class LayoutZonesState extends State<LayoutZones> {
 
     final dialogChild = _ZoneFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialData: initialData,
       zoneTypes: zoneTypes,
       groupOptions: groupOptions,
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -771,6 +771,9 @@ class LayoutZonesState extends State<LayoutZones> {
         appData.selectedLevel >= appData.gameData.levels.length) {
       return;
     }
+    appData.selectedZone = -1;
+    appData.selectedZoneIndices = <int>{};
+    appData.update();
     final GameLevel level = appData.gameData.levels[appData.selectedLevel];
     _ensureMainGroupInLevel(level);
     final List<GameZoneType> zoneTypes = _zoneTypes(appData);
@@ -779,7 +782,7 @@ class LayoutZonesState extends State<LayoutZones> {
     }
     final data = await _promptZoneData(
       title: "New zone",
-      confirmLabel: "Add",
+      mode: EditorEntityFormMode.add,
       initialData: _ZoneDialogData(
         name: 'Zone ${level.zones.length + 1}',
         type: zoneTypes.first.name,
@@ -890,7 +893,7 @@ class LayoutZonesState extends State<LayoutZones> {
     final bool typeExists = zoneTypes.any((type) => type.name == zone.type);
     return _ZoneFormDialog(
       title: 'Edit zone',
-      confirmLabel: 'Save',
+      mode: EditorEntityFormMode.edit,
       initialData: _ZoneDialogData(
         name: zone.name,
         type: typeExists ? zone.type : zoneTypes.first.name,
@@ -905,7 +908,6 @@ class LayoutZonesState extends State<LayoutZones> {
       groupOptions: _zoneGroups(level),
       showGroupSelector: false,
       groupFieldLabel: 'Zone Group',
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 340,
       onLiveChanged: (value) async {
@@ -1638,13 +1640,12 @@ class _ZoneDialogData {
 class _ZoneFormDialog extends StatefulWidget {
   const _ZoneFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialData,
     required this.zoneTypes,
     required this.groupOptions,
     required this.showGroupSelector,
     required this.groupFieldLabel,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 360,
@@ -1655,13 +1656,12 @@ class _ZoneFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final _ZoneDialogData initialData;
   final List<GameZoneType> zoneTypes;
   final List<GameZoneGroup> groupOptions;
   final bool showGroupSelector;
   final String groupFieldLabel;
-  final bool liveEdit;
   final Future<void> Function(_ZoneDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1775,9 +1775,11 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
     if (mounted) {
       setState(() {});
     }
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   GameZoneType? _selectedZoneType() {
@@ -1838,22 +1840,21 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_ZoneDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.type == b.type &&
-            a.gameplayData == b.gameplayData &&
-            a.x == b.x &&
-            a.y == b.y &&
-            a.width == b.width &&
-            a.height == b.height &&
-            a.groupId == b.groupId,
-      );
-    }
+    _editSession = createEditorLiveEditSession<_ZoneDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.type == b.type &&
+          a.gameplayData == b.gameplayData &&
+          a.x == b.x &&
+          a.y == b.y &&
+          a.width == b.width &&
+          a.height == b.height &&
+          a.groupId == b.groupId,
+    );
   }
 
   @override
@@ -1928,11 +1929,11 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Configure zone details.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1954,7 +1955,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
               controller: _nameController,
               onChanged: (_) => _onInputChanged(),
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -2019,7 +2020,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                     keyboardType: TextInputType.number,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
-                      if (widget.liveEdit) {
+                      if (widget.mode.isLiveEdit) {
                         _onInputChanged();
                         return;
                       }
@@ -2038,7 +2039,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                     keyboardType: TextInputType.number,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
-                      if (widget.liveEdit) {
+                      if (widget.mode.isLiveEdit) {
                         _onInputChanged();
                         return;
                       }
@@ -2061,7 +2062,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                     keyboardType: TextInputType.number,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
-                      if (widget.liveEdit) {
+                      if (widget.mode.isLiveEdit) {
                         _onInputChanged();
                         return;
                       }
@@ -2080,7 +2081,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                     keyboardType: TextInputType.number,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
-                      if (widget.liveEdit) {
+                      if (widget.mode.isLiveEdit) {
                         _onInputChanged();
                         return;
                       }
@@ -2127,7 +2128,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                       controller: _gameplayDataController,
                       onChanged: (_) => _onInputChanged(),
                       onSubmitted: (_) {
-                        if (widget.liveEdit) {
+                        if (widget.mode.isLiveEdit) {
                           _onInputChanged();
                           return;
                         }
@@ -2146,7 +2147,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
                 controller: _gameplayDataController,
                 onChanged: (_) => _onInputChanged(),
                 onSubmitted: (_) {
-                  if (widget.liveEdit) {
+                  if (widget.mode.isLiveEdit) {
                     _onInputChanged();
                     return;
                   }
