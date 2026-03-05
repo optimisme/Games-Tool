@@ -267,7 +267,7 @@ extension _LayoutNavigation on _LayoutState {
       case 'sprites':
         return LayoutSprites(key: layoutSpritesKey);
       case 'paths':
-        return const LayoutPaths();
+        return LayoutPaths(key: layoutPathsKey);
       case 'viewport':
         return LayoutViewport(key: layoutViewportKey);
       case 'media':

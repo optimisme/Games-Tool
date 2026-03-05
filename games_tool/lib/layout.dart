@@ -83,6 +83,8 @@ class _LayoutState extends State<Layout> {
       GlobalKey<LayoutLayersState>();
   final GlobalKey<LayoutLevelsState> layoutLevelsKey =
       GlobalKey<LayoutLevelsState>();
+  final GlobalKey<LayoutPathsState> layoutPathsKey =
+      GlobalKey<LayoutPathsState>();
   final GlobalKey<LayoutAnimationRigsState> layoutAnimationRigsKey =
       GlobalKey<LayoutAnimationRigsState>();
   final GlobalKey _animationRigFrameStripRowKey = GlobalKey();
@@ -551,6 +553,12 @@ class _LayoutState extends State<Layout> {
         return state.buildEditToolbarContent(appData);
       case 'sprites':
         final LayoutSpritesState? state = layoutSpritesKey.currentState;
+        if (state == null) {
+          return const SizedBox.shrink();
+        }
+        return state.buildEditToolbarContent(appData);
+      case 'paths':
+        final LayoutPathsState? state = layoutPathsKey.currentState;
         if (state == null) {
           return const SizedBox.shrink();
         }

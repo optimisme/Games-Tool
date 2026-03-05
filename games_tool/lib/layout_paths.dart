@@ -22,19 +22,20 @@ class LayoutPaths extends StatefulWidget {
   const LayoutPaths({super.key});
 
   @override
-  State<LayoutPaths> createState() => _LayoutPathsState();
+  State<LayoutPaths> createState() => LayoutPathsState();
 }
 
-class _LayoutPathsState extends State<LayoutPaths> {
+class LayoutPathsState extends State<LayoutPaths> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _addPathAnchorKey = GlobalKey();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
 
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
   int _selectedPathIndex = -1;
+  int _inlineEditUndoPathIndex = -1;
+  String _inlineEditUndoGroupKey = '';
 
   void _setSelectedPathIndex(
     AppData appData,
@@ -511,53 +512,120 @@ class _LayoutPathsState extends State<LayoutPaths> {
     return completer.future;
   }
 
-  void _showPathEditPopover({
-    required _PathDialogData initialData,
-    required List<GameListGroup> groupOptions,
-    required List<_PathTargetOption> layerTargetOptions,
-    required List<_PathTargetOption> zoneTargetOptions,
-    required List<_PathTargetOption> spriteTargetOptions,
-    required GlobalKey anchorKey,
-    required Future<void> Function(_PathDialogData value) onLiveChanged,
-    VoidCallback? onDelete,
-  }) {
-    if (Overlay.maybeOf(context) == null) {
-      return;
+  String _inlineUndoGroupKeyForPath(int index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty &&
+        _inlineEditUndoPathIndex == index) {
+      return _inlineEditUndoGroupKey;
     }
+    _inlineEditUndoPathIndex = index;
+    _inlineEditUndoGroupKey =
+        'path-inline-$index-${DateTime.now().microsecondsSinceEpoch}';
+    return _inlineEditUndoGroupKey;
+  }
 
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    final CDKDialogController controller = CDKDialogController();
+  Future<void> _applyPathChange(
+    AppData appData, {
+    required int index,
+    required _PathDialogData value,
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel: groupedUndo ? 'path-inline-live-edit' : 'path-inline-edit',
+      undoGroupKey: groupedUndo ? _inlineUndoGroupKeyForPath(index) : null,
+      mutate: () {
+        if (appData.selectedLevel == -1 ||
+            appData.selectedLevel >= appData.gameData.levels.length) {
+          return;
+        }
+        final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+        if (index < 0 || index >= level.paths.length) {
+          return;
+        }
+        _ensureMainPathGroup(level);
+        final Set<String> validGroupIds = _pathGroupIds(level);
+        final String targetGroupId = validGroupIds.contains(value.groupId)
+            ? value.groupId
+            : GameListGroup.mainId;
 
-    CDKDialogsManager.showPopoverArrowed(
-      context: context,
-      anchorKey: anchorKey,
-      isAnimated: true,
-      animateContentResize: false,
-      dismissOnEscape: true,
-      dismissOnOutsideTap: true,
-      showBackgroundShade: false,
-      controller: controller,
-      child: _PathEditPopover(
-        title: 'Edit path',
-        initialData: initialData,
-        groupOptions: groupOptions,
-        layerTargetOptions: layerTargetOptions,
-        zoneTargetOptions: zoneTargetOptions,
-        spriteTargetOptions: spriteTargetOptions,
-        onLiveChanged: onLiveChanged,
-        onClose: () {
-          unawaited(() async {
-            await appData.flushPendingAutosave();
-            controller.close();
-          }());
-        },
-        onDelete: onDelete == null
-            ? null
-            : () {
-                controller.close();
-                onDelete();
-              },
-      ),
+        final GamePath existing = level.paths[index];
+        level.paths[index] = GamePath(
+          id: existing.id,
+          name: value.name.trim(),
+          points: value.points
+              .map((point) => GamePathPoint(x: point.x, y: point.y))
+              .toList(growable: true),
+          color: value.color,
+          groupId: targetGroupId,
+        );
+
+        final Set<String> usedBindingIds = level.pathBindings
+            .where((binding) => binding.pathId != existing.id)
+            .map((binding) => binding.id.trim())
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        level.pathBindings
+            .removeWhere((binding) => binding.pathId == existing.id);
+        for (final GamePathBinding binding in value.bindings) {
+          String bindingId = binding.id.trim();
+          if (bindingId.isEmpty || usedBindingIds.contains(bindingId)) {
+            bindingId = _newPathBindingId(usedBindingIds);
+          } else {
+            usedBindingIds.add(bindingId);
+          }
+          level.pathBindings.add(
+            GamePathBinding(
+              id: bindingId,
+              pathId: existing.id,
+              targetType: binding.targetType,
+              targetIndex: binding.targetIndex,
+              behavior: binding.behavior,
+              enabled: binding.enabled,
+              relativeToInitialPosition: binding.relativeToInitialPosition,
+              durationMs: binding.durationMs,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget buildEditToolbarContent(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return const SizedBox.shrink();
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    final bool appSelectionValid =
+        appData.selectedPath >= 0 && appData.selectedPath < level.paths.length;
+    final bool localSelectionValid =
+        _selectedPathIndex >= 0 && _selectedPathIndex < level.paths.length;
+    final int index = appSelectionValid
+        ? appData.selectedPath
+        : (localSelectionValid ? _selectedPathIndex : -1);
+    if (index < 0 || index >= level.paths.length) {
+      return const SizedBox.shrink();
+    }
+    final GamePath path = level.paths[index];
+    return _PathEditPopover(
+      key: ValueKey('path-inline-editor-${path.id}-$index'),
+      title: 'Edit path',
+      initialData: _pathDataFromPath(path, level),
+      groupOptions: _pathGroups(level),
+      layerTargetOptions: _layerTargetOptions(level),
+      zoneTargetOptions: _zoneTargetOptions(level),
+      spriteTargetOptions: _spriteTargetOptions(level),
+      onLiveChanged: (value) async {
+        await _applyPathChange(
+          appData,
+          index: index,
+          value: value,
+          groupedUndo: true,
+        );
+      },
+      onClose: () {},
+      onDelete: () {
+        unawaited(_confirmAndDeletePath(index));
+      },
     );
   }
 
@@ -676,89 +744,6 @@ class _LayoutPathsState extends State<LayoutPaths> {
         level.paths.isEmpty ? -1 : index.clamp(0, level.paths.length - 1);
     _setSelectedPathIndex(appData, nextSelection);
     await _autoSaveIfPossible(appData);
-  }
-
-  void _promptAndEditPath(int index, GlobalKey anchorKey) {
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1 ||
-        appData.selectedLevel >= appData.gameData.levels.length) {
-      return;
-    }
-
-    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
-    if (index < 0 || index >= level.paths.length) {
-      return;
-    }
-
-    final String undoGroupKey =
-        'path-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-
-    _showPathEditPopover(
-      initialData: _pathDataFromPath(level.paths[index], level),
-      groupOptions: _pathGroups(level),
-      layerTargetOptions: _layerTargetOptions(level),
-      zoneTargetOptions: _zoneTargetOptions(level),
-      spriteTargetOptions: _spriteTargetOptions(level),
-      anchorKey: anchorKey,
-      onLiveChanged: (data) async {
-        await appData.runProjectMutation(
-          debugLabel: 'path-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            final GameLevel level =
-                appData.gameData.levels[appData.selectedLevel];
-            if (index < 0 || index >= level.paths.length) {
-              return;
-            }
-            _ensureMainPathGroup(level);
-            final Set<String> validGroupIds = _pathGroupIds(level);
-            final String targetGroupId = validGroupIds.contains(data.groupId)
-                ? data.groupId
-                : GameListGroup.mainId;
-
-            final GamePath existing = level.paths[index];
-            level.paths[index] = GamePath(
-              id: existing.id,
-              name: data.name.trim(),
-              points: data.points
-                  .map((point) => GamePathPoint(x: point.x, y: point.y))
-                  .toList(growable: true),
-              color: data.color,
-              groupId: targetGroupId,
-            );
-
-            final Set<String> usedBindingIds = level.pathBindings
-                .where((binding) => binding.pathId != existing.id)
-                .map((binding) => binding.id.trim())
-                .where((id) => id.isNotEmpty)
-                .toSet();
-            level.pathBindings
-                .removeWhere((binding) => binding.pathId == existing.id);
-            for (final GamePathBinding binding in data.bindings) {
-              String bindingId = binding.id.trim();
-              if (bindingId.isEmpty || usedBindingIds.contains(bindingId)) {
-                bindingId = _newPathBindingId(usedBindingIds);
-              } else {
-                usedBindingIds.add(bindingId);
-              }
-              level.pathBindings.add(
-                GamePathBinding(
-                  id: bindingId,
-                  pathId: existing.id,
-                  targetType: binding.targetType,
-                  targetIndex: binding.targetIndex,
-                  behavior: binding.behavior,
-                  enabled: binding.enabled,
-                  relativeToInitialPosition: binding.relativeToInitialPosition,
-                  durationMs: binding.durationMs,
-                ),
-              );
-            }
-          },
-        );
-      },
-      onDelete: () => _confirmAndDeletePath(index),
-    );
   }
 
   void _selectPath(int index, bool isSelected) {
@@ -1196,25 +1181,6 @@ class _LayoutPathsState extends State<LayoutPaths> {
                                       ],
                                     ),
                                   ),
-                                  if (isSelected)
-                                    CupertinoButton(
-                                      key: _selectedEditAnchorKey,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                      ),
-                                      minimumSize: const Size(20, 20),
-                                      onPressed: () {
-                                        _promptAndEditPath(
-                                          pathIndex,
-                                          _selectedEditAnchorKey,
-                                        );
-                                      },
-                                      child: Icon(
-                                        CupertinoIcons.ellipsis_circle,
-                                        size: 15,
-                                        color: cdkColors.colorText,
-                                      ),
-                                    ),
                                   ReorderableDragStartListener(
                                     index: index,
                                     child: Padding(
@@ -1493,6 +1459,7 @@ class _PathQuickAddPopoverState extends State<_PathQuickAddPopover> {
 
 class _PathEditPopover extends StatefulWidget {
   const _PathEditPopover({
+    super.key,
     required this.title,
     required this.initialData,
     required this.groupOptions,
@@ -1519,6 +1486,7 @@ class _PathEditPopover extends StatefulWidget {
 }
 
 class _PathEditPopoverState extends State<_PathEditPopover> {
+  final GlobalKey _colorAnchorKey = GlobalKey();
   late final TextEditingController _nameController = TextEditingController(
     text: widget.initialData.name,
   );
@@ -1530,14 +1498,10 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       .initialData.bindings
       .map(_PathBindingDraft.fromBinding)
       .toList(growable: true);
-  late final List<TextEditingController> _bindingDurationControllers =
-      widget.initialData.bindings
-          .map(
-            (binding) => TextEditingController(
-              text: binding.durationMs.toString(),
-            ),
-          )
-          .toList(growable: true);
+  late final List<GlobalKey> _bindingOptionsAnchorKeys = widget
+      .initialData.bindings
+      .map((_) => GlobalKey())
+      .toList(growable: true);
   EditSession<_PathDialogData>? _editSession;
 
   String _resolveInitialColor() {
@@ -1572,6 +1536,81 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
 
   void _onInputChanged() {
     _editSession?.update(_buildData());
+  }
+
+  void _showColorPickerPopover() {
+    if (_colorAnchorKey.currentContext == null ||
+        Overlay.maybeOf(context) == null) {
+      return;
+    }
+    CDKDialogsManager.showPopoverArrowed(
+      context: context,
+      anchorKey: _colorAnchorKey,
+      isAnimated: true,
+      animateContentResize: false,
+      dismissOnEscape: true,
+      dismissOnOutsideTap: true,
+      showBackgroundShade: false,
+      child: _PathColorPickerPopover(
+        selectedColor: _selectedColor,
+        onSelected: (String colorName) {
+          if (_selectedColor == colorName) {
+            return;
+          }
+          setState(() {
+            _selectedColor = colorName;
+          });
+          _onInputChanged();
+        },
+      ),
+    );
+  }
+
+  void _showLinkedObjectOptionsPopover(int index) {
+    if (index < 0 ||
+        index >= _draftBindings.length ||
+        index >= _bindingOptionsAnchorKeys.length ||
+        Overlay.maybeOf(context) == null) {
+      return;
+    }
+    final _PathBindingDraft draft = _draftBindings[index];
+    final TextEditingController durationController = TextEditingController(
+      text: draft.durationMs.toString(),
+    );
+    final CDKDialogController controller = CDKDialogController();
+    CDKDialogsManager.showPopoverArrowed(
+      context: context,
+      anchorKey: _bindingOptionsAnchorKeys[index],
+      isAnimated: true,
+      animateContentResize: false,
+      dismissOnEscape: true,
+      dismissOnOutsideTap: true,
+      showBackgroundShade: false,
+      controller: controller,
+      onHide: () {
+        durationController.dispose();
+      },
+      child: _PathBindingDetailsPopover(
+        behavior: draft.behavior,
+        durationMs: draft.durationMs,
+        enabled: draft.enabled,
+        relativeToInitialPosition: draft.relativeToInitialPosition,
+        durationController: durationController,
+        behaviorLabelBuilder: _behaviorLabel,
+        onBehaviorChanged: (String value) {
+          _updateLinkedObject(index, behavior: value);
+        },
+        onDurationChanged: (int value) {
+          _updateLinkedObject(index, durationMs: value);
+        },
+        onEnabledChanged: (bool value) {
+          _updateLinkedObject(index, enabled: value);
+        },
+        onRelativeChanged: (bool value) {
+          _updateLinkedObject(index, relativeToInitialPosition: value);
+        },
+      ),
+    );
   }
 
   List<_PathTargetOption> _targetOptionsForType(String targetType) {
@@ -1675,9 +1714,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           durationMs: defaultDurationMs,
         ),
       );
-      _bindingDurationControllers.add(
-        TextEditingController(text: defaultDurationMs.toString()),
-      );
+      _bindingOptionsAnchorKeys.add(GlobalKey());
     });
     _onInputChanged();
   }
@@ -1688,9 +1725,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     }
     setState(() {
       _draftBindings.removeAt(index);
-      final TextEditingController controller =
-          _bindingDurationControllers.removeAt(index);
-      controller.dispose();
+      _bindingOptionsAnchorKeys.removeAt(index);
     });
     _onInputChanged();
   }
@@ -1846,9 +1881,6 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     for (final draft in _draftPoints) {
       draft.dispose();
     }
-    for (final controller in _bindingDurationControllers) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -1856,22 +1888,10 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    const double typeColumnWidth = 82;
-    const double behaviorColumnWidth = 104;
-    const double durationColumnWidth = 72;
-    const double toggleColumnWidth = 52;
-    const double removeColumnWidth = 18;
-    final double typeObjectGap = spacing.xs;
-    final double enabledRelativeGap = spacing.xs;
-    final int maxSpriteNameLength = widget.spriteTargetOptions.fold<int>(
-      0,
-      (int maxLen, _PathTargetOption option) =>
-          option.label.length > maxLen ? option.label.length : maxLen,
-    );
-    final double objectColumnWidth =
-        ((64 + (maxSpriteNameLength * 7.5)) - 5).clamp(135.0, 255.0);
-    final int objectLabelMaxChars =
-        ((objectColumnWidth - 36.0) / 7.0).floor().clamp(8, 48);
+    const double typeColumnWidth = 72;
+    const double objectColumnWidth = 100;
+    const double iconColumnWidth = 18;
+    const int objectLabelMaxChars = 11;
     return EditorFormDialogScaffold(
       title: widget.title,
       description: '',
@@ -1912,433 +1932,243 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           SizedBox(height: spacing.sm),
           EditorLabeledField(
             label: 'Color',
-            child: Center(
-              child: Wrap(
-                spacing: spacing.xs,
-                runSpacing: spacing.xs,
-                children: GamePath.colorPalette.map((String colorName) {
-                  return SelectableColorSwatch(
-                    color: LayoutUtils.getColorFromName(colorName),
-                    selected: _selectedColor == colorName,
-                    onTap: () {
-                      if (_selectedColor == colorName) {
-                        return;
-                      }
-                      setState(() {
-                        _selectedColor = colorName;
-                      });
-                      _onInputChanged();
-                    },
-                  );
-                }).toList(growable: false),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: CDKButton(
+                key: _colorAnchorKey,
+                style: CDKButtonStyle.normal,
+                onPressed: _showColorPickerPopover,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: LayoutUtils.getColorFromName(_selectedColor),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(CupertinoIcons.chevron_down, size: 10),
+                  ],
+                ),
               ),
             ),
           ),
-          SizedBox(height: spacing.sm),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 170,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CDKText('Points list', role: CDKTextRole.caption),
-                      ],
-                    ),
-                    SizedBox(height: spacing.xs),
-                    ...List<Widget>.generate(_draftPoints.length, (int index) {
-                      final _PathPointDraft draft = _draftPoints[index];
-                      final bool canRemove =
-                          index > 0 && index < _draftPoints.length - 1;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        color: cdkColors.backgroundSecondary0,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: CDKFieldText(
-                                placeholder: 'X',
-                                keyboardType: TextInputType.number,
-                                controller: draft.xController,
-                                onChanged: (_) => _onInputChanged(),
-                              ),
-                            ),
-                            SizedBox(width: spacing.xs),
-                            Expanded(
-                              child: CDKFieldText(
-                                placeholder: 'Y',
-                                keyboardType: TextInputType.number,
-                                controller: draft.yController,
-                                onChanged: (_) => _onInputChanged(),
-                              ),
-                            ),
-                            SizedBox(width: spacing.xs),
-                            SizedBox(
-                              width: 24,
-                              child: canRemove
-                                  ? CupertinoButton(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: const Size(20, 20),
-                                      onPressed: () => _removePoint(index),
-                                      child: Icon(
-                                        CupertinoIcons.minus_circle,
-                                        size: 16,
-                                        color: cdkColors.colorText,
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        6,
-                        spacing.xs,
-                        0,
-                        0,
-                      ),
-                      child: CDKButton(
-                        onPressed: _addPointBeforeEnd,
-                        child: const Text('Add Point'),
-                      ),
-                    ),
-                  ],
-                ),
+          SizedBox(height: spacing.md),
+          const CDKText('Linked objects', role: CDKTextRole.caption),
+          SizedBox(height: spacing.xs),
+          if (_draftBindings.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              color: cdkColors.backgroundSecondary0,
+              child: CDKText(
+                'No linked objects yet.',
+                role: CDKTextRole.caption,
+                color: cdkColors.colorText.withValues(alpha: 0.62),
               ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            )
+          else ...<Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: typeColumnWidth,
+                    child: CDKText('Type', role: CDKTextRole.caption),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  const SizedBox(
+                    width: objectColumnWidth,
+                    child: CDKText('Object', role: CDKTextRole.caption),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  const SizedBox(width: iconColumnWidth),
+                  SizedBox(width: spacing.xs),
+                  const SizedBox(width: iconColumnWidth),
+                ],
+              ),
+            ),
+            SizedBox(height: spacing.xs),
+            ...List<Widget>.generate(_draftBindings.length, (int index) {
+              final _PathBindingDraft draft = _draftBindings[index];
+              final List<_PathTargetOption> targetOptions =
+                  _targetOptionsForType(draft.targetType);
+              final int selectedTargetOptionIndex = targetOptions
+                  .indexWhere((option) => option.index == draft.targetIndex);
+              final int safeTargetOptionIndex =
+                  selectedTargetOptionIndex < 0 ? 0 : selectedTargetOptionIndex;
+              final int selectedTypeIndex = GamePathBinding.supportedTargetTypes
+                  .indexOf(draft.targetType);
+              final int safeTypeIndex =
+                  selectedTypeIndex < 0 ? 0 : selectedTypeIndex;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                color: cdkColors.backgroundSecondary0,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        const CDKText(
-                          'Linked objects',
-                          role: CDKTextRole.caption,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: spacing.xs),
-                    if (_draftBindings.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        color: cdkColors.backgroundSecondary0,
-                        child: CDKText(
-                          'No linked objects yet.',
-                          role: CDKTextRole.caption,
-                          color: cdkColors.colorText.withValues(alpha: 0.62),
-                        ),
-                      )
-                    else ...<Widget>[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: typeColumnWidth,
-                              child: CDKText('Type', role: CDKTextRole.caption),
-                            ),
-                            SizedBox(width: typeObjectGap),
-                            SizedBox(
-                              width: objectColumnWidth,
-                              child: const CDKText(
-                                'Object',
-                                role: CDKTextRole.caption,
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            const SizedBox(
-                              width: behaviorColumnWidth,
-                              child: CDKText(
-                                'Behavior',
-                                role: CDKTextRole.caption,
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            const SizedBox(
-                              width: durationColumnWidth,
-                              child: CDKText(
-                                'Duration (ms)',
-                                role: CDKTextRole.caption,
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            const SizedBox(
-                              width: toggleColumnWidth,
-                              child: CDKText(
-                                'Enabled',
-                                role: CDKTextRole.caption,
-                              ),
-                            ),
-                            SizedBox(width: enabledRelativeGap),
-                            const SizedBox(
-                              width: toggleColumnWidth,
-                              child: CDKText(
-                                'Relative',
-                                role: CDKTextRole.caption,
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            const SizedBox(width: removeColumnWidth),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: spacing.xs),
-                      ...List<Widget>.generate(_draftBindings.length,
-                          (int index) {
-                        final _PathBindingDraft draft = _draftBindings[index];
-                        final TextEditingController durationController =
-                            _bindingDurationControllers[index];
-                        final List<_PathTargetOption> targetOptions =
-                            _targetOptionsForType(draft.targetType);
-                        final int selectedTargetOptionIndex =
-                            targetOptions.indexWhere(
-                                (option) => option.index == draft.targetIndex);
-                        final int safeTargetOptionIndex =
-                            selectedTargetOptionIndex < 0
-                                ? 0
-                                : selectedTargetOptionIndex;
-                        final int selectedTypeIndex = GamePathBinding
-                            .supportedTargetTypes
-                            .indexOf(draft.targetType);
-                        final int safeTypeIndex =
-                            selectedTypeIndex < 0 ? 0 : selectedTypeIndex;
-                        final int selectedBehaviorIndex = GamePathBinding
-                            .supportedBehaviors
-                            .indexOf(draft.behavior);
-                        final int safeBehaviorIndex = selectedBehaviorIndex < 0
-                            ? 0
-                            : selectedBehaviorIndex;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
-                          color: cdkColors.backgroundSecondary0,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: typeColumnWidth,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: IntrinsicWidth(
-                                    child: CDKButtonSelect(
-                                      selectedIndex: safeTypeIndex,
-                                      options: GamePathBinding
-                                          .supportedTargetTypes
-                                          .map(_targetTypeLabel)
-                                          .toList(growable: false),
-                                      onSelected: (int typeIndex) {
-                                        _updateLinkedObject(
-                                          index,
-                                          targetType: GamePathBinding
-                                              .supportedTargetTypes[typeIndex],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: typeObjectGap),
-                              SizedBox(
-                                width: objectColumnWidth,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: targetOptions.isEmpty
-                                      ? Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 8,
-                                          ),
-                                          color: cdkColors.backgroundSecondary1,
-                                          child: CDKText(
-                                            'No ${_targetTypeLabel(draft.targetType).toLowerCase()}s',
-                                            role: CDKTextRole.caption,
-                                            color: cdkColors.colorText
-                                                .withValues(alpha: 0.62),
-                                          ),
-                                        )
-                                      : IntrinsicWidth(
-                                          child: CDKButtonSelect(
-                                            selectedIndex:
-                                                safeTargetOptionIndex,
-                                            options: targetOptions
-                                                .map(
-                                                  (option) =>
-                                                      _ellipsizeObjectLabel(
-                                                    option.label,
-                                                    maxChars:
-                                                        objectLabelMaxChars,
-                                                  ),
-                                                )
-                                                .toList(growable: false),
-                                            onSelected: (int optionIndex) {
-                                              _updateLinkedObject(
-                                                index,
-                                                targetIndex:
-                                                    targetOptions[optionIndex]
-                                                        .index,
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              SizedBox(width: spacing.sm),
-                              SizedBox(
-                                width: behaviorColumnWidth,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: IntrinsicWidth(
-                                    child: CDKButtonSelect(
-                                      selectedIndex: safeBehaviorIndex,
-                                      options: GamePathBinding
-                                          .supportedBehaviors
-                                          .map(_behaviorLabel)
-                                          .toList(growable: false),
-                                      onSelected: (int behaviorIndex) {
-                                        _updateLinkedObject(
-                                          index,
-                                          behavior: GamePathBinding
-                                                  .supportedBehaviors[
-                                              behaviorIndex],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: spacing.sm),
-                              SizedBox(
-                                width: durationColumnWidth,
-                                child: CDKFieldText(
-                                  placeholder: 'ms',
-                                  keyboardType: TextInputType.number,
-                                  controller: durationController,
-                                  onChanged: (String value) {
-                                    final int? parsed =
-                                        int.tryParse(value.trim());
-                                    if (parsed == null || parsed <= 0) {
-                                      return;
-                                    }
-                                    if (parsed == draft.durationMs) {
-                                      return;
-                                    }
-                                    _updateLinkedObject(
-                                      index,
-                                      durationMs: parsed,
-                                    );
-                                  },
-                                  onSubmitted: (String value) {
-                                    final int? parsed =
-                                        int.tryParse(value.trim());
-                                    final int sanitized =
-                                        parsed == null || parsed <= 0
-                                            ? draft.durationMs
-                                            : _sanitizeDurationMs(parsed);
-                                    if (sanitized != draft.durationMs) {
-                                      _updateLinkedObject(
-                                        index,
-                                        durationMs: sanitized,
-                                      );
-                                    }
-                                    durationController.text =
-                                        sanitized.toString();
-                                  },
-                                ),
-                              ),
-                              SizedBox(width: spacing.sm),
-                              SizedBox(
-                                width: toggleColumnWidth,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: SizedBox(
-                                    width: 30,
-                                    height: 18,
-                                    child: FittedBox(
-                                      fit: BoxFit.fill,
-                                      child: CupertinoSwitch(
-                                        value: draft.enabled,
-                                        onChanged: (bool value) {
-                                          _updateLinkedObject(
-                                            index,
-                                            enabled: value,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: enabledRelativeGap),
-                              SizedBox(
-                                width: toggleColumnWidth,
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: SizedBox(
-                                    width: 30,
-                                    height: 18,
-                                    child: FittedBox(
-                                      fit: BoxFit.fill,
-                                      child: CupertinoSwitch(
-                                        value: draft.relativeToInitialPosition,
-                                        onChanged: (bool value) {
-                                          _updateLinkedObject(
-                                            index,
-                                            relativeToInitialPosition: value,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: spacing.sm),
-                              SizedBox(
-                                width: removeColumnWidth,
-                                child: CupertinoButton(
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(16, 16),
-                                  onPressed: () => _removeLinkedObject(index),
-                                  child: Icon(
-                                    CupertinoIcons.minus_circle,
-                                    size: 14,
-                                    color: cdkColors.colorText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                    SizedBox(height: spacing.xs),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    SizedBox(
+                      width: typeColumnWidth,
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: CDKButton(
-                          style: CDKButtonStyle.action,
-                          onPressed: _addLinkedObject,
-                          child: const Text('Link Object'),
+                        child: IntrinsicWidth(
+                          child: CDKButtonSelect(
+                            selectedIndex: safeTypeIndex,
+                            options: GamePathBinding.supportedTargetTypes
+                                .map(_targetTypeLabel)
+                                .toList(growable: false),
+                            onSelected: (int typeIndex) {
+                              _updateLinkedObject(
+                                index,
+                                targetType: GamePathBinding
+                                    .supportedTargetTypes[typeIndex],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: spacing.xs),
+                    SizedBox(
+                      width: objectColumnWidth,
+                      child: targetOptions.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              color: cdkColors.backgroundSecondary1,
+                              child: CDKText(
+                                'No ${_targetTypeLabel(draft.targetType).toLowerCase()}s',
+                                role: CDKTextRole.caption,
+                                color:
+                                    cdkColors.colorText.withValues(alpha: 0.62),
+                              ),
+                            )
+                          : Align(
+                              alignment: Alignment.centerLeft,
+                              child: IntrinsicWidth(
+                                child: CDKButtonSelect(
+                                  selectedIndex: safeTargetOptionIndex,
+                                  options: targetOptions
+                                      .map(
+                                        (option) => _ellipsizeObjectLabel(
+                                          option.label,
+                                          maxChars: objectLabelMaxChars,
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                  onSelected: (int optionIndex) {
+                                    _updateLinkedObject(
+                                      index,
+                                      targetIndex:
+                                          targetOptions[optionIndex].index,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                    ),
+                    SizedBox(width: spacing.xs),
+                    SizedBox(
+                      width: iconColumnWidth,
+                      child: CupertinoButton(
+                        key: _bindingOptionsAnchorKeys[index],
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(16, 16),
+                        onPressed: () => _showLinkedObjectOptionsPopover(index),
+                        child: Icon(
+                          CupertinoIcons.ellipsis_circle,
+                          size: 16,
+                          color: cdkColors.colorText,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: spacing.xs),
+                    SizedBox(
+                      width: iconColumnWidth,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(16, 16),
+                        onPressed: () => _removeLinkedObject(index),
+                        child: Icon(
+                          CupertinoIcons.minus_circle,
+                          size: 14,
+                          color: cdkColors.colorText,
                         ),
                       ),
                     ),
                   ],
                 ),
+              );
+            }),
+          ],
+          SizedBox(height: spacing.xs),
+          Center(
+            child: CDKButton(
+              style: CDKButtonStyle.action,
+              onPressed: _addLinkedObject,
+              child: const Text('Link Object'),
+            ),
+          ),
+          SizedBox(height: spacing.md),
+          const CDKText('Points list', role: CDKTextRole.caption),
+          SizedBox(height: spacing.xs),
+          ...List<Widget>.generate(_draftPoints.length, (int index) {
+            final _PathPointDraft draft = _draftPoints[index];
+            final bool canRemove = index > 0 && index < _draftPoints.length - 1;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              color: cdkColors.backgroundSecondary0,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'X',
+                      keyboardType: TextInputType.number,
+                      controller: draft.xController,
+                      onChanged: (_) => _onInputChanged(),
+                    ),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'Y',
+                      keyboardType: TextInputType.number,
+                      controller: draft.yController,
+                      onChanged: (_) => _onInputChanged(),
+                    ),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  SizedBox(
+                    width: 24,
+                    child: canRemove
+                        ? CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(20, 20),
+                            onPressed: () => _removePoint(index),
+                            child: Icon(
+                              CupertinoIcons.minus_circle,
+                              size: 16,
+                              color: cdkColors.colorText,
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
               ),
-            ],
+            );
+          }),
+          SizedBox(height: spacing.xs),
+          Center(
+            child: CDKButton(
+              onPressed: _addPointBeforeEnd,
+              child: const Text('Add Point'),
+            ),
           ),
           SizedBox(height: spacing.sm),
           Align(
@@ -2373,8 +2203,222 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
           ),
         ],
       ),
-      minWidth: 565,
-      maxWidth: 745,
+      minWidth: 260,
+      maxWidth: 340,
+    );
+  }
+}
+
+class _PathColorPickerPopover extends StatelessWidget {
+  const _PathColorPickerPopover({
+    required this.selectedColor,
+    required this.onSelected,
+  });
+
+  final String selectedColor;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Padding(
+        padding: EdgeInsets.all(spacing.sm),
+        child: Wrap(
+          spacing: spacing.xs,
+          runSpacing: spacing.xs,
+          children: GamePath.colorPalette.map((String colorName) {
+            return SelectableColorSwatch(
+              color: LayoutUtils.getColorFromName(colorName),
+              selected: selectedColor == colorName,
+              onTap: () {
+                if (selectedColor == colorName) {
+                  return;
+                }
+                onSelected(colorName);
+              },
+            );
+          }).toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _PathBindingDetailsPopover extends StatefulWidget {
+  const _PathBindingDetailsPopover({
+    required this.behavior,
+    required this.durationMs,
+    required this.enabled,
+    required this.relativeToInitialPosition,
+    required this.durationController,
+    required this.behaviorLabelBuilder,
+    required this.onBehaviorChanged,
+    required this.onDurationChanged,
+    required this.onEnabledChanged,
+    required this.onRelativeChanged,
+  });
+
+  final String behavior;
+  final int durationMs;
+  final bool enabled;
+  final bool relativeToInitialPosition;
+  final TextEditingController durationController;
+  final String Function(String behavior) behaviorLabelBuilder;
+  final ValueChanged<String> onBehaviorChanged;
+  final ValueChanged<int> onDurationChanged;
+  final ValueChanged<bool> onEnabledChanged;
+  final ValueChanged<bool> onRelativeChanged;
+
+  @override
+  State<_PathBindingDetailsPopover> createState() =>
+      _PathBindingDetailsPopoverState();
+}
+
+class _PathBindingDetailsPopoverState
+    extends State<_PathBindingDetailsPopover> {
+  late String _behavior = widget.behavior;
+  late bool _enabled = widget.enabled;
+  late bool _relative = widget.relativeToInitialPosition;
+
+  int _sanitizeDuration(int value) {
+    if (value <= 0) {
+      return GamePathBinding.defaultDurationMs;
+    }
+    return value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    final int selectedBehaviorIndex =
+        GamePathBinding.supportedBehaviors.indexOf(_behavior);
+    final int safeBehaviorIndex = selectedBehaviorIndex < 0
+        ? 0
+        : selectedBehaviorIndex.clamp(
+            0, GamePathBinding.supportedBehaviors.length - 1);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 392),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Table(
+          columnWidths: const <int, TableColumnWidth>{
+            0: FixedColumnWidth(122),
+            1: FixedColumnWidth(86),
+            2: FixedColumnWidth(58),
+            3: FixedColumnWidth(58),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            const TableRow(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: CDKText('Behavior', role: CDKTextRole.caption),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: CDKText('Duration (ms)', role: CDKTextRole.caption),
+                ),
+                CDKText('Enabled', role: CDKTextRole.caption),
+                CDKText('Relative', role: CDKTextRole.caption),
+              ],
+            ),
+            TableRow(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(top: spacing.xs, right: 6),
+                  child: CDKButtonSelect(
+                    selectedIndex: safeBehaviorIndex,
+                    options: GamePathBinding.supportedBehaviors
+                        .map(widget.behaviorLabelBuilder)
+                        .toList(growable: false),
+                    onSelected: (int index) {
+                      final String next =
+                          GamePathBinding.supportedBehaviors[index];
+                      if (_behavior == next) {
+                        return;
+                      }
+                      setState(() {
+                        _behavior = next;
+                      });
+                      widget.onBehaviorChanged(next);
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: spacing.xs, right: 6),
+                  child: CDKFieldText(
+                    placeholder: 'ms',
+                    keyboardType: TextInputType.number,
+                    controller: widget.durationController,
+                    onChanged: (String value) {
+                      final int? parsed = int.tryParse(value.trim());
+                      if (parsed == null || parsed <= 0) {
+                        return;
+                      }
+                      widget.onDurationChanged(parsed);
+                    },
+                    onSubmitted: (String value) {
+                      final int? parsed = int.tryParse(value.trim());
+                      final int sanitized = _sanitizeDuration(
+                        parsed ?? widget.durationMs,
+                      );
+                      widget.durationController.text = sanitized.toString();
+                      widget.onDurationChanged(sanitized);
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: spacing.xs),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: 30,
+                      height: 18,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _enabled,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _enabled = value;
+                            });
+                            widget.onEnabledChanged(value);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: spacing.xs),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: 30,
+                      height: 18,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _relative,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _relative = value;
+                            });
+                            widget.onRelativeChanged(value);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
