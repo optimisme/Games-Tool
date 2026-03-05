@@ -28,12 +28,230 @@ class LayoutAnimationRigs extends StatefulWidget {
 class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _selectedEditAnchorKey = GlobalKey();
+  Timer? _previewTimer;
+  DateTime? _previewLastTick;
+  String _previewAnimationId = '';
+  double _previewElapsedSeconds = 0.0;
+  bool _previewPlaying = false;
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    _previewTimer = null;
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void updateForm(AppData appData) {
     if (!mounted) {
       return;
     }
     setState(() {});
+  }
+
+  void _setPreviewPlaying(bool nextPlaying) {
+    if (_previewPlaying == nextPlaying) {
+      return;
+    }
+    _previewPlaying = nextPlaying;
+    if (!_previewPlaying) {
+      _previewLastTick = null;
+      _previewTimer?.cancel();
+      _previewTimer = null;
+      return;
+    }
+    _previewLastTick = DateTime.now();
+    _previewTimer?.cancel();
+    _previewTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
+      if (!mounted || !_previewPlaying) {
+        return;
+      }
+      final DateTime now = DateTime.now();
+      final DateTime previous = _previewLastTick ?? now;
+      _previewLastTick = now;
+      final double deltaSeconds =
+          now.difference(previous).inMicroseconds / 1000000.0;
+      if (deltaSeconds <= 0) {
+        return;
+      }
+      setState(() {
+        _previewElapsedSeconds += deltaSeconds;
+      });
+    });
+  }
+
+  void _restartPreview() {
+    setState(() {
+      _previewElapsedSeconds = 0.0;
+    });
+  }
+
+  void _syncPreviewSelection(GameAnimation? animation) {
+    final String nextId = animation?.id ?? '';
+    if (nextId == _previewAnimationId) {
+      return;
+    }
+    _previewAnimationId = nextId;
+    _previewElapsedSeconds = 0.0;
+    _previewLastTick = null;
+    if (animation == null) {
+      _setPreviewPlaying(false);
+      return;
+    }
+    _setPreviewPlaying(true);
+  }
+
+  int _previewFrameIndex({
+    required GameAnimation animation,
+    required int totalFrames,
+  }) {
+    final int safeTotalFrames = math.max(1, totalFrames);
+    final int start = animation.startFrame.clamp(0, safeTotalFrames - 1);
+    final int end = animation.endFrame.clamp(start, safeTotalFrames - 1);
+    final int span = math.max(1, end - start + 1);
+    final int ticks = (_previewElapsedSeconds * animation.fps).floor();
+    final int offset =
+        animation.loop ? ticks % span : math.min(ticks, span - 1);
+    return start + offset;
+  }
+
+  Widget _buildPreviewPanel(AppData appData, GameAnimation? animation) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    final cdkColors = CDKThemeNotifier.colorTokensOf(context);
+    final bool hasAnimation = animation != null;
+    const double previewCanvasHeight = 128;
+    final Color checkerA = cdkColors.backgroundSecondary1;
+    final Color checkerB = Color.alphaBlend(
+      cdkColors.colorText.withValues(alpha: 0.06),
+      cdkColors.backgroundSecondary1,
+    );
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: cdkColors.backgroundSecondary0,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: cdkColors.colorTextSecondary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!hasAnimation)
+            SizedBox(
+              height: previewCanvasHeight,
+              child: Center(
+                child: CDKText(
+                  'Select an animation to preview.',
+                  role: CDKTextRole.caption,
+                  color: cdkColors.colorTextSecondary,
+                ),
+              ),
+            )
+          else
+            FutureBuilder<ui.Image>(
+              future: appData.getImage(animation.mediaFile),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    snapshot.data == null) {
+                  return const SizedBox(
+                    height: previewCanvasHeight,
+                    child: Center(
+                      child: CupertinoActivityIndicator(),
+                    ),
+                  );
+                }
+                final ui.Image? image = snapshot.data;
+                final GameMediaAsset? media =
+                    appData.mediaAssetByFileName(animation.mediaFile);
+                if (image == null ||
+                    media == null ||
+                    media.tileWidth <= 0 ||
+                    media.tileHeight <= 0) {
+                  return SizedBox(
+                    height: previewCanvasHeight,
+                    child: Center(
+                      child: CDKText(
+                        'Preview unavailable',
+                        role: CDKTextRole.caption,
+                        color: cdkColors.colorTextSecondary,
+                      ),
+                    ),
+                  );
+                }
+                final int cols =
+                    math.max(1, (image.width / media.tileWidth).floor());
+                final int rows =
+                    math.max(1, (image.height / media.tileHeight).floor());
+                final int totalFrames = math.max(1, cols * rows);
+                final int frameIndex = _previewFrameIndex(
+                  animation: animation,
+                  totalFrames: totalFrames,
+                );
+                final GameAnimationFrameRig rig = animation.rigForFrame(
+                  frameIndex,
+                );
+                final double frameWidth = media.tileWidth.toDouble();
+                final double frameHeight = media.tileHeight.toDouble();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: previewCanvasHeight,
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: media.tileWidth / media.tileHeight,
+                          child: CustomPaint(
+                            painter: _AnimationRigFramePreviewPainter(
+                              image: image,
+                              frameWidth: frameWidth,
+                              frameHeight: frameHeight,
+                              columns: cols,
+                              frameIndex: frameIndex,
+                              anchorX: rig.anchorX,
+                              anchorY: rig.anchorY,
+                              anchorColor:
+                                  LayoutUtils.getColorFromName(rig.anchorColor),
+                              checkerA: checkerA,
+                              checkerB: checkerB,
+                              borderColor: cdkColors.colorTextSecondary
+                                  .withValues(alpha: 0.45),
+                              guideColor:
+                                  cdkColors.colorTextSecondary.withValues(
+                                alpha: 0.42,
+                              ),
+                              anchorOutlineColor: cdkColors.colorText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: spacing.xs),
+                    Align(
+                      alignment: Alignment.center,
+                      child: CDKText(
+                        'Frame $frameIndex (${animation.startFrame}-${animation.endFrame}) @ ${animation.fps.toStringAsFixed(1)} fps',
+                        role: CDKTextRole.caption,
+                        color: cdkColors.colorText,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          if (!hasAnimation) ...[
+            SizedBox(height: spacing.xs),
+            CDKText(
+              'Frame -',
+              role: CDKTextRole.caption,
+              color: cdkColors.colorText,
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   String? _selectedFramesLabel(List<int> selectedFrames) {
@@ -601,6 +819,9 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
             appData.selectedAnimation < animations.length
         ? animations[appData.selectedAnimation]
         : null;
+    _syncPreviewSelection(selectedAnimation);
+    final bool hasSelectedAnimation = selectedAnimation != null;
+    final bool isPreviewPlaying = hasSelectedAnimation && _previewPlaying;
     final GameAnimationFrameRig? selectedRig = selectedAnimation == null
         ? null
         : _activeRig(
@@ -682,6 +903,40 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                   ],
                 ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CDKButton(
+                style: CDKButtonStyle.normal,
+                onPressed: hasSelectedAnimation
+                    ? () {
+                        setState(() {
+                          _setPreviewPlaying(!_previewPlaying);
+                        });
+                      }
+                    : null,
+                child: Icon(
+                  isPreviewPlaying
+                      ? CupertinoIcons.pause_fill
+                      : CupertinoIcons.play_fill,
+                  size: 12,
+                ),
+              ),
+              SizedBox(width: spacing.xs),
+              CDKButton(
+                style: CDKButtonStyle.normal,
+                onPressed: hasSelectedAnimation ? _restartPreview : null,
+                child: const Icon(
+                  CupertinoIcons.refresh,
+                  size: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildPreviewPanel(appData, selectedAnimation),
         if (rows.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -1702,5 +1957,193 @@ class _HitBoxColorPicker extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _AnimationRigFramePreviewPainter extends CustomPainter {
+  const _AnimationRigFramePreviewPainter({
+    required this.image,
+    required this.frameWidth,
+    required this.frameHeight,
+    required this.columns,
+    required this.frameIndex,
+    required this.anchorX,
+    required this.anchorY,
+    required this.anchorColor,
+    required this.checkerA,
+    required this.checkerB,
+    required this.borderColor,
+    required this.guideColor,
+    required this.anchorOutlineColor,
+  });
+
+  final ui.Image image;
+  final double frameWidth;
+  final double frameHeight;
+  final int columns;
+  final int frameIndex;
+  final double anchorX;
+  final double anchorY;
+  final Color anchorColor;
+  final Color checkerA;
+  final Color checkerB;
+  final Color borderColor;
+  final Color guideColor;
+  final Color anchorOutlineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint bgA = Paint()..color = checkerA;
+    final Paint bgB = Paint()..color = checkerB;
+    const double checker = 12.0;
+    for (double y = 0; y < size.height; y += checker) {
+      for (double x = 0; x < size.width; x += checker) {
+        final bool even =
+            ((x / checker).floor() + (y / checker).floor()) % 2 == 0;
+        canvas.drawRect(
+          Rect.fromLTWH(x, y, checker, checker),
+          even ? bgA : bgB,
+        );
+      }
+    }
+
+    if (frameWidth <= 0 ||
+        frameHeight <= 0 ||
+        columns <= 0 ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return;
+    }
+
+    final int row = frameIndex ~/ columns;
+    final int col = frameIndex % columns;
+    final Rect src = Rect.fromLTWH(
+      col * frameWidth,
+      row * frameHeight,
+      frameWidth,
+      frameHeight,
+    );
+    if (src.right > image.width || src.bottom > image.height) {
+      return;
+    }
+
+    final double clampedAnchorX = anchorX.clamp(0.0, 1.0);
+    final double clampedAnchorY = anchorY.clamp(0.0, 1.0);
+    const double padding = 4.0;
+    final Offset targetAnchor = Offset(size.width / 2, size.height / 2);
+
+    final double maxDrawWidth = _maxExtentForAnchor(
+      anchor: clampedAnchorX,
+      before: targetAnchor.dx - padding,
+      after: size.width - targetAnchor.dx - padding,
+    );
+    final double maxDrawHeight = _maxExtentForAnchor(
+      anchor: clampedAnchorY,
+      before: targetAnchor.dy - padding,
+      after: size.height - targetAnchor.dy - padding,
+    );
+    if (maxDrawWidth <= 0 || maxDrawHeight <= 0) {
+      return;
+    }
+
+    final double scale = math.min(
+      maxDrawWidth / frameWidth,
+      maxDrawHeight / frameHeight,
+    );
+    if (!scale.isFinite || scale <= 0) {
+      return;
+    }
+    final double drawWidth = frameWidth * scale;
+    final double drawHeight = frameHeight * scale;
+    final Rect dst = Rect.fromLTWH(
+      targetAnchor.dx - drawWidth * clampedAnchorX,
+      targetAnchor.dy - drawHeight * clampedAnchorY,
+      drawWidth,
+      drawHeight,
+    );
+
+    final Paint guidePaint = Paint()
+      ..color = guideColor
+      ..strokeWidth = 1.0;
+    canvas.drawLine(
+      Offset(padding, targetAnchor.dy),
+      Offset(size.width - padding, targetAnchor.dy),
+      guidePaint,
+    );
+    canvas.drawLine(
+      Offset(targetAnchor.dx, padding),
+      Offset(targetAnchor.dx, size.height - padding),
+      guidePaint,
+    );
+
+    canvas.drawImageRect(
+      image,
+      src,
+      dst,
+      Paint()..filterQuality = FilterQuality.none,
+    );
+
+    canvas.drawRect(
+      dst,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    canvas.drawCircle(
+      targetAnchor,
+      5.2,
+      Paint()
+        ..color = const Color(0xCCFFFFFF)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      targetAnchor,
+      4.2,
+      Paint()
+        ..color = anchorColor
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      targetAnchor,
+      4.2,
+      Paint()
+        ..color = anchorOutlineColor.withValues(alpha: 0.78)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+  }
+
+  static double _maxExtentForAnchor({
+    required double anchor,
+    required double before,
+    required double after,
+  }) {
+    final double safeBefore = math.max(0.0, before);
+    final double safeAfter = math.max(0.0, after);
+    const double epsilon = 0.000001;
+    final double beforeLimit =
+        anchor > epsilon ? safeBefore / anchor : double.infinity;
+    final double afterLimit =
+        anchor < 1.0 - epsilon ? safeAfter / (1.0 - anchor) : double.infinity;
+    return math.min(beforeLimit, afterLimit);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnimationRigFramePreviewPainter oldDelegate) {
+    return oldDelegate.image != image ||
+        oldDelegate.frameWidth != frameWidth ||
+        oldDelegate.frameHeight != frameHeight ||
+        oldDelegate.columns != columns ||
+        oldDelegate.frameIndex != frameIndex ||
+        oldDelegate.anchorX != anchorX ||
+        oldDelegate.anchorY != anchorY ||
+        oldDelegate.anchorColor != anchorColor ||
+        oldDelegate.checkerA != checkerA ||
+        oldDelegate.checkerB != checkerB ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.guideColor != guideColor ||
+        oldDelegate.anchorOutlineColor != anchorOutlineColor;
   }
 }
