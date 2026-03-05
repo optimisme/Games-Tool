@@ -12,6 +12,7 @@ import 'game_media_asset.dart';
 import 'game_media_group.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -1554,15 +1555,10 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete media',
+              message: 'Delete this media item? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,

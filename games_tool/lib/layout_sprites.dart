@@ -14,6 +14,7 @@ import 'game_media_asset.dart';
 import 'game_sprite.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -647,25 +648,14 @@ class LayoutSpritesState extends State<LayoutSprites> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _confirmAndDeleteSprite(int index) async {
-    if (!mounted) return;
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) return;
+  Future<void> _deleteSprite(AppData appData, int index) async {
+    if (appData.selectedLevel == -1) {
+      return;
+    }
     final sprites = appData.gameData.levels[appData.selectedLevel].sprites;
-    if (index < 0 || index >= sprites.length) return;
-    final String spriteName = sprites[index].name;
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete sprite',
-      message: 'Delete "$spriteName"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) return;
+    if (index < 0 || index >= sprites.length) {
+      return;
+    }
     appData.pushUndo();
     sprites.removeAt(index);
     appData.selectedSprite = -1;
@@ -773,7 +763,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
         _selectSprite(appData, index, true);
       },
       onDelete: () {
-        unawaited(_confirmAndDeleteSprite(index));
+        unawaited(_deleteSprite(appData, index));
       },
     );
   }
@@ -1638,15 +1628,10 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete sprite',
+              message: 'Delete this sprite? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,

@@ -13,6 +13,7 @@ import 'game_path_binding.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -624,7 +625,7 @@ class LayoutPathsState extends State<LayoutPaths> {
       },
       onClose: () {},
       onDelete: () {
-        unawaited(_confirmAndDeletePath(index));
+        unawaited(_deletePath(appData, index));
       },
     );
   }
@@ -690,39 +691,15 @@ class LayoutPathsState extends State<LayoutPaths> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _confirmAndDeletePath(int index) async {
-    if (!mounted) {
-      return;
-    }
-    final AppData appData = Provider.of<AppData>(context, listen: false);
+  Future<void> _deletePath(AppData appData, int index) async {
     if (appData.selectedLevel == -1 ||
         appData.selectedLevel >= appData.gameData.levels.length) {
       return;
     }
-
     final GameLevel level = appData.gameData.levels[appData.selectedLevel];
     if (index < 0 || index >= level.paths.length) {
       return;
     }
-
-    final GamePath path = level.paths[index];
-    final String name =
-        path.name.trim().isEmpty ? 'Path ${index + 1}' : path.name.trim();
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete path',
-      message: 'Delete "$name"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
     final bool applied = await appData.runProjectMutation(
       debugLabel: 'path-delete',
       mutate: () {
@@ -1905,15 +1882,10 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete path',
+              message: 'Delete this path? This cannot be undone.',
             ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2298,37 +2270,20 @@ class _PathBindingDetailsPopoverState
         ? 0
         : selectedBehaviorIndex.clamp(
             0, GamePathBinding.supportedBehaviors.length - 1);
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 392),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Table(
-          columnWidths: const <int, TableColumnWidth>{
-            0: FixedColumnWidth(122),
-            1: FixedColumnWidth(86),
-            2: FixedColumnWidth(58),
-            3: FixedColumnWidth(58),
-          },
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [
-            const TableRow(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(right: 6),
-                  child: CDKText('Behavior', role: CDKTextRole.caption),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(right: 6),
-                  child: CDKText('Duration (ms)', role: CDKTextRole.caption),
-                ),
-                CDKText('Enabled', role: CDKTextRole.caption),
-                CDKText('Relative', role: CDKTextRole.caption),
-              ],
-            ),
-            TableRow(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.xs, right: 6),
+    return IntrinsicWidth(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CDKText('Behavior', role: CDKTextRole.caption),
+              SizedBox(height: spacing.xs),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IntrinsicWidth(
                   child: CDKButtonSelect(
                     selectedIndex: safeBehaviorIndex,
                     options: GamePathBinding.supportedBehaviors
@@ -2347,76 +2302,85 @@ class _PathBindingDetailsPopoverState
                     },
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.xs, right: 6),
-                  child: CDKFieldText(
-                    placeholder: 'ms',
-                    keyboardType: TextInputType.number,
-                    controller: widget.durationController,
-                    onChanged: (String value) {
-                      final int? parsed = int.tryParse(value.trim());
-                      if (parsed == null || parsed <= 0) {
-                        return;
-                      }
-                      widget.onDurationChanged(parsed);
-                    },
-                    onSubmitted: (String value) {
-                      final int? parsed = int.tryParse(value.trim());
-                      final int sanitized = _sanitizeDuration(
-                        parsed ?? widget.durationMs,
-                      );
-                      widget.durationController.text = sanitized.toString();
-                      widget.onDurationChanged(sanitized);
-                    },
-                  ),
+              ),
+              SizedBox(height: spacing.sm),
+              const CDKText('Duration (ms)', role: CDKTextRole.caption),
+              SizedBox(height: spacing.xs),
+              SizedBox(
+                width: 86,
+                child: CDKFieldText(
+                  placeholder: 'ms',
+                  keyboardType: TextInputType.number,
+                  controller: widget.durationController,
+                  onChanged: (String value) {
+                    final int? parsed = int.tryParse(value.trim());
+                    if (parsed == null || parsed <= 0) {
+                      return;
+                    }
+                    widget.onDurationChanged(parsed);
+                  },
+                  onSubmitted: (String value) {
+                    final int? parsed = int.tryParse(value.trim());
+                    final int sanitized = _sanitizeDuration(
+                      parsed ?? widget.durationMs,
+                    );
+                    widget.durationController.text = sanitized.toString();
+                    widget.onDurationChanged(sanitized);
+                  },
                 ),
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.xs),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      width: 30,
-                      height: 18,
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        child: CupertinoSwitch(
-                          value: _enabled,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _enabled = value;
-                            });
-                            widget.onEnabledChanged(value);
-                          },
-                        ),
+              ),
+              SizedBox(height: spacing.sm),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const CDKText('Enabled', role: CDKTextRole.caption),
+                  SizedBox(width: spacing.xs),
+                  SizedBox(
+                    width: 30,
+                    height: 18,
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: CupertinoSwitch(
+                        value: _enabled,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _enabled = value;
+                          });
+                          widget.onEnabledChanged(value);
+                        },
                       ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.xs),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      width: 30,
-                      height: 18,
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        child: CupertinoSwitch(
-                          value: _relative,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _relative = value;
-                            });
-                            widget.onRelativeChanged(value);
-                          },
-                        ),
+                ],
+              ),
+              SizedBox(height: spacing.xs),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const CDKText('Relative', role: CDKTextRole.caption),
+                  SizedBox(width: spacing.xs),
+                  SizedBox(
+                    width: 30,
+                    height: 18,
+                    child: FittedBox(
+                      fit: BoxFit.fill,
+                      child: CupertinoSwitch(
+                        value: _relative,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _relative = value;
+                          });
+                          widget.onRelativeChanged(value);
+                        },
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

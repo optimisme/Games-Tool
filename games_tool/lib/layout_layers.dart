@@ -13,6 +13,7 @@ import 'game_list_group.dart';
 import 'game_media_asset.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -697,30 +698,19 @@ class LayoutLayersState extends State<LayoutLayers> {
         _selectLayer(appData, index, true);
       },
       onDelete: () {
-        unawaited(_confirmAndDeleteLayer(index));
+        unawaited(_deleteLayer(appData, index));
       },
     );
   }
 
-  Future<void> _confirmAndDeleteLayer(int index) async {
-    if (!mounted) return;
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) return;
+  Future<void> _deleteLayer(AppData appData, int index) async {
+    if (appData.selectedLevel == -1) {
+      return;
+    }
     final layers = appData.gameData.levels[appData.selectedLevel].layers;
-    if (index < 0 || index >= layers.length) return;
-    final String layerName = layers[index].name;
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete layer',
-      message: 'Delete "$layerName"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) return;
+    if (index < 0 || index >= layers.length) {
+      return;
+    }
     appData.pushUndo();
     layers.removeAt(index);
     appData.selectedLayer = -1;
@@ -1666,15 +1656,10 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete layer',
+              message: 'Delete this layer? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,

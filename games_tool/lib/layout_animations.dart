@@ -13,6 +13,7 @@ import 'game_media_asset.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -1335,33 +1336,11 @@ class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
     );
   }
 
-  Future<void> _confirmAndDeleteAnimation(AppData appData, int index) async {
+  Future<void> _deleteAnimation(AppData appData, int index) async {
     final List<GameAnimation> animations = appData.gameData.animations;
     if (index < 0 || index >= animations.length) {
       return;
     }
-    final GameAnimation animation = animations[index];
-    final int usageCount = _animationUsageCount(appData, animation.id);
-    if (usageCount > 0) {
-      appData.projectStatusMessage =
-          'Animation "${animation.name}" is in use by $usageCount sprite(s).';
-      appData.update();
-      return;
-    }
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete animation',
-      message: 'Delete "${animation.name}"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-    if (confirmed != true || !mounted) {
-      return;
-    }
-
     await appData.runProjectMutation(
       debugLabel: 'animation-delete',
       mutate: () {
@@ -1419,7 +1398,7 @@ class _AnimationInlineEditPanelState extends State<AnimationInlineEditPanel> {
       },
       onDelete: usageCount == 0
           ? () {
-              unawaited(_confirmAndDeleteAnimation(appData, index));
+              unawaited(_deleteAnimation(appData, index));
             }
           : null,
     );
@@ -1686,15 +1665,10 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete animation',
+              message: 'Delete this animation? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,
