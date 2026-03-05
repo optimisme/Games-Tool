@@ -24,11 +24,12 @@ class LayoutLevels extends StatefulWidget {
 
 class LayoutLevelsState extends State<LayoutLevels> {
   final ScrollController scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
+  String _inlineEditUndoGroupKey = '';
+  int _inlineEditUndoLevelIndex = -1;
 
   @override
   void initState() {
@@ -504,15 +505,59 @@ class LayoutLevelsState extends State<LayoutLevels> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _promptAndEditLevel(int index, GlobalKey anchorKey) async {
-    final appData = Provider.of<AppData>(context, listen: false);
+  String _inlineUndoGroupKeyForLevel(int index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty && _inlineEditUndoLevelIndex == index) {
+      return _inlineEditUndoGroupKey;
+    }
+    _inlineEditUndoLevelIndex = index;
+    _inlineEditUndoGroupKey =
+        'level-inline-$index-${DateTime.now().microsecondsSinceEpoch}';
+    return _inlineEditUndoGroupKey;
+  }
+
+  Set<String> _existingLevelNames(
+    AppData appData, {
+    int? excludingIndex,
+  }) {
+    return appData.gameData.levels
+        .asMap()
+        .entries
+        .where((entry) => entry.key != excludingIndex)
+        .map((entry) => entry.value.name.trim().toLowerCase())
+        .where((name) => name.isNotEmpty)
+        .toSet();
+  }
+
+  Future<void> _applyLevelChange(
+    AppData appData, {
+    required int index,
+    required _LevelDialogData value,
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel: groupedUndo ? 'level-inline-live-edit' : 'level-inline-edit',
+      undoGroupKey: groupedUndo ? _inlineUndoGroupKeyForLevel(index) : null,
+      mutate: () {
+        _updateLevel(
+          appData: appData,
+          index: index,
+          name: value.name,
+          description: value.description,
+          gameplayData: value.gameplayData,
+          backgroundColorHex: value.backgroundColorHex,
+          depthSensitivity: value.depthSensitivity,
+        );
+      },
+    );
+  }
+
+  Widget buildEditToolbarContent(AppData appData) {
+    final int index = appData.selectedLevel;
     if (index < 0 || index >= appData.gameData.levels.length) {
-      return;
+      return const SizedBox.shrink();
     }
     final GameLevel selected = appData.gameData.levels[index];
-    final String undoGroupKey =
-        'level-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-    await _promptLevelData(
+    return _LevelFormDialog(
       title: "Edit level",
       confirmLabel: "Save",
       initialName: selected.name,
@@ -521,28 +566,40 @@ class LayoutLevelsState extends State<LayoutLevels> {
       initialBackgroundColorHex: selected.backgroundColorHex,
       initialDepthSensitivity: selected.depthSensitivity,
       initialGroupId: _effectiveLevelGroupId(appData, selected),
-      editingIndex: index,
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
+      groupOptions: _levelGroups(appData),
+      showGroupSelector: false,
+      groupFieldLabel: "Level Group",
+      existingNames: _existingLevelNames(
+        appData,
+        excludingIndex: index,
+      ),
       liveEdit: true,
+      minWidth: 280,
+      maxWidth: 340,
       onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'level-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateLevel(
-              appData: appData,
-              index: index,
-              name: value.name,
-              description: value.description,
-              gameplayData: value.gameplayData,
-              backgroundColorHex: value.backgroundColorHex,
-              depthSensitivity: value.depthSensitivity,
-            );
-          },
+        await _applyLevelChange(
+          appData,
+          index: index,
+          value: value,
+          groupedUndo: true,
         );
       },
-      onDelete: () => _confirmAndDeleteLevel(index),
+      onConfirm: (value) {
+        unawaited(
+          _applyLevelChange(
+            appData,
+            index: index,
+            value: value,
+            groupedUndo: false,
+          ),
+        );
+      },
+      onCancel: () {
+        _selectLevel(appData, index, true);
+      },
+      onDelete: () {
+        unawaited(_confirmAndDeleteLevel(index));
+      },
     );
   }
 
@@ -952,39 +1009,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
                                               style: listItemTitleStyle,
                                             ),
                                           ),
-                                          SizedBox(
-                                            width: 32,
-                                            height: 20,
-                                            child: isSelected
-                                                ? MouseRegion(
-                                                    cursor: SystemMouseCursors
-                                                        .click,
-                                                    child: CupertinoButton(
-                                                      key:
-                                                          _selectedEditAnchorKey,
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                        horizontal: 6,
-                                                      ),
-                                                      minimumSize:
-                                                          const Size(20, 20),
-                                                      onPressed: () async {
-                                                        await _promptAndEditLevel(
-                                                          levelIndex,
-                                                          _selectedEditAnchorKey,
-                                                        );
-                                                      },
-                                                      child: Icon(
-                                                        CupertinoIcons
-                                                            .ellipsis_circle,
-                                                        size: 16,
-                                                        color:
-                                                            cdkColors.colorText,
-                                                      ),
-                                                    ),
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
                                           ReorderableDragStartListener(
                                             index: index,
                                             child: Padding(
@@ -1051,6 +1075,8 @@ class _LevelFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 320,
+    this.maxWidth = 420,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1071,6 +1097,8 @@ class _LevelFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_LevelDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_LevelDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1329,8 +1357,8 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 320,
-      maxWidth: 420,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
