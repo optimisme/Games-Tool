@@ -53,6 +53,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
   static const double _maxTilesetZoom = 8.0;
   static const double _tilesetZoomStep = 0.25;
 
+  final GlobalKey _selectionColorAnchorKey = GlobalKey();
   Offset? _dragSelectionStartTile;
   bool _isDraggingSelection = false;
   Future<ui.Image>? _tilesetImageFuture;
@@ -114,15 +115,73 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     }
   }
 
+  void _showSelectionColorPopover(
+    AppData appData,
+    GameLayer layer,
+    Color selectedColor,
+  ) {
+    if (_selectionColorAnchorKey.currentContext == null ||
+        Overlay.maybeOf(context) == null) {
+      return;
+    }
+    final CDKDialogController controller = CDKDialogController();
+    CDKDialogsManager.showPopoverArrowed(
+      context: context,
+      anchorKey: _selectionColorAnchorKey,
+      isAnimated: true,
+      animateContentResize: false,
+      dismissOnEscape: true,
+      dismissOnOutsideTap: true,
+      showBackgroundShade: false,
+      controller: controller,
+      child: _TilesetSelectionColorPopover(
+        selectedColor: selectedColor,
+        onSelect: (Color color) {
+          if (selectedColor == color) {
+            return;
+          }
+          unawaited(_setSelectionColorForLayer(appData, layer, color));
+          controller.close();
+        },
+      ),
+    );
+  }
+
   Widget _buildSelectionColorRow(AppData appData, GameLayer layer) {
+    final Color selectedColor =
+        appData.tilesetSelectionColorForFile(layer.tilesSheetFile);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: _TilesetSelectionColorPicker(
-        selectedColor:
-            appData.tilesetSelectionColorForFile(layer.tilesSheetFile),
-        onSelect: (Color color) {
-          unawaited(_setSelectionColorForLayer(appData, layer, color));
-        },
+      child: Row(
+        children: [
+          const CDKText(
+            'Selection Color',
+            role: CDKTextRole.caption,
+          ),
+          const SizedBox(width: 8),
+          CDKButton(
+            key: _selectionColorAnchorKey,
+            style: CDKButtonStyle.normal,
+            onPressed: () {
+              _showSelectionColorPopover(appData, layer, selectedColor);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: selectedColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(CupertinoIcons.chevron_down, size: 10),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -979,8 +1038,8 @@ class _TilesetSelectionPainter extends CustomPainter {
   }
 }
 
-class _TilesetSelectionColorPicker extends StatelessWidget {
-  const _TilesetSelectionColorPicker({
+class _TilesetSelectionColorPopover extends StatelessWidget {
+  const _TilesetSelectionColorPopover({
     required this.selectedColor,
     required this.onSelect,
   });
@@ -991,30 +1050,24 @@ class _TilesetSelectionColorPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const CDKText(
-          'Selection Color',
-          role: CDKTextRole.caption,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Padding(
+        padding: EdgeInsets.all(spacing.sm),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: spacing.xs,
+          runSpacing: spacing.xs,
+          children: _tilesetAccentOptions.map((option) {
+            final bool isSelected = option.color == selectedColor;
+            return SelectableColorSwatch(
+              color: option.color,
+              selected: isSelected,
+              onTap: () => onSelect(option.color),
+            );
+          }).toList(growable: false),
         ),
-        SizedBox(height: spacing.xs),
-        Center(
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: spacing.xs,
-            runSpacing: spacing.xs,
-            children: _tilesetAccentOptions.map((option) {
-              final bool isSelected = option.color == selectedColor;
-              return SelectableColorSwatch(
-                color: option.color,
-                selected: isSelected,
-                onTap: () => onSelect(option.color),
-              );
-            }).toList(growable: false),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
