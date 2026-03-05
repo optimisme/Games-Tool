@@ -1050,6 +1050,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                       DefaultWidgetsLocalizations.delegate,
                     ],
                     child: ReorderableListView.builder(
+                      scrollController: scrollController,
                       buildDefaultDragHandles: false,
                       itemCount: layerRows.length,
                       onReorder: (oldIndex, newIndex) =>

@@ -897,6 +897,7 @@ class _LayoutMediaState extends State<LayoutMedia> {
                       DefaultWidgetsLocalizations.delegate,
                     ],
                     child: ReorderableListView.builder(
+                      scrollController: _scrollController,
                       buildDefaultDragHandles: false,
                       itemCount: mediaRows.length,
                       onReorder: (oldIndex, newIndex) =>

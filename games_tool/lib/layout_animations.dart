@@ -967,6 +967,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                 DefaultWidgetsLocalizations.delegate,
               ],
               child: ReorderableListView.builder(
+                scrollController: _scrollController,
                 buildDefaultDragHandles: false,
                 itemCount: animationRows.length,
                 onReorder: (oldIndex, newIndex) => _onReorder(
