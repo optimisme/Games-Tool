@@ -1144,13 +1144,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
                   final String pathName = path.name.trim().isEmpty
                       ? 'Path ${pathIndex + 1}'
                       : path.name.trim();
-                  final GamePathPoint? begin =
-                      path.points.isNotEmpty ? path.points.first : null;
-                  final GamePathPoint? end =
-                      path.points.isNotEmpty ? path.points.last : null;
-                  final String subtitle = begin == null || end == null
-                      ? 'No points'
-                      : 'Begin (${begin.x}, ${begin.y})  End (${end.x}, ${end.y})';
+                  final String subtitle = '${path.points.length} point(s)';
 
                   return AnimatedSize(
                     key: ValueKey(path),
@@ -1192,7 +1186,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
-                                          '$subtitle | ${path.points.length} point(s)',
+                                          subtitle,
                                           role: CDKTextRole.body,
                                           color: cdkColors.colorText
                                               .withValues(alpha: 0.78),

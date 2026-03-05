@@ -973,6 +973,10 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                   final int animationIndex = row.itemIndex!;
                   final bool isSelected =
                       animationIndex == appData.selectedAnimation;
+                  final String mediaName =
+                      appData.mediaDisplayNameByFileName(animation.mediaFile);
+                  final String subtitle =
+                      '$mediaName | Frames ${animation.startFrame}-${animation.endFrame}';
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
                     key: ValueKey('${animation.id}-$index'),
@@ -1018,7 +1022,7 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
-                                          '${appData.mediaDisplayNameByFileName(animation.mediaFile)} | ${_activeRig(appData, animation).hitBoxes.length} hit box(es)',
+                                          subtitle,
                                           role: CDKTextRole.body,
                                           color: cdkColors.colorText,
                                         ),

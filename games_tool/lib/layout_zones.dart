@@ -1187,11 +1187,6 @@ class LayoutZonesState extends State<LayoutZones> {
       fontWeight: FontWeight.w700,
       height: 1.0,
     );
-    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
-      fontSize: typography.body.fontSize ?? 14,
-      fontWeight: FontWeight.w400,
-      height: 1.0,
-    );
 
     final bool hasLevel = appData.selectedLevel >= 0 &&
         appData.selectedLevel < appData.gameData.levels.length;
@@ -1424,8 +1419,6 @@ class LayoutZonesState extends State<LayoutZones> {
                       zoneIndex == appData.selectedZone;
                   final GameZone zone = row.zone!;
                   final String zoneColorName = _zoneColorName(appData, zone);
-                  final String zoneGameplayData =
-                      zone.gameplayData.replaceAll(RegExp(r'\s+'), ' ').trim();
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
                     key: ValueKey(zone),
@@ -1474,86 +1467,51 @@ class LayoutZonesState extends State<LayoutZones> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        RichText(
-                                          maxLines: 1,
-                                          softWrap: false,
+                                        CDKText(
+                                          _zoneDisplayName(zone, zoneIndex),
+                                          role: CDKTextRole.body,
+                                          style: listItemTitleStyle,
                                           overflow: TextOverflow.ellipsis,
-                                          strutStyle: StrutStyle.fromTextStyle(
-                                            listItemTitleStyle,
-                                            forceStrutHeight: true,
-                                          ),
-                                          text: TextSpan(
-                                            children: [
-                                              TextSpan(
-                                                text: _zoneDisplayName(
-                                                    zone, zoneIndex),
-                                                style:
-                                                    listItemTitleStyle.copyWith(
-                                                  color: cdkColors.colorText,
-                                                ),
-                                              ),
-                                              TextSpan(
-                                                text:
-                                                    '  Category: ${zone.type}',
-                                                style: listItemInlineMetaStyle
-                                                    .copyWith(
-                                                  color: cdkColors.colorText
-                                                      .withValues(
-                                                    alpha: 0.72,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (zoneGameplayData.isNotEmpty)
-                                                TextSpan(
-                                                  text:
-                                                      '  Gameplay: $zoneGameplayData',
-                                                  style: listItemInlineMetaStyle
-                                                      .copyWith(
-                                                    color: cdkColors.colorText
-                                                        .withValues(
-                                                      alpha: 0.72,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
-                                          'x: ${zone.x}, y: ${zone.y}',
-                                          role: CDKTextRole.body,
-                                          color: cdkColors.colorText,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        CDKText(
-                                          'width: ${zone.width}, height: ${zone.height}',
-                                          role: CDKTextRole.body,
-                                          color: cdkColors.colorText,
+                                          'Category: ${zone.type}',
+                                          role: CDKTextRole.caption,
+                                          color: cdkColors.colorText
+                                              .withValues(alpha: 0.72),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  if (isPrimarySelected)
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: CupertinoButton(
-                                        key: _selectedEditAnchorKey,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6),
-                                        minimumSize: const Size(20, 20),
-                                        onPressed: () async {
-                                          await _promptAndEditZone(
-                                            zoneIndex,
-                                            _selectedEditAnchorKey,
-                                          );
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.ellipsis_circle,
-                                          size: 16,
-                                          color: cdkColors.colorText,
-                                        ),
-                                      ),
-                                    ),
+                                  SizedBox(
+                                    width: 32,
+                                    height: 20,
+                                    child: isPrimarySelected
+                                        ? MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: CupertinoButton(
+                                              key: _selectedEditAnchorKey,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                              ),
+                                              minimumSize: const Size(20, 20),
+                                              onPressed: () async {
+                                                await _promptAndEditZone(
+                                                  zoneIndex,
+                                                  _selectedEditAnchorKey,
+                                                );
+                                              },
+                                              child: Icon(
+                                                CupertinoIcons.ellipsis_circle,
+                                                size: 16,
+                                                color: cdkColors.colorText,
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
                                   ReorderableDragStartListener(
                                     index: index,
                                     child: Padding(

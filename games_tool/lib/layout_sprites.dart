@@ -913,10 +913,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
       fontSize: (typography.body.fontSize ?? 14) + 2,
       fontWeight: FontWeight.w700,
     );
-    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
-      fontSize: typography.body.fontSize,
-      fontWeight: FontWeight.w500,
-    );
 
     final bool hasLevel = appData.selectedLevel >= 0 &&
         appData.selectedLevel < appData.gameData.levels.length;
@@ -1145,22 +1141,10 @@ class LayoutSpritesState extends State<LayoutSprites> {
                   final bool isPrimarySelected =
                       spriteIndex == appData.selectedSprite;
                   final GameSprite sprite = row.item!;
-                  final String spriteGameplayData = sprite.gameplayData
-                      .replaceAll(RegExp(r'\s+'), ' ')
-                      .trim();
                   final String animationName =
                       appData.animationDisplayNameById(sprite.animationId);
-                  final GameAnimation? animation =
-                      _animationById(appData, sprite.animationId);
-                  final String mediaName = animation == null
-                      ? appData.mediaDisplayNameByFileName(sprite.imageFile)
-                      : appData.mediaDisplayNameByFileName(
-                          animation.mediaFile,
-                        );
                   final String subtitle =
-                      '${sprite.x}, ${sprite.y} | Depth ${sprite.depth} - $animationName';
-                  final String details =
-                      '$mediaName | ${sprite.spriteWidth}x${sprite.spriteHeight} px | FlipX ${sprite.flipX ? 'on' : 'off'} | FlipY ${sprite.flipY ? 'on' : 'off'}';
+                      'Depth ${sprite.depth} - $animationName';
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
                     key: ValueKey(sprite),
@@ -1215,30 +1199,12 @@ class LayoutSpritesState extends State<LayoutSprites> {
                                                   color: cdkColors.colorText,
                                                 ),
                                               ),
-                                              if (spriteGameplayData.isNotEmpty)
-                                                TextSpan(
-                                                  text:
-                                                      '  Gameplay: $spriteGameplayData',
-                                                  style: listItemInlineMetaStyle
-                                                      .copyWith(
-                                                    color: cdkColors.colorText
-                                                        .withValues(
-                                                      alpha: 0.72,
-                                                    ),
-                                                  ),
-                                                ),
                                             ],
                                           ),
                                         ),
                                         const SizedBox(height: 2),
                                         CDKText(
                                           subtitle,
-                                          role: CDKTextRole.body,
-                                          color: cdkColors.colorText,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        CDKText(
-                                          details,
                                           role: CDKTextRole.body,
                                           color: cdkColors.colorText,
                                         ),
