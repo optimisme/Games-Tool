@@ -417,7 +417,32 @@ class LayoutUtils {
     return Size(width, height);
   }
 
-  static Offset spriteAnchor(AppData appData, GameSprite sprite) {
+  static int _spriteTotalFramesForAnchorResolution(
+    AppData appData,
+    GameSprite sprite,
+    Size frameSize,
+  ) {
+    final String imageFile = spriteImageFile(appData, sprite);
+    final ui.Image? image = appData.imagesCache[imageFile];
+    if (image != null && frameSize.width > 0) {
+      return math.max(1, (image.width / frameSize.width).floor());
+    }
+    final GameAnimation? animation = spriteAnimation(appData, sprite);
+    if (animation != null) {
+      final int fallbackMaxFrame =
+          math.max(animation.startFrame, animation.endFrame);
+      return math.max(1, fallbackMaxFrame + 1);
+    }
+    return 1;
+  }
+
+  static Offset spriteAnchor(
+    AppData appData,
+    GameSprite sprite, {
+    int? frameIndex,
+    int? totalFrames,
+    Size? frameSize,
+  }) {
     final GameAnimation? animation = spriteAnimation(appData, sprite);
     if (animation == null) {
       return const Offset(
@@ -425,9 +450,24 @@ class LayoutUtils {
         GameAnimation.defaultAnchorY,
       );
     }
+    final Size resolvedFrameSize =
+        frameSize ?? spriteFrameSize(appData, sprite);
+    final int resolvedTotalFrames = totalFrames ??
+        _spriteTotalFramesForAnchorResolution(
+          appData,
+          sprite,
+          resolvedFrameSize,
+        );
+    final int resolvedFrameIndex = frameIndex ??
+        spriteFrameIndex(
+          appData: appData,
+          sprite: sprite,
+          totalFrames: resolvedTotalFrames,
+        );
+    final GameAnimationFrameRig rig = animation.rigForFrame(resolvedFrameIndex);
     return Offset(
-      animation.anchorX.clamp(0.0, 1.0),
-      animation.anchorY.clamp(0.0, 1.0),
+      rig.anchorX.clamp(0.0, 1.0),
+      rig.anchorY.clamp(0.0, 1.0),
     );
   }
 
@@ -435,9 +475,17 @@ class LayoutUtils {
     AppData appData,
     GameSprite sprite, {
     Size? frameSize,
+    int? frameIndex,
+    int? totalFrames,
   }) {
     final Size size = frameSize ?? spriteFrameSize(appData, sprite);
-    final Offset anchor = spriteAnchor(appData, sprite);
+    final Offset anchor = spriteAnchor(
+      appData,
+      sprite,
+      frameIndex: frameIndex,
+      totalFrames: totalFrames,
+      frameSize: size,
+    );
     final double left = sprite.x.toDouble() - (size.width * anchor.dx);
     final double top = sprite.y.toDouble() - (size.height * anchor.dy);
     return Rect.fromLTWH(left, top, size.width, size.height);
@@ -845,20 +893,21 @@ class LayoutUtils {
       final Size frameSize = spriteFrameSize(appData, sprite);
       final double spriteWidth = frameSize.width;
       final double spriteHeight = frameSize.height;
-      final Rect worldRect = spriteWorldRect(
-        appData,
-        sprite,
-        frameSize: frameSize,
-      );
-      final double spriteX = worldRect.left;
-      final double spriteY = worldRect.top;
-
       final int frames = math.max(1, (spriteImage.width / spriteWidth).floor());
       final int frameIndex = spriteFrameIndex(
         appData: appData,
         sprite: sprite,
         totalFrames: frames,
       );
+      final Rect worldRect = spriteWorldRect(
+        appData,
+        sprite,
+        frameSize: frameSize,
+        frameIndex: frameIndex,
+        totalFrames: frames,
+      );
+      final double spriteX = worldRect.left;
+      final double spriteY = worldRect.top;
       final double spriteFrameX = frameIndex * spriteWidth;
 
       final Rect srcRect =
