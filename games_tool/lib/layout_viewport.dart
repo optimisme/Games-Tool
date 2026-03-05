@@ -966,14 +966,20 @@ class _ViewportPreviewPainter extends CustomPainter {
       final double spriteHeight = frameSize.height;
       if (spriteWidth <= 0 || spriteHeight <= 0) continue;
 
-      final int frames = math.max(1, (spriteImage.width / spriteWidth).floor());
+      final int frames = LayoutUtils.spriteTotalFramesFromImage(
+        image: spriteImage,
+        frameSize: frameSize,
+      );
       final int frameIndex = LayoutUtils.spriteFrameIndex(
         appData: appData,
         sprite: sprite,
         totalFrames: frames,
       );
-      final Rect srcRect =
-          Rect.fromLTWH(frameIndex * spriteWidth, 0, spriteWidth, spriteHeight);
+      final Rect srcRect = LayoutUtils.spriteSourceRectForFrame(
+        image: spriteImage,
+        frameSize: frameSize,
+        frameIndex: frameIndex,
+      );
 
       final double depthProjection = LayoutUtils.depthProjectionFactorForDepth(
         sprite.depth,

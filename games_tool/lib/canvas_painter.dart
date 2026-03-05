@@ -527,14 +527,15 @@ class CanvasPainter extends CustomPainter {
           if (spriteWidth <= 0 || spriteHeight <= 0) {
             continue;
           }
-          final int frames =
-              math.max(1, (spriteImage.width / spriteWidth).floor());
+          final int frames = LayoutUtils.spriteTotalFramesFromImage(
+            image: spriteImage,
+            frameSize: frameSize,
+          );
           final int frameIndex = LayoutUtils.spriteFrameIndex(
             appData: appData,
             sprite: sprite,
             totalFrames: frames,
           );
-          final double spriteFrameX = frameIndex * spriteWidth;
           final double spriteDepthProjection =
               LayoutUtils.depthProjectionFactorForDepth(
             sprite.depth,
@@ -558,8 +559,11 @@ class CanvasPainter extends CustomPainter {
           final double spriteDrawWidth = projectedSpriteRect.width;
           final double spriteDrawHeight = projectedSpriteRect.height;
 
-          final Rect srcRect =
-              Rect.fromLTWH(spriteFrameX, 0, spriteWidth, spriteHeight);
+          final Rect srcRect = LayoutUtils.spriteSourceRectForFrame(
+            image: spriteImage,
+            frameSize: frameSize,
+            frameIndex: frameIndex,
+          );
           final Rect dstRect = Rect.fromLTWH(
               spriteX, spriteY, spriteDrawWidth, spriteDrawHeight);
           if (sprite.flipX || sprite.flipY) {
