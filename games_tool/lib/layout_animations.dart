@@ -1028,7 +1028,7 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
           child: Row(
             children: [
               CDKText(
-                'Game Animations',
+                'Animations',
                 role: CDKTextRole.title,
                 style: sectionTitleStyle,
               ),

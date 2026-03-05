@@ -747,7 +747,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
           child: Row(
             children: [
               CDKText(
-                'Game Levels',
+                'Levels',
                 role: CDKTextRole.title,
                 style: sectionTitleStyle,
               ),
