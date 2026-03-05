@@ -544,6 +544,8 @@ class CanvasPainter extends CustomPainter {
             appData,
             sprite,
             frameSize: frameSize,
+            frameIndex: frameIndex,
+            totalFrames: frames,
           );
           final Rect projectedSpriteRect = Rect.fromLTWH(
             spriteRectWorld.left * spriteDepthProjection,

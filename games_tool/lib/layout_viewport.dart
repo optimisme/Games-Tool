@@ -987,6 +987,8 @@ class _ViewportPreviewPainter extends CustomPainter {
         appData,
         sprite,
         frameSize: frameSize,
+        frameIndex: frameIndex,
+        totalFrames: frames,
       );
       final double projectedSpriteLeft = spriteWorldRect.left * depthProjection;
       final double projectedSpriteTop = spriteWorldRect.top * depthProjection;
