@@ -224,6 +224,38 @@ class _LayoutState extends State<Layout> {
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
     _updateSelectionModifierStateFromEvent(event);
+    if (event is! KeyDownEvent || !mounted) {
+      return false;
+    }
+    final bool meta = HardwareKeyboard.instance.isMetaPressed;
+    final bool ctrl = HardwareKeyboard.instance.isControlPressed;
+    final bool shift = HardwareKeyboard.instance.isShiftPressed;
+    final bool isCopy = event.logicalKey == LogicalKeyboardKey.keyC;
+    final bool isPaste = event.logicalKey == LogicalKeyboardKey.keyV;
+    if ((meta || ctrl) &&
+        !shift &&
+        isCopy &&
+        (!_isTextInputFocused() || !_shouldDeferCopyShortcutToTextField())) {
+      try {
+        final AppData appData = Provider.of<AppData>(context, listen: false);
+        _handleCopyShortcut(appData);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    if ((meta || ctrl) && !shift && isPaste) {
+      try {
+        final AppData appData = Provider.of<AppData>(context, listen: false);
+        if (!_isTextInputFocused() ||
+            !_shouldDeferPasteShortcutToTextField(appData)) {
+          unawaited(_handlePasteShortcut(appData));
+          return true;
+        }
+      } catch (_) {
+        return false;
+      }
+    }
     return false;
   }
 
@@ -587,11 +619,19 @@ class _LayoutState extends State<Layout> {
           final bool isC = event.logicalKey == LogicalKeyboardKey.keyC;
           final bool isV = event.logicalKey == LogicalKeyboardKey.keyV;
           final bool isZ = event.logicalKey == LogicalKeyboardKey.keyZ;
-          if ((meta || ctrl) && !shift && isC && !_isTextInputFocused()) {
+          if ((meta || ctrl) &&
+              !shift &&
+              isC &&
+              (!_isTextInputFocused() ||
+                  !_shouldDeferCopyShortcutToTextField())) {
             _handleCopyShortcut(appData);
             return KeyEventResult.handled;
           }
-          if ((meta || ctrl) && !shift && isV && !_isTextInputFocused()) {
+          if ((meta || ctrl) &&
+              !shift &&
+              isV &&
+              (!_isTextInputFocused() ||
+                  !_shouldDeferPasteShortcutToTextField(appData))) {
             unawaited(_handlePasteShortcut(appData));
             return KeyEventResult.handled;
           }

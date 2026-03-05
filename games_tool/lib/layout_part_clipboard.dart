@@ -49,6 +49,8 @@ class _ClipboardBuildResult {
 }
 
 extension _LayoutClipboard on _LayoutState {
+  static const String _clipboardEmptyMessage = 'Clipboard is empty.';
+
   bool _isClipboardAvailableInSection(String section) {
     return section != 'projects' && section != 'media';
   }
@@ -63,6 +65,51 @@ extension _LayoutClipboard on _LayoutState {
       return true;
     }
     return focusedContext.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
+  EditableTextState? _focusedEditableTextState() {
+    final BuildContext? focusedContext =
+        FocusManager.instance.primaryFocus?.context;
+    if (focusedContext == null) {
+      return null;
+    }
+    final EditableTextState? ancestorState =
+        focusedContext.findAncestorStateOfType<EditableTextState>();
+    if (ancestorState != null) {
+      return ancestorState;
+    }
+    if (focusedContext is StatefulElement &&
+        focusedContext.state is EditableTextState) {
+      return focusedContext.state as EditableTextState;
+    }
+    return null;
+  }
+
+  bool _shouldDeferCopyShortcutToTextField() {
+    final EditableTextState? state = _focusedEditableTextState();
+    if (state == null) {
+      return false;
+    }
+    final TextSelection selection = state.textEditingValue.selection;
+    return selection.isValid && !selection.isCollapsed;
+  }
+
+  bool _shouldDeferPasteShortcutToTextField(AppData appData) {
+    final EditableTextState? state = _focusedEditableTextState();
+    if (state == null) {
+      return false;
+    }
+    final _EditorClipboardPayload? payload = _clipboardPayload;
+    if (payload == null) {
+      return true;
+    }
+    final _ClipboardEligibility eligibility = _pasteEligibility(appData);
+    if (!eligibility.isAllowed) {
+      return true;
+    }
+    final TextSelection selection = state.textEditingValue.selection;
+    final bool hasSelection = selection.isValid && !selection.isCollapsed;
+    return hasSelection;
   }
 
   void _showClipboardStatusMessage(
@@ -109,13 +156,19 @@ extension _LayoutClipboard on _LayoutState {
   Future<void> _handlePasteShortcut(AppData appData) async {
     final _ClipboardEligibility eligibility = _pasteEligibility(appData);
     if (!eligibility.isAllowed) {
-      _showClipboardStatusMessage(eligibility.reason ?? 'Cannot paste here.');
+      final String message = eligibility.reason ?? 'Cannot paste here.';
+      final bool isEmptyClipboard = message == _clipboardEmptyMessage;
+      _showClipboardStatusMessage(
+        message,
+        isError: !isEmptyClipboard,
+        isWarning: isEmptyClipboard,
+      );
       return;
     }
     final _EditorClipboardPayload? payload = _clipboardPayload;
     if (payload == null) {
       _showClipboardStatusMessage(
-        'Clipboard is empty.',
+        _clipboardEmptyMessage,
         isError: false,
         isWarning: true,
       );
@@ -134,12 +187,13 @@ extension _LayoutClipboard on _LayoutState {
   }
 
   void _clearClipboardPayload() {
-    _clipboardStatusTimer?.cancel();
+    _showClipboardStatusMessage(
+      _clipboardEmptyMessage,
+      isError: false,
+      isWarning: true,
+    );
     _safeSetState(() {
       _clipboardPayload = null;
-      _clipboardStatusMessage = '';
-      _clipboardStatusIsError = false;
-      _clipboardStatusIsWarning = false;
     });
   }
 
@@ -330,7 +384,7 @@ extension _LayoutClipboard on _LayoutState {
     }
     final _EditorClipboardPayload? payload = _clipboardPayload;
     if (payload == null) {
-      return const _ClipboardEligibility.block('Clipboard is empty.');
+      return const _ClipboardEligibility.block(_clipboardEmptyMessage);
     }
     if (payload.entries.isEmpty) {
       return const _ClipboardEligibility.block('Clipboard has no items.');

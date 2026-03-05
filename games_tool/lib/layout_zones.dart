@@ -1362,6 +1362,7 @@ class LayoutZonesState extends State<LayoutZones> {
                 DefaultWidgetsLocalizations.delegate,
               ],
               child: ReorderableListView.builder(
+                scrollController: scrollController,
                 buildDefaultDragHandles: false,
                 itemCount: zoneRows.length,
                 onReorder: (oldIndex, newIndex) =>

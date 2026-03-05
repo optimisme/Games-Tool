@@ -1030,6 +1030,7 @@ class _LayoutPathsState extends State<LayoutPaths> {
                 DefaultWidgetsLocalizations.delegate,
               ],
               child: ReorderableListView.builder(
+                scrollController: _scrollController,
                 buildDefaultDragHandles: false,
                 itemCount: pathRows.length,
                 onReorder: (oldIndex, newIndex) =>

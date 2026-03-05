@@ -1086,6 +1086,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
                 DefaultWidgetsLocalizations.delegate,
               ],
               child: ReorderableListView.builder(
+                scrollController: scrollController,
                 buildDefaultDragHandles: false,
                 itemCount: spriteRows.length,
                 onReorder: (oldIndex, newIndex) =>
