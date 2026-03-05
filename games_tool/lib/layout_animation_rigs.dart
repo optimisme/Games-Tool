@@ -27,7 +27,7 @@ class LayoutAnimationRigs extends StatefulWidget {
 
 class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
+  bool _updateFormQueued = false;
   Timer? _previewTimer;
   DateTime? _previewLastTick;
   String _previewAnimationId = '';
@@ -43,10 +43,17 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
   }
 
   void updateForm(AppData appData) {
-    if (!mounted) {
+    if (!mounted || _updateFormQueued) {
       return;
     }
-    setState(() {});
+    _updateFormQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _updateFormQueued = false;
+      setState(() {});
+    });
   }
 
   void _setPreviewPlaying(bool nextPlaying) {
@@ -683,15 +690,13 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
     updateForm(appData);
   }
 
-  Future<void> _showAnimationRigPopover(
-    AppData appData,
-    GameAnimation animation,
-    GlobalKey anchorKey,
-  ) async {
-    if (Overlay.maybeOf(context) == null) {
-      return;
+  Widget buildEditToolbarContent(AppData appData) {
+    if (appData.selectedAnimation < 0 ||
+        appData.selectedAnimation >= appData.gameData.animations.length) {
+      return const SizedBox.shrink();
     }
-    final CDKDialogController controller = CDKDialogController();
+    final GameAnimation animation =
+        appData.gameData.animations[appData.selectedAnimation];
     final GameAnimationFrameRig activeRig = _activeRig(
       appData,
       animation,
@@ -702,41 +707,33 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
       animation,
       writeBack: true,
     );
-    final String selectedFramesLabel =
-        _selectedFramesValueLabel(selectedFrames);
-
-    CDKDialogsManager.showPopoverArrowed(
-      context: context,
-      anchorKey: anchorKey,
-      isAnimated: true,
-      animateContentResize: false,
-      dismissOnEscape: true,
-      dismissOnOutsideTap: true,
-      showBackgroundShade: false,
-      controller: controller,
-      child: _AnimationRigEditorPopover(
-        initialDraft: _draftFromRig(activeRig),
-        initialSelectedHitBoxIndex: appData.selectedAnimationHitBox,
-        hitBoxColorPalette: GameAnimationHitBox.colorPalette,
-        anchorColorPalette: GameAnimation.anchorColorPalette,
-        selectedFramesLabel: selectedFramesLabel,
-        onAutoBoundsDetect: () => _autoDetectHitBoxDraft(
-          appData,
-          animation,
-          reportFailure: false,
-        ),
-        onSelectedHitBoxChanged: (int index) {
-          if (appData.selectedAnimationHitBox == index) {
-            return;
-          }
-          appData.selectedAnimationHitBox = index;
-          appData.update();
-          updateForm(appData);
-        },
-        onDraftChanged: (nextDraft) async {
-          await _persistAnimationRig(appData, animation, nextDraft);
-        },
+    final String selectedFramesLabel = _selectedFramesValueLabel(selectedFrames);
+    return _AnimationRigEditorPopover(
+      key: ValueKey(
+        'animation-rig-inline-${animation.id}-${appData.selectedAnimation}',
       ),
+      initialDraft: _draftFromRig(activeRig),
+      initialSelectedHitBoxIndex: appData.selectedAnimationHitBox,
+      hitBoxColorPalette: GameAnimationHitBox.colorPalette,
+      anchorColorPalette: GameAnimation.anchorColorPalette,
+      selectedFramesLabel: selectedFramesLabel,
+      panelWidth: 344,
+      onAutoBoundsDetect: () => _autoDetectHitBoxDraft(
+        appData,
+        animation,
+        reportFailure: false,
+      ),
+      onSelectedHitBoxChanged: (int index) {
+        if (appData.selectedAnimationHitBox == index) {
+          return;
+        }
+        appData.selectedAnimationHitBox = index;
+        appData.update();
+        updateForm(appData);
+      },
+      onDraftChanged: (nextDraft) async {
+        await _persistAnimationRig(appData, animation, nextDraft);
+      },
     );
   }
 
@@ -1029,29 +1026,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
                                       ],
                                     ),
                                   ),
-                                  if (isSelected)
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: CupertinoButton(
-                                        key: _selectedEditAnchorKey,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                        ),
-                                        minimumSize: const Size(20, 20),
-                                        onPressed: () async {
-                                          await _showAnimationRigPopover(
-                                            appData,
-                                            animation,
-                                            _selectedEditAnchorKey,
-                                          );
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.ellipsis_circle,
-                                          size: 16,
-                                          color: cdkColors.colorText,
-                                        ),
-                                      ),
-                                    ),
                                   ReorderableDragStartListener(
                                     index: index,
                                     child: Padding(
@@ -1167,6 +1141,7 @@ class _AutoHitBoxDraft {
 
 class _AnimationRigEditorPopover extends StatefulWidget {
   const _AnimationRigEditorPopover({
+    super.key,
     required this.initialDraft,
     required this.initialSelectedHitBoxIndex,
     required this.hitBoxColorPalette,
@@ -1175,6 +1150,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
     required this.onAutoBoundsDetect,
     required this.onSelectedHitBoxChanged,
     required this.onDraftChanged,
+    this.panelWidth = 560,
   });
 
   final _AnimationRigDraft initialDraft;
@@ -1185,6 +1161,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
   final Future<_AutoHitBoxDraft?> Function() onAutoBoundsDetect;
   final ValueChanged<int> onSelectedHitBoxChanged;
   final Future<void> Function(_AnimationRigDraft draft) onDraftChanged;
+  final double panelWidth;
 
   @override
   State<_AnimationRigEditorPopover> createState() =>
@@ -1193,6 +1170,7 @@ class _AnimationRigEditorPopover extends StatefulWidget {
 
 class _AnimationRigEditorPopoverState
     extends State<_AnimationRigEditorPopover> {
+  static const double _editorEpsilon = 0.0005;
   late final List<_HitBoxDraft> _drafts = widget.initialDraft.hitBoxes
       .map((item) => item.copyWith())
       .toList(growable: true);
@@ -1205,6 +1183,7 @@ class _AnimationRigEditorPopoverState
 
   final TextEditingController _anchorXController = TextEditingController();
   final TextEditingController _anchorYController = TextEditingController();
+  final GlobalKey _anchorColorAnchorKey = GlobalKey();
 
   // Per-row controllers for hit boxes.
   late final List<TextEditingController> _nameControllers = _drafts
@@ -1228,7 +1207,6 @@ class _AnimationRigEditorPopoverState
   bool _isApplyingControllers = false;
   int _selectedIndex = -1;
   int _newKeyCounter = 0;
-  int _selectedPanelIndex = 0;
   bool _isAutoDetecting = false;
 
   @override
@@ -1264,7 +1242,150 @@ class _AnimationRigEditorPopoverState
     super.dispose();
   }
 
-  String _formatUnit(double value) => value.toStringAsFixed(3);
+  @override
+  void didUpdateWidget(covariant _AnimationRigEditorPopover oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncFromIncomingDraftIfNeeded();
+  }
+
+  String _formatUnit(double value) => value.toStringAsFixed(2);
+
+  int _normalizedSelectedIndex(int index, int length) {
+    return (index >= 0 && index < length) ? index : -1;
+  }
+
+  bool _nearEqual(double a, double b) {
+    return (a - b).abs() <= _editorEpsilon;
+  }
+
+  bool _sameHitBoxDraft(_HitBoxDraft a, _HitBoxDraft b) {
+    return a.id == b.id &&
+        a.name == b.name &&
+        a.color == b.color &&
+        _nearEqual(a.x, b.x) &&
+        _nearEqual(a.y, b.y) &&
+        _nearEqual(a.width, b.width) &&
+        _nearEqual(a.height, b.height);
+  }
+
+  bool _sameRigDraft(_AnimationRigDraft a, _AnimationRigDraft b) {
+    if (!_nearEqual(a.anchorX, b.anchorX) ||
+        !_nearEqual(a.anchorY, b.anchorY) ||
+        a.anchorColor != b.anchorColor ||
+        a.hitBoxes.length != b.hitBoxes.length) {
+      return false;
+    }
+    for (int i = 0; i < a.hitBoxes.length; i++) {
+      if (!_sameHitBoxDraft(a.hitBoxes[i], b.hitBoxes[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  String _normalizedAnchorColor(String colorName) {
+    if (widget.anchorColorPalette.contains(colorName)) {
+      return colorName;
+    }
+    if (widget.anchorColorPalette.isNotEmpty) {
+      return widget.anchorColorPalette.first;
+    }
+    return colorName;
+  }
+
+  String _normalizedHitBoxColor(String colorName) {
+    if (widget.hitBoxColorPalette.contains(colorName)) {
+      return colorName;
+    }
+    if (widget.hitBoxColorPalette.isNotEmpty) {
+      return widget.hitBoxColorPalette.first;
+    }
+    return colorName;
+  }
+
+  _AnimationRigDraft _normalizedIncomingDraft(_AnimationRigDraft draft) {
+    final List<_HitBoxDraft> nextHitBoxes = draft.hitBoxes.map((item) {
+      final double width = item.width.clamp(0.01, 1.0);
+      final double height = item.height.clamp(0.01, 1.0);
+      final double x = item.x.clamp(0.0, 1.0 - width);
+      final double y = item.y.clamp(0.0, 1.0 - height);
+      return item.copyWith(
+        color: _normalizedHitBoxColor(item.color),
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      );
+    }).toList(growable: false);
+    return _AnimationRigDraft(
+      anchorX: draft.anchorX.clamp(0.0, 1.0),
+      anchorY: draft.anchorY.clamp(0.0, 1.0),
+      anchorColor: _normalizedAnchorColor(draft.anchorColor),
+      hitBoxes: nextHitBoxes,
+    );
+  }
+
+  void _syncDraftRowsFromIncoming(List<_HitBoxDraft> incomingDrafts) {
+    while (_drafts.length > incomingDrafts.length) {
+      final int last = _drafts.length - 1;
+      _drafts.removeLast();
+      _nameControllers[last].dispose();
+      _nameControllers.removeLast();
+      _xControllers[last].dispose();
+      _xControllers.removeLast();
+      _yControllers[last].dispose();
+      _yControllers.removeLast();
+      _widthControllers[last].dispose();
+      _widthControllers.removeLast();
+      _heightControllers[last].dispose();
+      _heightControllers.removeLast();
+      _hitBoxColorAnchorKeys.removeLast();
+    }
+
+    for (int i = 0; i < incomingDrafts.length; i++) {
+      final _HitBoxDraft incoming = incomingDrafts[i];
+      if (i >= _drafts.length) {
+        _drafts.add(incoming.copyWith());
+        _nameControllers.add(TextEditingController(text: incoming.name));
+        _xControllers.add(TextEditingController(text: _formatUnit(incoming.x)));
+        _yControllers.add(TextEditingController(text: _formatUnit(incoming.y)));
+        _widthControllers
+            .add(TextEditingController(text: _formatUnit(incoming.width)));
+        _heightControllers
+            .add(TextEditingController(text: _formatUnit(incoming.height)));
+        _hitBoxColorAnchorKeys.add(GlobalKey());
+        continue;
+      }
+
+      _drafts[i] = incoming.copyWith();
+      _setControllerText(_nameControllers[i], incoming.name);
+      _setControllerText(_xControllers[i], _formatUnit(incoming.x));
+      _setControllerText(_yControllers[i], _formatUnit(incoming.y));
+      _setControllerText(_widthControllers[i], _formatUnit(incoming.width));
+      _setControllerText(_heightControllers[i], _formatUnit(incoming.height));
+    }
+  }
+
+  void _syncFromIncomingDraftIfNeeded() {
+    final _AnimationRigDraft incoming =
+        _normalizedIncomingDraft(widget.initialDraft);
+    final int incomingSelectedIndex = _normalizedSelectedIndex(
+      widget.initialSelectedHitBoxIndex,
+      incoming.hitBoxes.length,
+    );
+    if (_sameRigDraft(_snapshot(), incoming) &&
+        _selectedIndex == incomingSelectedIndex) {
+      return;
+    }
+    setState(() {
+      _anchorX = incoming.anchorX;
+      _anchorY = incoming.anchorY;
+      _anchorColor = incoming.anchorColor;
+      _refreshAnchorControllers();
+      _syncDraftRowsFromIncoming(incoming.hitBoxes);
+      _selectedIndex = incomingSelectedIndex;
+    });
+  }
 
   double? _parseUnit(String raw) {
     final String normalized = raw.replaceAll(',', '.').trim();
@@ -1525,6 +1646,39 @@ class _AnimationRigEditorPopoverState
     );
   }
 
+  void _showAnchorColorPicker() {
+    if (_anchorColorAnchorKey.currentContext == null) {
+      return;
+    }
+    final CDKDialogController controller = CDKDialogController();
+    CDKDialogsManager.showPopoverArrowed(
+      context: context,
+      anchorKey: _anchorColorAnchorKey,
+      isAnimated: true,
+      animateContentResize: false,
+      dismissOnEscape: true,
+      dismissOnOutsideTap: true,
+      showBackgroundShade: false,
+      controller: controller,
+      child: _HitBoxColorPicker(
+        title: 'Anchor Color',
+        colorPalette: widget.anchorColorPalette,
+        selectedColorName: _anchorColor,
+        onSelected: (String colorName) {
+          if (_anchorColor == colorName) {
+            controller.close();
+            return;
+          }
+          setState(() {
+            _anchorColor = colorName;
+          });
+          _emitChanged();
+          controller.close();
+        },
+      ),
+    );
+  }
+
   Widget _buildHitBoxInlineRow(
     BuildContext context,
     int index,
@@ -1532,6 +1686,9 @@ class _AnimationRigEditorPopoverState
   ) {
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    const double colorButtonSlotWidth = 44;
+    const double deleteButtonSlotWidth = 24;
+    const double dragHandleSlotWidth = 18;
     return GestureDetector(
       key: ValueKey(draft.id),
       onTap: () => _setSelectedIndex(index, notifyParent: true),
@@ -1540,103 +1697,135 @@ class _AnimationRigEditorPopoverState
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         color: cdkColors.backgroundSecondary0,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CDKButton(
-              key: _hitBoxColorAnchorKeys[index],
-              style: CDKButtonStyle.normal,
-              onPressed: () => _showHitBoxColorPicker(index),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: LayoutUtils.getColorFromName(draft.color),
-                      borderRadius: BorderRadius.circular(2),
+            Row(
+              children: [
+                SizedBox(
+                  width: colorButtonSlotWidth,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: CDKButton(
+                      key: _hitBoxColorAnchorKeys[index],
+                      style: CDKButtonStyle.normal,
+                      onPressed: () => _showHitBoxColorPicker(index),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: LayoutUtils.getColorFromName(draft.color),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(CupertinoIcons.chevron_down, size: 10),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(CupertinoIcons.chevron_down, size: 10),
-                ],
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            Expanded(
-              child: CDKFieldText(
-                placeholder: 'Name',
-                controller: _nameControllers[index],
-                onChanged: (value) {
-                  if (_isApplyingControllers) return;
-                  _updateHitBox(index, name: value);
-                },
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 52,
-              child: CDKFieldText(
-                placeholder: 'X',
-                controller: _xControllers[index],
-                onChanged: (value) {
-                  if (_isApplyingControllers) return;
-                  final double? parsed = _parseUnit(value);
-                  if (parsed != null) _updateHitBox(index, x: parsed);
-                },
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 52,
-              child: CDKFieldText(
-                placeholder: 'Y',
-                controller: _yControllers[index],
-                onChanged: (value) {
-                  if (_isApplyingControllers) return;
-                  final double? parsed = _parseUnit(value);
-                  if (parsed != null) _updateHitBox(index, y: parsed);
-                },
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 52,
-              child: CDKFieldText(
-                placeholder: 'W',
-                controller: _widthControllers[index],
-                onChanged: (value) {
-                  if (_isApplyingControllers) return;
-                  final double? parsed = _parseUnit(value);
-                  if (parsed != null) _updateHitBox(index, width: parsed);
-                },
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 52,
-              child: CDKFieldText(
-                placeholder: 'H',
-                controller: _heightControllers[index],
-                onChanged: (value) {
-                  if (_isApplyingControllers) return;
-                  final double? parsed = _parseUnit(value);
-                  if (parsed != null) _updateHitBox(index, height: parsed);
-                },
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            SizedBox(
-              width: 24,
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(20, 20),
-                onPressed: () => _deleteHitBox(index),
-                child: Icon(
-                  CupertinoIcons.minus_circle,
-                  size: 16,
-                  color: cdkColors.colorText,
                 ),
+                SizedBox(width: spacing.xs),
+                Expanded(
+                  child: CDKFieldText(
+                    placeholder: 'Name',
+                    controller: _nameControllers[index],
+                    onChanged: (value) {
+                      if (_isApplyingControllers) return;
+                      _updateHitBox(index, name: value);
+                    },
+                  ),
+                ),
+                SizedBox(width: spacing.xs),
+                SizedBox(
+                  width: deleteButtonSlotWidth,
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(20, 20),
+                    onPressed: () => _deleteHitBox(index),
+                    child: Icon(
+                      CupertinoIcons.minus_circle,
+                      size: 16,
+                      color: cdkColors.colorText,
+                    ),
+                  ),
+                ),
+                SizedBox(width: spacing.xs),
+                SizedBox(
+                  width: dragHandleSlotWidth,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: Icon(
+                        CupertinoIcons.bars,
+                        size: 14,
+                        color: cdkColors.colorText.withValues(alpha: 0.72),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: spacing.xs),
+            Padding(
+              padding: EdgeInsets.only(
+                left: colorButtonSlotWidth + spacing.xs,
+                right: deleteButtonSlotWidth + dragHandleSlotWidth + spacing.xs * 2,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'X',
+                      controller: _xControllers[index],
+                      onChanged: (value) {
+                        if (_isApplyingControllers) return;
+                        final double? parsed = _parseUnit(value);
+                        if (parsed != null) _updateHitBox(index, x: parsed);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'Y',
+                      controller: _yControllers[index],
+                      onChanged: (value) {
+                        if (_isApplyingControllers) return;
+                        final double? parsed = _parseUnit(value);
+                        if (parsed != null) _updateHitBox(index, y: parsed);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'W',
+                      controller: _widthControllers[index],
+                      onChanged: (value) {
+                        if (_isApplyingControllers) return;
+                        final double? parsed = _parseUnit(value);
+                        if (parsed != null) _updateHitBox(index, width: parsed);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Expanded(
+                    child: CDKFieldText(
+                      placeholder: 'H',
+                      controller: _heightControllers[index],
+                      onChanged: (value) {
+                        if (_isApplyingControllers) return;
+                        final double? parsed = _parseUnit(value);
+                        if (parsed != null) _updateHitBox(index, height: parsed);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1692,9 +1881,10 @@ class _AnimationRigEditorPopoverState
   @override
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    final bool showingAnchorPanel = _selectedPanelIndex == 0;
-    final BoxConstraints panelConstraints =
-        const BoxConstraints(minWidth: 560, maxWidth: 560);
+    final BoxConstraints panelConstraints = BoxConstraints(
+      minWidth: widget.panelWidth,
+      maxWidth: widget.panelWidth,
+    );
 
     final Widget anchorPanel = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1716,7 +1906,7 @@ class _AnimationRigEditorPopoverState
             Expanded(
               child: CDKFieldText(
                 controller: _anchorXController,
-                placeholder: '0.000',
+                placeholder: '0.00',
                 onChanged: _updateAnchorX,
                 onSubmitted: (_) => _refreshAnchorControllers(),
               ),
@@ -1725,7 +1915,7 @@ class _AnimationRigEditorPopoverState
             Expanded(
               child: CDKFieldText(
                 controller: _anchorYController,
-                placeholder: '0.000',
+                placeholder: '0.00',
                 onChanged: _updateAnchorY,
                 onSubmitted: (_) => _refreshAnchorControllers(),
               ),
@@ -1744,140 +1934,110 @@ class _AnimationRigEditorPopoverState
             ),
           ],
         ),
-        SizedBox(height: spacing.sm),
+        SizedBox(height: spacing.md),
         const CDKText('Anchor Color', role: CDKTextRole.caption),
         const SizedBox(height: 4),
         Align(
-          alignment: Alignment.center,
-          child: Wrap(
-            spacing: spacing.xs,
-            runSpacing: spacing.xs,
-            children: widget.anchorColorPalette.map((colorName) {
-              return SelectableColorSwatch(
-                color: LayoutUtils.getColorFromName(colorName),
-                selected: _anchorColor == colorName,
-                onTap: () {
-                  if (_anchorColor == colorName) {
-                    return;
-                  }
-                  setState(() {
-                    _anchorColor = colorName;
-                  });
-                  _emitChanged();
-                },
-              );
-            }).toList(growable: false),
-          ),
-        ),
-      ],
-    );
-
-    final Widget hitBoxesPanel = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_drafts.isEmpty)
-          const CDKText(
-            'No hit boxes yet.',
-            role: CDKTextRole.caption,
-            secondary: true,
-          ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 220),
-          child: Localizations.override(
-            context: context,
-            delegates: const [
-              DefaultMaterialLocalizations.delegate,
-              DefaultWidgetsLocalizations.delegate,
-            ],
-            child: ReorderableListView.builder(
-              buildDefaultDragHandles: false,
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              itemCount: _drafts.length,
-              onReorder: _reorderHitBoxes,
-              itemBuilder: (context, index) {
-                return _buildHitBoxInlineRow(context, index, _drafts[index]);
-              },
+          alignment: Alignment.centerLeft,
+          child: CDKButton(
+            key: _anchorColorAnchorKey,
+            style: CDKButtonStyle.normal,
+            onPressed: _showAnchorColorPicker,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: LayoutUtils.getColorFromName(_anchorColor),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(CupertinoIcons.chevron_down, size: 10),
+              ],
             ),
           ),
         ),
-        SizedBox(height: spacing.sm),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: CDKButton(
-            style: CDKButtonStyle.action,
-            onPressed: _isAutoDetecting ? null : _addHitBox,
-            child: _isAutoDetecting
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CupertinoActivityIndicator(radius: 6),
-                  )
-                : const Text('Add Hit Box'),
-          ),
-        ),
       ],
     );
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      clipBehavior: Clip.none,
-      child: ConstrainedBox(
-        constraints: panelConstraints,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CDKText('Edit animation rigs', role: CDKTextRole.title),
-              SizedBox(height: spacing.md),
-              const CDKText('Selected Frames', role: CDKTextRole.caption),
-              const SizedBox(height: 4),
-              CDKText(
-                widget.selectedFramesLabel,
-                role: CDKTextRole.bodyStrong,
-              ),
-              const SizedBox(height: 2),
-              const CDKText(
-                'Changes in this editor are applied to the selected frames.',
-                role: CDKTextRole.caption,
-                secondary: true,
-              ),
-              SizedBox(height: spacing.md),
-              CDKPickerButtonsSegmented(
-                selectedIndex: _selectedPanelIndex,
-                options: const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: CDKText('Anchor Point', role: CDKTextRole.caption),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: CDKText('Hit Boxes', role: CDKTextRole.caption),
-                  ),
-                ],
-                onSelected: (selectedIndex) {
-                  setState(() {
-                    _selectedPanelIndex = selectedIndex.clamp(0, 1);
-                  });
-                },
-              ),
-              SizedBox(height: spacing.md),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.topCenter,
-                clipBehavior: Clip.none,
-                child: KeyedSubtree(
-                  key: ValueKey<int>(_selectedPanelIndex),
-                  child: showingAnchorPanel ? anchorPanel : hitBoxesPanel,
-                ),
-              ),
-            ],
+    final Widget header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CDKText('Edit animation rigs', role: CDKTextRole.title),
+        SizedBox(height: spacing.md + spacing.xs),
+        const CDKText('Selected Frames', role: CDKTextRole.caption),
+        const SizedBox(height: 4),
+        CDKText(
+          widget.selectedFramesLabel,
+          role: CDKTextRole.bodyStrong,
+        ),
+        const SizedBox(height: 2),
+        const CDKText(
+          'Changes in this editor are applied to the selected frames.',
+          role: CDKTextRole.caption,
+          secondary: true,
+        ),
+        SizedBox(height: spacing.md),
+        const CDKText('Anchor Point', role: CDKTextRole.caption),
+        SizedBox(height: spacing.xs),
+        anchorPanel,
+        SizedBox(height: spacing.md + spacing.sm),
+        const CDKText('Hit Boxes', role: CDKTextRole.caption),
+        SizedBox(height: spacing.xs),
+        if (_drafts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: CDKText(
+              'No hit boxes yet.',
+              role: CDKTextRole.caption,
+              secondary: true,
+            ),
           ),
+      ],
+    );
+
+    final Widget footer = Padding(
+      padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.md),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: CDKButton(
+          style: CDKButtonStyle.action,
+          onPressed: _isAutoDetecting ? null : _addHitBox,
+          child: _isAutoDetecting
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CupertinoActivityIndicator(radius: 6),
+                )
+              : const Text('Add Hit Box'),
+        ),
+      ),
+    );
+
+    return ConstrainedBox(
+      constraints: panelConstraints,
+      child: Localizations.override(
+        context: context,
+        delegates: const [
+          DefaultMaterialLocalizations.delegate,
+          DefaultWidgetsLocalizations.delegate,
+        ],
+        child: ReorderableListView.builder(
+          buildDefaultDragHandles: false,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          padding: EdgeInsets.fromLTRB(spacing.md, spacing.md, spacing.md, 0),
+          header: header,
+          footer: footer,
+          itemCount: _drafts.length,
+          onReorder: _reorderHitBoxes,
+          itemBuilder: (context, index) {
+            return _buildHitBoxInlineRow(context, index, _drafts[index]);
+          },
         ),
       ),
     );
@@ -1889,11 +2049,13 @@ class _HitBoxColorPicker extends StatelessWidget {
     required this.colorPalette,
     required this.selectedColorName,
     required this.onSelected,
+    this.title = 'Box Color',
   });
 
   final List<String> colorPalette;
   final String selectedColorName;
   final ValueChanged<String> onSelected;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -1906,7 +2068,7 @@ class _HitBoxColorPicker extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CDKText('Box Color', role: CDKTextRole.caption),
+            CDKText(title, role: CDKTextRole.caption),
             SizedBox(height: spacing.xs),
             Wrap(
               spacing: spacing.xs,
