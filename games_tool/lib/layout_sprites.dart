@@ -344,9 +344,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameListGroup.mainId

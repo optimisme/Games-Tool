@@ -505,9 +505,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameListGroup.mainId

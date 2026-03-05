@@ -602,9 +602,6 @@ class LayoutZonesState extends State<LayoutZones> {
               collapsed: group.collapsed,
             ),
           );
-          if (renamed) {
-            controller.close();
-          }
           return renamed;
         },
         onDelete: group.id == GameZoneGroup.mainId
