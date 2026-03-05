@@ -12,9 +12,11 @@ import 'game_level.dart';
 import 'game_list_group.dart';
 import 'game_media_asset.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 
@@ -462,7 +464,7 @@ class LayoutLayersState extends State<LayoutLayers> {
 
   Future<_LayerDialogData?> _promptLayerData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     required _LayerDialogData initialData,
     required List<GameMediaAsset> tilesetAssets,
     List<GameListGroup> groupOptions = const <GameListGroup>[],
@@ -470,7 +472,6 @@ class LayoutLayersState extends State<LayoutLayers> {
     String groupFieldLabel = 'Layer Group',
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_LayerDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -486,13 +487,12 @@ class LayoutLayersState extends State<LayoutLayers> {
 
     final dialogChild = _LayerFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialData: initialData,
       tilesetAssets: tilesetAssets,
       groupOptions: groupOptions,
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -555,12 +555,15 @@ class LayoutLayersState extends State<LayoutLayers> {
         appData.selectedLevel >= appData.gameData.levels.length) {
       return;
     }
+    appData.selectedLayer = -1;
+    appData.selectedLayerIndices = <int>{};
+    appData.update();
     final GameLevel level = appData.gameData.levels[appData.selectedLevel];
     _ensureMainLayerGroup(level);
     final GameMediaAsset first = tilesetAssets.first;
     final _LayerDialogData? data = await _promptLayerData(
       title: 'New layer',
-      confirmLabel: 'Add',
+      mode: EditorEntityFormMode.add,
       initialData: _LayerDialogData(
         name: '',
         gameplayData: '',
@@ -654,7 +657,7 @@ class LayoutLayersState extends State<LayoutLayers> {
     final int mapHeight = layer.tileMap.length;
     return _LayerFormDialog(
       title: 'Edit layer',
-      confirmLabel: 'Save',
+      mode: EditorEntityFormMode.edit,
       initialData: _LayerDialogData(
         name: layer.name,
         gameplayData: layer.gameplayData,
@@ -673,7 +676,6 @@ class LayoutLayersState extends State<LayoutLayers> {
       groupOptions: _layerGroups(level),
       showGroupSelector: false,
       groupFieldLabel: 'Layer Group',
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 340,
       onLiveChanged: (value) async {
@@ -1314,13 +1316,12 @@ class _LayerDialogData {
 class _LayerFormDialog extends StatefulWidget {
   const _LayerFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialData,
     required this.tilesetAssets,
     required this.groupOptions,
     required this.showGroupSelector,
     required this.groupFieldLabel,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 380,
@@ -1331,13 +1332,12 @@ class _LayerFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final _LayerDialogData initialData;
   final List<GameMediaAsset> tilesetAssets;
   final List<GameListGroup> groupOptions;
   final bool showGroupSelector;
   final String groupFieldLabel;
-  final bool liveEdit;
   final Future<void> Function(_LayerDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1498,9 +1498,11 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
   }
 
   void _onInputChanged() {
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   void _confirm() {
@@ -1531,24 +1533,23 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_LayerDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.gameplayData == b.gameplayData &&
-            a.x == b.x &&
-            a.y == b.y &&
-            a.depth == b.depth &&
-            a.tilesSheetFile == b.tilesSheetFile &&
-            a.tilemapWidth == b.tilemapWidth &&
-            a.tilemapHeight == b.tilemapHeight &&
-            a.visible == b.visible &&
-            a.groupId == b.groupId,
-      );
-    }
+    _editSession = createEditorLiveEditSession<_LayerDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.gameplayData == b.gameplayData &&
+          a.x == b.x &&
+          a.y == b.y &&
+          a.depth == b.depth &&
+          a.tilesSheetFile == b.tilesSheetFile &&
+          a.tilemapWidth == b.tilemapWidth &&
+          a.tilemapHeight == b.tilemapHeight &&
+          a.visible == b.visible &&
+          a.groupId == b.groupId,
+    );
   }
 
   @override
@@ -1647,11 +1648,11 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Configure layer details.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1676,7 +1677,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                 _onInputChanged();
               },
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -1880,7 +1881,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                       controller: _gameplayDataController,
                       onChanged: (_) => _onInputChanged(),
                       onSubmitted: (_) {
-                        if (widget.liveEdit) {
+                        if (widget.mode.isLiveEdit) {
                           _onInputChanged();
                           return;
                         }
@@ -1899,7 +1900,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
                 controller: _gameplayDataController,
                 onChanged: (_) => _onInputChanged(),
                 onSubmitted: (_) {
-                  if (widget.liveEdit) {
+                  if (widget.mode.isLiveEdit) {
                     _onInputChanged();
                     return;
                   }

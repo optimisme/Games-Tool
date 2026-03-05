@@ -8,9 +8,11 @@ import 'app_data.dart';
 import 'game_list_group.dart';
 import 'game_level.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 
@@ -349,7 +351,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
 
   Future<_LevelDialogData?> _promptLevelData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     String initialName = "",
     String initialDescription = "",
     String initialGameplayData = "",
@@ -361,7 +363,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
     String groupFieldLabel = "Level Group",
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_LevelDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -384,7 +385,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
 
     final dialogChild = _LevelFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialName: initialName,
       initialDescription: initialDescription,
       initialGameplayData: initialGameplayData,
@@ -395,7 +396,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
       existingNames: existingNames,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -455,9 +455,18 @@ class LayoutLevelsState extends State<LayoutLevels> {
   Future<void> _promptAndAddLevel() async {
     final AppData appData = Provider.of<AppData>(context, listen: false);
     _ensureMainLevelGroup(appData);
+    appData.selectedLevel = -1;
+    appData.selectedLayer = -1;
+    appData.selectedLayerIndices = <int>{};
+    appData.selectedZone = -1;
+    appData.selectedZoneIndices = <int>{};
+    appData.selectedSprite = -1;
+    appData.selectedSpriteIndices = <int>{};
+    appData.selectedPath = -1;
+    appData.update();
     final _LevelDialogData? levelData = await _promptLevelData(
       title: "New level",
-      confirmLabel: "Add",
+      mode: EditorEntityFormMode.add,
       initialGroupId: GameListGroup.mainId,
       showGroupSelector: true,
       groupFieldLabel: "Level Group",
@@ -548,7 +557,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     final GameLevel selected = appData.gameData.levels[index];
     return _LevelFormDialog(
       title: "Edit level",
-      confirmLabel: "Save",
+      mode: EditorEntityFormMode.edit,
       initialName: selected.name,
       initialDescription: selected.description,
       initialGameplayData: selected.gameplayData,
@@ -562,7 +571,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
         appData,
         excludingIndex: index,
       ),
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 340,
       onLiveChanged: (value) async {
@@ -1051,7 +1059,7 @@ class _LevelDialogData {
 class _LevelFormDialog extends StatefulWidget {
   const _LevelFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialName,
     required this.initialDescription,
     required this.initialGameplayData,
@@ -1062,7 +1070,6 @@ class _LevelFormDialog extends StatefulWidget {
     required this.showGroupSelector,
     required this.groupFieldLabel,
     required this.existingNames,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 320,
@@ -1073,7 +1080,7 @@ class _LevelFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final String initialName;
   final String initialDescription;
   final String initialGameplayData;
@@ -1084,7 +1091,6 @@ class _LevelFormDialog extends StatefulWidget {
   final bool showGroupSelector;
   final String groupFieldLabel;
   final Set<String> existingNames;
-  final bool liveEdit;
   final Future<void> Function(_LevelDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1249,9 +1255,11 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
   }
 
   void _onInputChanged() {
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   void _confirm() {
@@ -1285,21 +1293,20 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_LevelDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.description == b.description &&
-            a.gameplayData == b.gameplayData &&
-            a.backgroundColorHex == b.backgroundColorHex &&
-            a.depthSensitivity == b.depthSensitivity &&
-            a.groupId == b.groupId,
-      );
-    }
-    if (!widget.liveEdit) {
+    _editSession = createEditorLiveEditSession<_LevelDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.description == b.description &&
+          a.gameplayData == b.gameplayData &&
+          a.backgroundColorHex == b.backgroundColorHex &&
+          a.depthSensitivity == b.depthSensitivity &&
+          a.groupId == b.groupId,
+    );
+    if (!widget.mode.isLiveEdit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _nameFocusNode.requestFocus();
@@ -1330,11 +1337,11 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Enter level details.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1360,7 +1367,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                 _onInputChanged();
               },
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -1376,7 +1383,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
               controller: _descriptionController,
               onChanged: (_) => _onInputChanged(),
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -1425,7 +1432,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                     controller: _depthSensitivityController,
                     onChanged: (_) => _onInputChanged(),
                     onSubmitted: (_) {
-                      if (widget.liveEdit) {
+                      if (widget.mode.isLiveEdit) {
                         _onInputChanged();
                         return;
                       }
@@ -1472,7 +1479,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                       controller: _gameplayDataController,
                       onChanged: (_) => _onInputChanged(),
                       onSubmitted: (_) {
-                        if (widget.liveEdit) {
+                        if (widget.mode.isLiveEdit) {
                           _onInputChanged();
                           return;
                         }
@@ -1491,7 +1498,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                 controller: _gameplayDataController,
                 onChanged: (_) => _onInputChanged(),
                 onSubmitted: (_) {
-                  if (widget.liveEdit) {
+                  if (widget.mode.isLiveEdit) {
                     _onInputChanged();
                     return;
                   }

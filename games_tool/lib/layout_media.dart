@@ -11,9 +11,11 @@ import 'app_data.dart';
 import 'game_media_asset.dart';
 import 'game_media_group.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 
@@ -447,14 +449,13 @@ class _LayoutMediaState extends State<LayoutMedia> {
 
   Future<_MediaDialogData?> _promptMediaData({
     required String title,
-    required String confirmLabel,
+    required EditorEntityFormMode mode,
     required _MediaDialogData initialData,
     List<GameMediaGroup> groupOptions = const <GameMediaGroup>[],
     bool showGroupSelector = false,
     String groupFieldLabel = 'Media Group',
     GlobalKey? anchorKey,
     bool useArrowedPopover = false,
-    bool liveEdit = false,
     Future<void> Function(_MediaDialogData value)? onLiveChanged,
     VoidCallback? onDelete,
   }) async {
@@ -470,12 +471,11 @@ class _LayoutMediaState extends State<LayoutMedia> {
 
     final dialogChild = _MediaFormDialog(
       title: title,
-      confirmLabel: confirmLabel,
+      mode: mode,
       initialData: initialData,
       groupOptions: groupOptions,
       showGroupSelector: showGroupSelector,
       groupFieldLabel: groupFieldLabel,
-      liveEdit: liveEdit,
       onLiveChanged: onLiveChanged,
       onClose: () {
         unawaited(() async {
@@ -535,6 +535,8 @@ class _LayoutMediaState extends State<LayoutMedia> {
   Future<void> _pickAndPromptAddMedia() async {
     final appData = Provider.of<AppData>(context, listen: false);
     _ensureMainGroup(appData);
+    appData.selectedMedia = -1;
+    appData.update();
     final String fileName = await appData.pickImageFile();
     if (!mounted || fileName.isEmpty) {
       return;
@@ -556,7 +558,7 @@ class _LayoutMediaState extends State<LayoutMedia> {
 
     final _MediaDialogData? data = await _promptMediaData(
       title: 'New media',
-      confirmLabel: 'Add',
+      mode: EditorEntityFormMode.add,
       initialData: _MediaDialogData(
         name: GameMediaAsset.inferNameFromFileName(fileName),
         fileName: fileName,
@@ -1316,7 +1318,7 @@ class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
     final List<GameMediaGroup> groups = _mediaGroups(appData);
     return _MediaFormDialog(
       title: 'Edit media',
-      confirmLabel: 'Save',
+      mode: EditorEntityFormMode.edit,
       initialData: _MediaDialogData(
         name: asset.name,
         fileName: asset.fileName,
@@ -1329,7 +1331,6 @@ class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
       groupOptions: groups,
       showGroupSelector: true,
       groupFieldLabel: 'Media Group',
-      liveEdit: true,
       minWidth: 280,
       maxWidth: 360,
       onLiveChanged: (value) async {
@@ -1349,12 +1350,11 @@ class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
 class _MediaFormDialog extends StatefulWidget {
   const _MediaFormDialog({
     required this.title,
-    required this.confirmLabel,
+    required this.mode,
     required this.initialData,
     required this.groupOptions,
     required this.showGroupSelector,
     required this.groupFieldLabel,
-    this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
     this.minWidth = 420,
@@ -1365,12 +1365,11 @@ class _MediaFormDialog extends StatefulWidget {
   });
 
   final String title;
-  final String confirmLabel;
+  final EditorEntityFormMode mode;
   final _MediaDialogData initialData;
   final List<GameMediaGroup> groupOptions;
   final bool showGroupSelector;
   final String groupFieldLabel;
-  final bool liveEdit;
   final Future<void> Function(_MediaDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
   final double minWidth;
@@ -1468,9 +1467,11 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
   }
 
   void _onInputChanged() {
-    if (widget.liveEdit) {
-      _editSession?.update(_currentData());
-    }
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _currentData(),
+    );
   }
 
   void _validateTileFields() {
@@ -1510,19 +1511,18 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.liveEdit && widget.onLiveChanged != null) {
-      _editSession = EditSession<_MediaDialogData>(
-        initialValue: _currentData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.mediaType == b.mediaType &&
-            a.tileWidth == b.tileWidth &&
-            a.tileHeight == b.tileHeight &&
-            a.groupId == b.groupId,
-      );
-    }
+    _editSession = createEditorLiveEditSession<_MediaDialogData>(
+      mode: widget.mode,
+      initialValue: _currentData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.mediaType == b.mediaType &&
+          a.tileWidth == b.tileWidth &&
+          a.tileHeight == b.tileHeight &&
+          a.groupId == b.groupId,
+    );
   }
 
   @override
@@ -1546,11 +1546,11 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
     return EditorFormDialogScaffold(
       title: widget.title,
       description: 'Configure media metadata.',
-      confirmLabel: widget.confirmLabel,
+      confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
       onCancel: widget.onCancel,
-      liveEditMode: widget.liveEdit,
+      liveEditMode: widget.mode.isLiveEdit,
       onClose: widget.onClose,
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
@@ -1575,7 +1575,7 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
                 _onInputChanged();
               },
               onSubmitted: (_) {
-                if (widget.liveEdit) {
+                if (widget.mode.isLiveEdit) {
                   _onInputChanged();
                   return;
                 }
@@ -1645,7 +1645,7 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => _validateTileFields(),
                                 onSubmitted: (_) {
-                                  if (widget.liveEdit) {
+                                  if (widget.mode.isLiveEdit) {
                                     _onInputChanged();
                                     return;
                                   }
@@ -1665,7 +1665,7 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => _validateTileFields(),
                                 onSubmitted: (_) {
-                                  if (widget.liveEdit) {
+                                  if (widget.mode.isLiveEdit) {
                                     _onInputChanged();
                                     return;
                                   }

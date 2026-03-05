@@ -12,9 +12,11 @@ import 'game_path.dart';
 import 'game_path_binding.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
+import 'widgets/editor_entity_form_mode.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
 import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
+import 'widgets/editor_live_edit_session.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
 import 'widgets/selectable_color_swatch.dart';
@@ -471,9 +473,12 @@ class LayoutPathsState extends State<LayoutPaths> {
     );
   }
 
-  Future<_PathDialogData?> _promptPathQuickAddData({
+  Future<_PathDialogData?> _promptPathAddData({
     required _PathDialogData initialData,
     required List<GameListGroup> groupOptions,
+    required List<_PathTargetOption> layerTargetOptions,
+    required List<_PathTargetOption> zoneTargetOptions,
+    required List<_PathTargetOption> spriteTargetOptions,
   }) async {
     if (Overlay.maybeOf(context) == null) {
       return null;
@@ -483,30 +488,31 @@ class LayoutPathsState extends State<LayoutPaths> {
     final Completer<_PathDialogData?> completer = Completer<_PathDialogData?>();
     _PathDialogData? result;
 
-    CDKDialogsManager.showPopoverArrowed(
+    CDKDialogsManager.showModal(
       context: context,
-      anchorKey: _addPathAnchorKey,
-      isAnimated: true,
-      animateContentResize: false,
       dismissOnEscape: true,
-      dismissOnOutsideTap: true,
-      showBackgroundShade: false,
+      dismissOnOutsideTap: false,
+      showBackgroundShade: true,
       controller: controller,
       onHide: () {
         if (!completer.isCompleted) {
           completer.complete(result);
         }
       },
-      child: _PathQuickAddPopover(
+      child: _PathEditPopover(
         title: 'New path',
-        confirmLabel: 'Add',
+        mode: EditorEntityFormMode.add,
         initialData: initialData,
         groupOptions: groupOptions,
-        onConfirm: (value) {
+        layerTargetOptions: layerTargetOptions,
+        zoneTargetOptions: zoneTargetOptions,
+        spriteTargetOptions: spriteTargetOptions,
+        onConfirm: (_PathDialogData value) {
           result = value;
           controller.close();
         },
         onCancel: controller.close,
+        onClose: controller.close,
       ),
     );
 
@@ -636,11 +642,12 @@ class LayoutPathsState extends State<LayoutPaths> {
         appData.selectedLevel >= appData.gameData.levels.length) {
       return;
     }
+    _setSelectedPathIndex(appData, -1);
 
     final GameLevel level = appData.gameData.levels[appData.selectedLevel];
     _ensureMainPathGroup(level);
 
-    final _PathDialogData? data = await _promptPathQuickAddData(
+    final _PathDialogData? data = await _promptPathAddData(
       initialData: _PathDialogData(
         pathId: null,
         name: '',
@@ -653,6 +660,9 @@ class LayoutPathsState extends State<LayoutPaths> {
         groupId: GameListGroup.mainId,
       ),
       groupOptions: _pathGroups(level),
+      layerTargetOptions: _layerTargetOptions(level),
+      zoneTargetOptions: _zoneTargetOptions(level),
+      spriteTargetOptions: _spriteTargetOptions(level),
     );
 
     if (!mounted || data == null) {
@@ -1207,254 +1217,33 @@ class _PathDialogData {
   final String groupId;
 }
 
-class _PathQuickAddPopover extends StatefulWidget {
-  const _PathQuickAddPopover({
-    required this.title,
-    required this.confirmLabel,
-    required this.initialData,
-    required this.groupOptions,
-    required this.onConfirm,
-    required this.onCancel,
-  });
-
-  final String title;
-  final String confirmLabel;
-  final _PathDialogData initialData;
-  final List<GameListGroup> groupOptions;
-  final ValueChanged<_PathDialogData> onConfirm;
-  final VoidCallback onCancel;
-
-  @override
-  State<_PathQuickAddPopover> createState() => _PathQuickAddPopoverState();
-}
-
-class _PathQuickAddPopoverState extends State<_PathQuickAddPopover> {
-  late final TextEditingController _nameController = TextEditingController(
-    text: widget.initialData.name,
-  );
-  late final TextEditingController _beginXController = TextEditingController(
-    text: widget.initialData.points.first.x.toString(),
-  );
-  late final TextEditingController _beginYController = TextEditingController(
-    text: widget.initialData.points.first.y.toString(),
-  );
-  late final TextEditingController _endXController = TextEditingController(
-    text: widget.initialData.points.last.x.toString(),
-  );
-  late final TextEditingController _endYController = TextEditingController(
-    text: widget.initialData.points.last.y.toString(),
-  );
-
-  late String _selectedColor = _resolveInitialColor();
-  late String _selectedGroupId = _resolveInitialGroupId();
-
-  String _resolveInitialColor() {
-    final String normalized = widget.initialData.color.trim();
-    if (GamePath.colorPalette.contains(normalized)) {
-      return normalized;
-    }
-    return GamePath.defaultColor;
-  }
-
-  String _resolveInitialGroupId() {
-    for (final group in widget.groupOptions) {
-      if (group.id == widget.initialData.groupId) {
-        return group.id;
-      }
-    }
-    if (widget.groupOptions.isNotEmpty) {
-      return widget.groupOptions.first.id;
-    }
-    return GameListGroup.mainId;
-  }
-
-  bool get _canConfirm => _nameController.text.trim().isNotEmpty;
-
-  int _parseInt(String value, int fallback) {
-    return int.tryParse(value.trim()) ?? fallback;
-  }
-
-  _PathDialogData _buildData() {
-    final int beginX = _parseInt(_beginXController.text, 0);
-    final int beginY = _parseInt(_beginYController.text, 0);
-    final int endX = _parseInt(_endXController.text, 128);
-    final int endY = _parseInt(_endYController.text, 128);
-    return _PathDialogData(
-      pathId: null,
-      name: _nameController.text.trim(),
-      points: <GamePathPoint>[
-        GamePathPoint(x: beginX, y: beginY),
-        GamePathPoint(x: endX, y: endY),
-      ],
-      color: _selectedColor,
-      bindings: const <GamePathBinding>[],
-      groupId: _selectedGroupId,
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _beginXController.dispose();
-    _beginYController.dispose();
-    _endXController.dispose();
-    _endYController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    return EditorFormDialogScaffold(
-      title: widget.title,
-      description:
-          'Set the path name and its begin/end points. You can add more points later from the path editor.',
-      confirmLabel: widget.confirmLabel,
-      confirmEnabled: _canConfirm,
-      onConfirm: () => widget.onConfirm(_buildData()),
-      onCancel: widget.onCancel,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          EditorLabeledField(
-            label: 'Name',
-            child: CDKFieldText(
-              placeholder: 'Path name',
-              controller: _nameController,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) {
-                if (_canConfirm) {
-                  widget.onConfirm(_buildData());
-                }
-              },
-            ),
-          ),
-          SizedBox(height: spacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: EditorLabeledField(
-                  label: 'Begin X',
-                  child: CDKFieldText(
-                    placeholder: 'X',
-                    keyboardType: TextInputType.number,
-                    controller: _beginXController,
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: EditorLabeledField(
-                  label: 'Begin Y',
-                  child: CDKFieldText(
-                    placeholder: 'Y',
-                    keyboardType: TextInputType.number,
-                    controller: _beginYController,
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: EditorLabeledField(
-                  label: 'End X',
-                  child: CDKFieldText(
-                    placeholder: 'X',
-                    keyboardType: TextInputType.number,
-                    controller: _endXController,
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: EditorLabeledField(
-                  label: 'End Y',
-                  child: CDKFieldText(
-                    placeholder: 'Y',
-                    keyboardType: TextInputType.number,
-                    controller: _endYController,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: spacing.sm),
-          EditorLabeledField(
-            label: 'Color',
-            child: Center(
-              child: Wrap(
-                spacing: spacing.xs,
-                runSpacing: spacing.xs,
-                children: GamePath.colorPalette.map((String colorName) {
-                  return SelectableColorSwatch(
-                    color: LayoutUtils.getColorFromName(colorName),
-                    selected: _selectedColor == colorName,
-                    onTap: () {
-                      if (_selectedColor == colorName) {
-                        return;
-                      }
-                      setState(() {
-                        _selectedColor = colorName;
-                      });
-                    },
-                  );
-                }).toList(growable: false),
-              ),
-            ),
-          ),
-          SizedBox(height: spacing.sm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: 220,
-              child: EditorLabeledField(
-                label: 'Path Group',
-                child: CDKButtonSelect(
-                  selectedIndex: widget.groupOptions
-                      .indexWhere((group) => group.id == _selectedGroupId)
-                      .clamp(0, widget.groupOptions.length - 1),
-                  options: widget.groupOptions
-                      .map((group) => group.name.trim().isEmpty
-                          ? GameListGroup.defaultMainName
-                          : group.name)
-                      .toList(growable: false),
-                  onSelected: (int index) {
-                    setState(() {
-                      _selectedGroupId = widget.groupOptions[index].id;
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      minWidth: 420,
-      maxWidth: 560,
-    );
-  }
-}
-
 class _PathEditPopover extends StatefulWidget {
   const _PathEditPopover({
     super.key,
     required this.title,
+    this.mode = EditorEntityFormMode.edit,
     required this.initialData,
     required this.groupOptions,
     required this.layerTargetOptions,
     required this.zoneTargetOptions,
     required this.spriteTargetOptions,
     required this.onClose,
+    this.onConfirm,
+    this.onCancel,
     this.onLiveChanged,
     this.onDelete,
   });
 
   final String title;
+  final EditorEntityFormMode mode;
   final _PathDialogData initialData;
   final List<GameListGroup> groupOptions;
   final List<_PathTargetOption> layerTargetOptions;
   final List<_PathTargetOption> zoneTargetOptions;
   final List<_PathTargetOption> spriteTargetOptions;
   final VoidCallback onClose;
+  final ValueChanged<_PathDialogData>? onConfirm;
+  final VoidCallback? onCancel;
   final Future<void> Function(_PathDialogData value)? onLiveChanged;
   final VoidCallback? onDelete;
 
@@ -1512,7 +1301,11 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
   }
 
   void _onInputChanged() {
-    _editSession?.update(_buildData());
+    queueEditorLiveEditUpdate(
+      mode: widget.mode,
+      session: _editSession,
+      value: _buildData(),
+    );
   }
 
   void _showColorPickerPopover() {
@@ -1817,35 +1610,33 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
   @override
   void initState() {
     super.initState();
-    if (widget.onLiveChanged != null) {
-      _editSession = EditSession<_PathDialogData>(
-        initialValue: _buildData(),
-        validate: _validateData,
-        onPersist: widget.onLiveChanged!,
-        areEqual: (a, b) =>
-            a.name == b.name &&
-            a.color == b.color &&
-            a.groupId == b.groupId &&
-            a.points.length == b.points.length &&
-            a.bindings.length == b.bindings.length &&
-            List.generate(
-                a.points.length,
-                (i) =>
-                    a.points[i].x == b.points[i].x &&
-                    a.points[i].y == b.points[i].y).every((e) => e) &&
-            List.generate(a.bindings.length, (i) {
-              final ab = a.bindings[i];
-              final bb = b.bindings[i];
-              return ab.targetType == bb.targetType &&
-                  ab.targetIndex == bb.targetIndex &&
-                  ab.behavior == bb.behavior &&
-                  ab.enabled == bb.enabled &&
-                  ab.relativeToInitialPosition ==
-                      bb.relativeToInitialPosition &&
-                  ab.durationMs == bb.durationMs;
-            }).every((e) => e),
-      );
-    }
+    _editSession = createEditorLiveEditSession<_PathDialogData>(
+      mode: widget.mode,
+      initialValue: _buildData(),
+      validate: _validateData,
+      onPersist: widget.onLiveChanged,
+      areEqual: (a, b) =>
+          a.name == b.name &&
+          a.color == b.color &&
+          a.groupId == b.groupId &&
+          a.points.length == b.points.length &&
+          a.bindings.length == b.bindings.length &&
+          List.generate(
+              a.points.length,
+              (i) =>
+                  a.points[i].x == b.points[i].x &&
+                  a.points[i].y == b.points[i].y).every((e) => e) &&
+          List.generate(a.bindings.length, (i) {
+            final ab = a.bindings[i];
+            final bb = b.bindings[i];
+            return ab.targetType == bb.targetType &&
+                ab.targetIndex == bb.targetIndex &&
+                ab.behavior == bb.behavior &&
+                ab.enabled == bb.enabled &&
+                ab.relativeToInitialPosition == bb.relativeToInitialPosition &&
+                ab.durationMs == bb.durationMs;
+          }).every((e) => e),
+    );
   }
 
   @override
@@ -1869,18 +1660,29 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     const double objectColumnWidth = 100;
     const double iconColumnWidth = 18;
     const int objectLabelMaxChars = 11;
+    final _PathDialogData currentData = _buildData();
+    final bool canConfirm = _validateData(currentData) == null;
     return EditorFormDialogScaffold(
       title: widget.title,
       description: '',
-      confirmLabel: '',
-      confirmEnabled: false,
-      onConfirm: () {},
-      onCancel: widget.onClose,
-      liveEditMode: true,
-      liveEditBottomSpacing: false,
+      confirmLabel: widget.mode.confirmLabel,
+      confirmEnabled: widget.mode.isLiveEdit ? false : canConfirm,
+      onConfirm: widget.mode.isLiveEdit
+          ? () {}
+          : () {
+              if (!canConfirm) {
+                return;
+              }
+              widget.onConfirm?.call(currentData);
+            },
+      onCancel: widget.mode.isLiveEdit
+          ? widget.onClose
+          : (widget.onCancel ?? widget.onClose),
+      liveEditMode: widget.mode.isLiveEdit,
+      liveEditBottomSpacing: widget.mode.isLiveEdit ? false : true,
       onClose: widget.onClose,
-      onDelete: widget.onDelete,
-      headerTrailing: widget.onDelete == null
+      onDelete: widget.mode.isLiveEdit ? widget.onDelete : null,
+      headerTrailing: !widget.mode.isLiveEdit || widget.onDelete == null
           ? null
           : EditorHeaderDeleteButton(
               onDelete: widget.onDelete!,
