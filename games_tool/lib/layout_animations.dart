@@ -1807,25 +1807,30 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              SizedBox(
-                width: 74,
-                child: EditorLabeledField(
-                  label: 'Loop',
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: 39,
-                      height: 24,
-                      child: FittedBox(
-                        fit: BoxFit.fill,
-                        child: CupertinoSwitch(
-                          value: _loop,
-                          onChanged: (bool value) {
-                            setState(() {
-                              _loop = value;
-                            });
-                            _onInputChanged();
-                          },
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 74,
+                    child: EditorLabeledField(
+                      label: 'Loop',
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: 39,
+                          height: 24,
+                          child: FittedBox(
+                            fit: BoxFit.fill,
+                            child: CupertinoSwitch(
+                              value: _loop,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  _loop = value;
+                                });
+                                _onInputChanged();
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ),

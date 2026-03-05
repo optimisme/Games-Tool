@@ -1403,6 +1403,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                flex: 3,
                 child: EditorLabeledField(
                   label: 'Background color',
                   child: Row(
@@ -1419,6 +1420,9 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
                           _backgroundColorHex,
                           role: CDKTextRole.caption,
                           color: cdkColors.colorText,
+                          style: typography.caption.copyWith(
+                            fontSize: (typography.caption.fontSize ?? 12) - 1,
+                          ),
                         ),
                       ),
                     ],
@@ -1427,6 +1431,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 2,
                 child: EditorLabeledField(
                   label: 'Depth sensitivity',
                   child: CDKFieldText(

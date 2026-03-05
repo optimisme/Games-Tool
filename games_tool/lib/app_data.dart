@@ -186,9 +186,203 @@ class AppData extends ChangeNotifier {
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
 
+  Map<String, dynamic> _captureSelectionSnapshot() {
+    return <String, dynamic>{
+      'selectedSection': selectedSection,
+      'selectedLevel': selectedLevel,
+      'selectedLayer': selectedLayer,
+      'selectedLayerIndices': selectedLayerIndices.toList(growable: false),
+      'selectedZone': selectedZone,
+      'selectedZoneIndices': selectedZoneIndices.toList(growable: false),
+      'selectedSprite': selectedSprite,
+      'selectedSpriteIndices': selectedSpriteIndices.toList(growable: false),
+      'selectedPath': selectedPath,
+      'selectedAnimation': selectedAnimation,
+      'selectedAnimationHitBox': selectedAnimationHitBox,
+      'animationRigSelectionAnimationId': animationRigSelectionAnimationId,
+      'animationRigSelectedFrames':
+          animationRigSelectedFrames.toList(growable: false),
+      'animationRigSelectionStartFrame': animationRigSelectionStartFrame,
+      'animationRigSelectionEndFrame': animationRigSelectionEndFrame,
+      'animationRigActiveFrame': animationRigActiveFrame,
+      'selectedMedia': selectedMedia,
+      'animationSelectionStartFrame': animationSelectionStartFrame,
+      'animationSelectionEndFrame': animationSelectionEndFrame,
+      'selectedTileIndex': selectedTileIndex,
+      'selectedTilePattern': selectedTilePattern
+          .map((row) => row.toList(growable: false))
+          .toList(growable: false),
+      'tilemapEraserEnabled': tilemapEraserEnabled,
+      'tilesetSelectionColStart': tilesetSelectionColStart,
+      'tilesetSelectionRowStart': tilesetSelectionRowStart,
+      'tilesetSelectionColEnd': tilesetSelectionColEnd,
+      'tilesetSelectionRowEnd': tilesetSelectionRowEnd,
+    };
+  }
+
+  Map<String, dynamic> _captureUndoSnapshot() {
+    return <String, dynamic>{
+      'gameData': gameData.toJson(),
+      'selection': _captureSelectionSnapshot(),
+    };
+  }
+
+  int _snapshotInt(dynamic value, int fallback) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return fallback;
+  }
+
+  String _snapshotString(dynamic value, String fallback) {
+    if (value is String) {
+      return value;
+    }
+    return fallback;
+  }
+
+  bool _snapshotBool(dynamic value, bool fallback) {
+    if (value is bool) {
+      return value;
+    }
+    return fallback;
+  }
+
+  Set<int> _snapshotIntSet(dynamic value) {
+    if (value is! List) {
+      return <int>{};
+    }
+    final Set<int> result = <int>{};
+    for (final dynamic item in value) {
+      if (item is int) {
+        result.add(item);
+      } else if (item is num) {
+        result.add(item.toInt());
+      }
+    }
+    return result;
+  }
+
+  List<int> _snapshotIntList(dynamic value) {
+    if (value is! List) {
+      return <int>[];
+    }
+    final List<int> result = <int>[];
+    for (final dynamic item in value) {
+      if (item is int) {
+        result.add(item);
+      } else if (item is num) {
+        result.add(item.toInt());
+      }
+    }
+    return result;
+  }
+
+  List<List<int>> _snapshotIntMatrix(dynamic value) {
+    if (value is! List) {
+      return <List<int>>[];
+    }
+    final List<List<int>> result = <List<int>>[];
+    for (final dynamic row in value) {
+      if (row is! List) {
+        continue;
+      }
+      final List<int> parsedRow = <int>[];
+      for (final dynamic cell in row) {
+        if (cell is int) {
+          parsedRow.add(cell);
+        } else if (cell is num) {
+          parsedRow.add(cell.toInt());
+        }
+      }
+      result.add(parsedRow);
+    }
+    return result;
+  }
+
+  void _restoreSelectionSnapshot(dynamic snapshot) {
+    if (snapshot is! Map) {
+      return;
+    }
+    final Map<dynamic, dynamic> selection = snapshot;
+    selectedSection = _snapshotString(selection['selectedSection'], selectedSection);
+    selectedLevel = _snapshotInt(selection['selectedLevel'], selectedLevel);
+    selectedLayer = _snapshotInt(selection['selectedLayer'], selectedLayer);
+    selectedLayerIndices = _snapshotIntSet(selection['selectedLayerIndices']);
+    selectedZone = _snapshotInt(selection['selectedZone'], selectedZone);
+    selectedZoneIndices = _snapshotIntSet(selection['selectedZoneIndices']);
+    selectedSprite = _snapshotInt(selection['selectedSprite'], selectedSprite);
+    selectedSpriteIndices = _snapshotIntSet(selection['selectedSpriteIndices']);
+    selectedPath = _snapshotInt(selection['selectedPath'], selectedPath);
+    selectedAnimation = _snapshotInt(selection['selectedAnimation'], selectedAnimation);
+    selectedAnimationHitBox =
+        _snapshotInt(selection['selectedAnimationHitBox'], selectedAnimationHitBox);
+    animationRigSelectionAnimationId = _snapshotString(
+      selection['animationRigSelectionAnimationId'],
+      animationRigSelectionAnimationId,
+    );
+    animationRigSelectedFrames =
+        _snapshotIntList(selection['animationRigSelectedFrames']);
+    animationRigSelectionStartFrame = _snapshotInt(
+      selection['animationRigSelectionStartFrame'],
+      animationRigSelectionStartFrame,
+    );
+    animationRigSelectionEndFrame = _snapshotInt(
+      selection['animationRigSelectionEndFrame'],
+      animationRigSelectionEndFrame,
+    );
+    animationRigActiveFrame = _snapshotInt(
+      selection['animationRigActiveFrame'],
+      animationRigActiveFrame,
+    );
+    selectedMedia = _snapshotInt(selection['selectedMedia'], selectedMedia);
+    animationSelectionStartFrame = _snapshotInt(
+      selection['animationSelectionStartFrame'],
+      animationSelectionStartFrame,
+    );
+    animationSelectionEndFrame = _snapshotInt(
+      selection['animationSelectionEndFrame'],
+      animationSelectionEndFrame,
+    );
+    selectedTileIndex = _snapshotInt(selection['selectedTileIndex'], selectedTileIndex);
+    selectedTilePattern = _snapshotIntMatrix(selection['selectedTilePattern']);
+    tilemapEraserEnabled =
+        _snapshotBool(selection['tilemapEraserEnabled'], tilemapEraserEnabled);
+    tilesetSelectionColStart = _snapshotInt(
+      selection['tilesetSelectionColStart'],
+      tilesetSelectionColStart,
+    );
+    tilesetSelectionRowStart = _snapshotInt(
+      selection['tilesetSelectionRowStart'],
+      tilesetSelectionRowStart,
+    );
+    tilesetSelectionColEnd = _snapshotInt(
+      selection['tilesetSelectionColEnd'],
+      tilesetSelectionColEnd,
+    );
+    tilesetSelectionRowEnd = _snapshotInt(
+      selection['tilesetSelectionRowEnd'],
+      tilesetSelectionRowEnd,
+    );
+  }
+
+  void _restoreUndoSnapshot(Map<String, dynamic> snapshot) {
+    final dynamic gameDataSnapshot = snapshot['gameData'];
+    if (gameDataSnapshot is Map) {
+      gameData = GameData.fromJson(Map<String, dynamic>.from(gameDataSnapshot));
+      _restoreSelectionSnapshot(snapshot['selection']);
+      return;
+    }
+    // Backward compatibility with old undo checkpoints containing only gameData.
+    gameData = GameData.fromJson(snapshot);
+  }
+
   /// Call this BEFORE mutating gameData to record a checkpoint.
   void pushUndo() {
-    _undoStack.add(gameData.toJson());
+    _undoStack.add(_captureUndoSnapshot());
     if (_undoStack.length > _maxUndoSteps) {
       _undoStack.removeAt(0);
     }
@@ -223,16 +417,16 @@ class AppData extends ChangeNotifier {
 
   void undo() {
     if (_undoStack.isEmpty) return;
-    _redoStack.add(gameData.toJson());
-    gameData = GameData.fromJson(_undoStack.removeLast());
+    _redoStack.add(_captureUndoSnapshot());
+    _restoreUndoSnapshot(_undoStack.removeLast());
     _clearUndoGroupingState();
     notifyListeners();
   }
 
   void redo() {
     if (_redoStack.isEmpty) return;
-    _undoStack.add(gameData.toJson());
-    gameData = GameData.fromJson(_redoStack.removeLast());
+    _undoStack.add(_captureUndoSnapshot());
+    _restoreUndoSnapshot(_redoStack.removeLast());
     _clearUndoGroupingState();
     notifyListeners();
   }

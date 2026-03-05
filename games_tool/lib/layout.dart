@@ -68,7 +68,7 @@ enum _LayersCanvasTool { arrow, hand }
 
 class _LayoutState extends State<Layout> {
   static const double _animationRigFrameStripReservedHeight = 74.0;
-  static const double _editToolbarExpandedWidth = 360.0;
+  static const double _editToolbarExpandedWidth = 275.0;
   static const double _rightToolbarWidth = 275.0;
   final ScrollController _editToolbarScrollController = ScrollController();
 
@@ -232,6 +232,7 @@ class _LayoutState extends State<Layout> {
     final bool shift = HardwareKeyboard.instance.isShiftPressed;
     final bool isCopy = event.logicalKey == LogicalKeyboardKey.keyC;
     final bool isPaste = event.logicalKey == LogicalKeyboardKey.keyV;
+    final bool isUndoRedo = event.logicalKey == LogicalKeyboardKey.keyZ;
     if ((meta || ctrl) &&
         !shift &&
         isCopy &&
@@ -252,6 +253,19 @@ class _LayoutState extends State<Layout> {
           unawaited(_handlePasteShortcut(appData));
           return true;
         }
+      } catch (_) {
+        return false;
+      }
+    }
+    if ((meta || ctrl) && isUndoRedo) {
+      try {
+        final AppData appData = Provider.of<AppData>(context, listen: false);
+        if (shift) {
+          appData.redo();
+        } else {
+          appData.undo();
+        }
+        return true;
       } catch (_) {
         return false;
       }
@@ -613,35 +627,7 @@ class _LayoutState extends State<Layout> {
             unawaited(_confirmAndDeleteSelectedLayers(appData));
             return KeyEventResult.handled;
           }
-          final bool meta = HardwareKeyboard.instance.isMetaPressed;
-          final bool ctrl = HardwareKeyboard.instance.isControlPressed;
-          final bool shift = HardwareKeyboard.instance.isShiftPressed;
-          final bool isC = event.logicalKey == LogicalKeyboardKey.keyC;
-          final bool isV = event.logicalKey == LogicalKeyboardKey.keyV;
-          final bool isZ = event.logicalKey == LogicalKeyboardKey.keyZ;
-          if ((meta || ctrl) &&
-              !shift &&
-              isC &&
-              (!_isTextInputFocused() ||
-                  !_shouldDeferCopyShortcutToTextField())) {
-            _handleCopyShortcut(appData);
-            return KeyEventResult.handled;
-          }
-          if ((meta || ctrl) &&
-              !shift &&
-              isV &&
-              (!_isTextInputFocused() ||
-                  !_shouldDeferPasteShortcutToTextField(appData))) {
-            unawaited(_handlePasteShortcut(appData));
-            return KeyEventResult.handled;
-          }
-          if (!(meta || ctrl) || !isZ) return KeyEventResult.ignored;
-          if (shift) {
-            appData.redo();
-          } else {
-            appData.undo();
-          }
-          return KeyEventResult.handled;
+          return KeyEventResult.ignored;
         },
         child: SafeArea(
           child: Column(

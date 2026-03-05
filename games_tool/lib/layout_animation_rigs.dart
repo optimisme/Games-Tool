@@ -1932,6 +1932,7 @@ class _AnimationRigEditorPopoverState
   @override
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    const double autoButtonSlotWidth = 72;
     final BoxConstraints panelConstraints = BoxConstraints(
       minWidth: widget.panelWidth,
       maxWidth: widget.panelWidth,
@@ -1949,6 +1950,8 @@ class _AnimationRigEditorPopoverState
             Expanded(
               child: const CDKText('Y', role: CDKTextRole.caption),
             ),
+            SizedBox(width: spacing.sm),
+            const SizedBox(width: autoButtonSlotWidth),
           ],
         ),
         const SizedBox(height: 4),
@@ -1972,16 +1975,22 @@ class _AnimationRigEditorPopoverState
               ),
             ),
             SizedBox(width: spacing.sm),
-            CDKButton(
-              style: CDKButtonStyle.action,
-              onPressed: _isAutoDetecting ? null : _autoAnchorFromBounds,
-              child: _isAutoDetecting
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CupertinoActivityIndicator(radius: 6),
-                    )
-                  : const Text('Auto'),
+            SizedBox(
+              width: autoButtonSlotWidth,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: CDKButton(
+                  style: CDKButtonStyle.action,
+                  onPressed: _isAutoDetecting ? null : _autoAnchorFromBounds,
+                  child: _isAutoDetecting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CupertinoActivityIndicator(radius: 6),
+                        )
+                      : const Text('Auto'),
+                ),
+              ),
             ),
           ],
         ),
