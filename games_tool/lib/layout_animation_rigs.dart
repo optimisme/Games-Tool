@@ -28,16 +28,9 @@ class LayoutAnimationRigs extends StatefulWidget {
 class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
   final ScrollController _scrollController = ScrollController();
   bool _updateFormQueued = false;
-  Timer? _previewTimer;
-  DateTime? _previewLastTick;
-  String _previewAnimationId = '';
-  double _previewElapsedSeconds = 0.0;
-  bool _previewPlaying = false;
 
   @override
   void dispose() {
-    _previewTimer?.cancel();
-    _previewTimer = null;
     _scrollController.dispose();
     super.dispose();
   }
@@ -54,211 +47,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
       _updateFormQueued = false;
       setState(() {});
     });
-  }
-
-  void _setPreviewPlaying(bool nextPlaying) {
-    if (_previewPlaying == nextPlaying) {
-      return;
-    }
-    _previewPlaying = nextPlaying;
-    if (!_previewPlaying) {
-      _previewLastTick = null;
-      _previewTimer?.cancel();
-      _previewTimer = null;
-      return;
-    }
-    _previewLastTick = DateTime.now();
-    _previewTimer?.cancel();
-    _previewTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
-      if (!mounted || !_previewPlaying) {
-        return;
-      }
-      final DateTime now = DateTime.now();
-      final DateTime previous = _previewLastTick ?? now;
-      _previewLastTick = now;
-      final double deltaSeconds =
-          now.difference(previous).inMicroseconds / 1000000.0;
-      if (deltaSeconds <= 0) {
-        return;
-      }
-      setState(() {
-        _previewElapsedSeconds += deltaSeconds;
-      });
-    });
-  }
-
-  void _restartPreview() {
-    setState(() {
-      _previewElapsedSeconds = 0.0;
-    });
-  }
-
-  void _syncPreviewSelection(GameAnimation? animation) {
-    final String nextId = animation?.id ?? '';
-    if (nextId == _previewAnimationId) {
-      return;
-    }
-    _previewAnimationId = nextId;
-    _previewElapsedSeconds = 0.0;
-    _previewLastTick = null;
-    if (animation == null) {
-      _setPreviewPlaying(false);
-      return;
-    }
-    _setPreviewPlaying(true);
-  }
-
-  int _previewFrameIndex({
-    required GameAnimation animation,
-    required int totalFrames,
-  }) {
-    final int safeTotalFrames = math.max(1, totalFrames);
-    final int start = animation.startFrame.clamp(0, safeTotalFrames - 1);
-    final int end = animation.endFrame.clamp(start, safeTotalFrames - 1);
-    final int span = math.max(1, end - start + 1);
-    final int ticks = (_previewElapsedSeconds * animation.fps).floor();
-    final int offset =
-        animation.loop ? ticks % span : math.min(ticks, span - 1);
-    return start + offset;
-  }
-
-  Widget _buildPreviewPanel(AppData appData, GameAnimation? animation) {
-    final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    final cdkColors = CDKThemeNotifier.colorTokensOf(context);
-    final bool hasAnimation = animation != null;
-    const double previewCanvasHeight = 128;
-    final Color checkerA = cdkColors.backgroundSecondary1;
-    final Color checkerB = Color.alphaBlend(
-      cdkColors.colorText.withValues(alpha: 0.06),
-      cdkColors.backgroundSecondary1,
-    );
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: cdkColors.backgroundSecondary0,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: cdkColors.colorTextSecondary.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!hasAnimation)
-            SizedBox(
-              height: previewCanvasHeight,
-              child: Center(
-                child: CDKText(
-                  'Select an animation to preview.',
-                  role: CDKTextRole.caption,
-                  color: cdkColors.colorTextSecondary,
-                ),
-              ),
-            )
-          else
-            FutureBuilder<ui.Image>(
-              future: appData.getImage(animation.mediaFile),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    snapshot.data == null) {
-                  return const SizedBox(
-                    height: previewCanvasHeight,
-                    child: Center(
-                      child: CupertinoActivityIndicator(),
-                    ),
-                  );
-                }
-                final ui.Image? image = snapshot.data;
-                final GameMediaAsset? media =
-                    appData.mediaAssetByFileName(animation.mediaFile);
-                if (image == null ||
-                    media == null ||
-                    media.tileWidth <= 0 ||
-                    media.tileHeight <= 0) {
-                  return SizedBox(
-                    height: previewCanvasHeight,
-                    child: Center(
-                      child: CDKText(
-                        'Preview unavailable',
-                        role: CDKTextRole.caption,
-                        color: cdkColors.colorTextSecondary,
-                      ),
-                    ),
-                  );
-                }
-                final int cols =
-                    math.max(1, (image.width / media.tileWidth).floor());
-                final int rows =
-                    math.max(1, (image.height / media.tileHeight).floor());
-                final int totalFrames = math.max(1, cols * rows);
-                final int frameIndex = _previewFrameIndex(
-                  animation: animation,
-                  totalFrames: totalFrames,
-                );
-                final GameAnimationFrameRig rig = animation.rigForFrame(
-                  frameIndex,
-                );
-                final double frameWidth = media.tileWidth.toDouble();
-                final double frameHeight = media.tileHeight.toDouble();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: previewCanvasHeight,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: media.tileWidth / media.tileHeight,
-                          child: CustomPaint(
-                            painter: _AnimationRigFramePreviewPainter(
-                              image: image,
-                              frameWidth: frameWidth,
-                              frameHeight: frameHeight,
-                              columns: cols,
-                              frameIndex: frameIndex,
-                              anchorX: rig.anchorX,
-                              anchorY: rig.anchorY,
-                              anchorColor:
-                                  LayoutUtils.getColorFromName(rig.anchorColor),
-                              checkerA: checkerA,
-                              checkerB: checkerB,
-                              borderColor: cdkColors.colorTextSecondary
-                                  .withValues(alpha: 0.45),
-                              guideColor:
-                                  cdkColors.colorTextSecondary.withValues(
-                                alpha: 0.42,
-                              ),
-                              anchorOutlineColor: cdkColors.colorText,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Align(
-                      alignment: Alignment.center,
-                      child: CDKText(
-                        'Frame $frameIndex (${animation.startFrame}-${animation.endFrame}) @ ${animation.fps.toStringAsFixed(1)} fps',
-                        role: CDKTextRole.caption,
-                        color: cdkColors.colorText,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          if (!hasAnimation) ...[
-            SizedBox(height: spacing.xs),
-            CDKText(
-              'Frame -',
-              role: CDKTextRole.caption,
-              color: cdkColors.colorText,
-            ),
-          ],
-        ],
-      ),
-    );
   }
 
   String _selectedFramesValueLabel(List<int> selectedFrames) {
@@ -794,7 +582,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
   @override
   Widget build(BuildContext context) {
     final AppData appData = Provider.of<AppData>(context);
-    final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     final typography = CDKThemeNotifier.typographyTokensOf(context);
     final TextStyle sectionTitleStyle = typography.title.copyWith(
@@ -826,9 +613,6 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
             appData.selectedAnimation < animations.length
         ? animations[appData.selectedAnimation]
         : null;
-    _syncPreviewSelection(selectedAnimation);
-    final bool hasSelectedAnimation = selectedAnimation != null;
-    final bool isPreviewPlaying = hasSelectedAnimation && _previewPlaying;
     final List<GroupedListRow<GameListGroup, GameAnimation>> rows =
         _buildAnimationRows(appData);
 
@@ -852,40 +636,10 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CDKButton(
-                style: CDKButtonStyle.normal,
-                onPressed: hasSelectedAnimation
-                    ? () {
-                        setState(() {
-                          _setPreviewPlaying(!_previewPlaying);
-                        });
-                      }
-                    : null,
-                child: Icon(
-                  isPreviewPlaying
-                      ? CupertinoIcons.pause_fill
-                      : CupertinoIcons.play_fill,
-                  size: 12,
-                ),
-              ),
-              SizedBox(width: spacing.xs),
-              CDKButton(
-                style: CDKButtonStyle.normal,
-                onPressed: hasSelectedAnimation ? _restartPreview : null,
-                child: const Icon(
-                  CupertinoIcons.refresh,
-                  size: 12,
-                ),
-              ),
-            ],
-          ),
+        _AnimationRigPreviewPanel(
+          appData: appData,
+          animation: selectedAnimation,
         ),
-        _buildPreviewPanel(appData, selectedAnimation),
         if (rows.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -1052,6 +806,304 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _AnimationRigPreviewPanel extends StatefulWidget {
+  const _AnimationRigPreviewPanel({
+    required this.appData,
+    required this.animation,
+  });
+
+  final AppData appData;
+  final GameAnimation? animation;
+
+  @override
+  State<_AnimationRigPreviewPanel> createState() =>
+      _AnimationRigPreviewPanelState();
+}
+
+class _AnimationRigPreviewPanelState extends State<_AnimationRigPreviewPanel> {
+  Timer? _previewTimer;
+  DateTime? _previewLastTick;
+  String _previewAnimationId = '';
+  double _previewElapsedSeconds = 0.0;
+  bool _previewPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncPreviewSelection(widget.animation);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimationRigPreviewPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation?.id != widget.animation?.id) {
+      _syncPreviewSelection(widget.animation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _previewTimer?.cancel();
+    _previewTimer = null;
+    super.dispose();
+  }
+
+  void _setPreviewPlaying(bool nextPlaying) {
+    if (_previewPlaying == nextPlaying) {
+      return;
+    }
+    _previewPlaying = nextPlaying;
+    if (!_previewPlaying) {
+      _previewLastTick = null;
+      _previewTimer?.cancel();
+      _previewTimer = null;
+      return;
+    }
+    _previewLastTick = DateTime.now();
+    _previewTimer?.cancel();
+    _previewTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
+      if (!mounted || !_previewPlaying) {
+        return;
+      }
+      final DateTime now = DateTime.now();
+      final DateTime previous = _previewLastTick ?? now;
+      _previewLastTick = now;
+      final double deltaSeconds =
+          now.difference(previous).inMicroseconds / 1000000.0;
+      if (deltaSeconds <= 0) {
+        return;
+      }
+      setState(() {
+        _previewElapsedSeconds += deltaSeconds;
+      });
+    });
+  }
+
+  void _restartPreview() {
+    setState(() {
+      _previewElapsedSeconds = 0.0;
+    });
+  }
+
+  void _syncPreviewSelection(GameAnimation? animation) {
+    final String nextId = animation?.id ?? '';
+    if (nextId == _previewAnimationId) {
+      return;
+    }
+    _previewAnimationId = nextId;
+    _previewElapsedSeconds = 0.0;
+    _previewLastTick = null;
+    if (animation == null) {
+      _setPreviewPlaying(false);
+      return;
+    }
+    _setPreviewPlaying(true);
+  }
+
+  int _previewFrameIndex({
+    required GameAnimation animation,
+    required int totalFrames,
+  }) {
+    final int safeTotalFrames = math.max(1, totalFrames);
+    final int start = animation.startFrame.clamp(0, safeTotalFrames - 1);
+    final int end = animation.endFrame.clamp(start, safeTotalFrames - 1);
+    final int span = math.max(1, end - start + 1);
+    final int ticks = (_previewElapsedSeconds * animation.fps).floor();
+    final int offset =
+        animation.loop ? ticks % span : math.min(ticks, span - 1);
+    return start + offset;
+  }
+
+  Widget _buildPreviewPanel(
+    BuildContext context,
+    AppData appData,
+    GameAnimation? animation,
+  ) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    final cdkColors = CDKThemeNotifier.colorTokensOf(context);
+    final bool hasAnimation = animation != null;
+    const double previewCanvasHeight = 128;
+    final Color checkerA = cdkColors.backgroundSecondary1;
+    final Color checkerB = Color.alphaBlend(
+      cdkColors.colorText.withValues(alpha: 0.06),
+      cdkColors.backgroundSecondary1,
+    );
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: cdkColors.backgroundSecondary0,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: cdkColors.colorTextSecondary.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!hasAnimation)
+            SizedBox(
+              height: previewCanvasHeight,
+              child: Center(
+                child: CDKText(
+                  'Select an animation to preview.',
+                  role: CDKTextRole.caption,
+                  color: cdkColors.colorTextSecondary,
+                ),
+              ),
+            )
+          else
+            FutureBuilder<ui.Image>(
+              future: appData.getImage(animation.mediaFile),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    snapshot.data == null) {
+                  return const SizedBox(
+                    height: previewCanvasHeight,
+                    child: Center(
+                      child: CupertinoActivityIndicator(),
+                    ),
+                  );
+                }
+                final ui.Image? image = snapshot.data;
+                final GameMediaAsset? media =
+                    appData.mediaAssetByFileName(animation.mediaFile);
+                if (image == null ||
+                    media == null ||
+                    media.tileWidth <= 0 ||
+                    media.tileHeight <= 0) {
+                  return SizedBox(
+                    height: previewCanvasHeight,
+                    child: Center(
+                      child: CDKText(
+                        'Preview unavailable',
+                        role: CDKTextRole.caption,
+                        color: cdkColors.colorTextSecondary,
+                      ),
+                    ),
+                  );
+                }
+                final int cols =
+                    math.max(1, (image.width / media.tileWidth).floor());
+                final int rows =
+                    math.max(1, (image.height / media.tileHeight).floor());
+                final int totalFrames = math.max(1, cols * rows);
+                final int frameIndex = _previewFrameIndex(
+                  animation: animation,
+                  totalFrames: totalFrames,
+                );
+                final GameAnimationFrameRig rig = animation.rigForFrame(
+                  frameIndex,
+                );
+                final double frameWidth = media.tileWidth.toDouble();
+                final double frameHeight = media.tileHeight.toDouble();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: previewCanvasHeight,
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: media.tileWidth / media.tileHeight,
+                          child: CustomPaint(
+                            painter: _AnimationRigFramePreviewPainter(
+                              image: image,
+                              frameWidth: frameWidth,
+                              frameHeight: frameHeight,
+                              columns: cols,
+                              frameIndex: frameIndex,
+                              anchorX: rig.anchorX,
+                              anchorY: rig.anchorY,
+                              anchorColor:
+                                  LayoutUtils.getColorFromName(rig.anchorColor),
+                              checkerA: checkerA,
+                              checkerB: checkerB,
+                              borderColor: cdkColors.colorTextSecondary
+                                  .withValues(alpha: 0.45),
+                              guideColor:
+                                  cdkColors.colorTextSecondary.withValues(
+                                alpha: 0.42,
+                              ),
+                              anchorOutlineColor: cdkColors.colorText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: spacing.xs),
+                    Align(
+                      alignment: Alignment.center,
+                      child: CDKText(
+                        'Frame $frameIndex (${animation.startFrame}-${animation.endFrame}) @ ${animation.fps.toStringAsFixed(1)} fps',
+                        role: CDKTextRole.caption,
+                        color: cdkColors.colorText,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          if (!hasAnimation) ...[
+            SizedBox(height: spacing.xs),
+            CDKText(
+              'Frame -',
+              role: CDKTextRole.caption,
+              color: cdkColors.colorText,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = CDKThemeNotifier.spacingTokensOf(context);
+    final bool hasAnimation = widget.animation != null;
+    final bool isPreviewPlaying = hasAnimation && _previewPlaying;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CDKButton(
+                style: CDKButtonStyle.normal,
+                onPressed: hasAnimation
+                    ? () {
+                        setState(() {
+                          _setPreviewPlaying(!_previewPlaying);
+                        });
+                      }
+                    : null,
+                child: Icon(
+                  isPreviewPlaying
+                      ? CupertinoIcons.pause_fill
+                      : CupertinoIcons.play_fill,
+                  size: 12,
+                ),
+              ),
+              SizedBox(width: spacing.xs),
+              CDKButton(
+                style: CDKButtonStyle.normal,
+                onPressed: hasAnimation ? _restartPreview : null,
+                child: const Icon(
+                  CupertinoIcons.refresh,
+                  size: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildPreviewPanel(context, widget.appData, widget.animation),
       ],
     );
   }
@@ -1690,7 +1742,6 @@ class _AnimationRigEditorPopoverState
     const double deleteButtonSlotWidth = 24;
     const double dragHandleSlotWidth = 18;
     return GestureDetector(
-      key: ValueKey(draft.id),
       onTap: () => _setSelectedIndex(index, notifyParent: true),
       child: Container(
         width: double.infinity,
@@ -1939,24 +1990,27 @@ class _AnimationRigEditorPopoverState
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerLeft,
-          child: CDKButton(
-            key: _anchorColorAnchorKey,
-            style: CDKButtonStyle.normal,
-            onPressed: _showAnchorColorPicker,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: LayoutUtils.getColorFromName(_anchorColor),
-                    borderRadius: BorderRadius.circular(2),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: CDKButton(
+              key: _anchorColorAnchorKey,
+              style: CDKButtonStyle.normal,
+              onPressed: _showAnchorColorPicker,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: LayoutUtils.getColorFromName(_anchorColor),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                const Icon(CupertinoIcons.chevron_down, size: 10),
-              ],
+                  const SizedBox(width: 6),
+                  const Icon(CupertinoIcons.chevron_down, size: 10),
+                ],
+              ),
             ),
           ),
         ),
@@ -2030,13 +2084,19 @@ class _AnimationRigEditorPopoverState
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
+          itemExtent: 72,
+          cacheExtent: 960,
           padding: EdgeInsets.fromLTRB(spacing.md, spacing.md, spacing.md, 0),
           header: header,
           footer: footer,
           itemCount: _drafts.length,
           onReorder: _reorderHitBoxes,
           itemBuilder: (context, index) {
-            return _buildHitBoxInlineRow(context, index, _drafts[index]);
+            final _HitBoxDraft draft = _drafts[index];
+            return RepaintBoundary(
+              key: ValueKey(draft.id),
+              child: _buildHitBoxInlineRow(context, index, draft),
+            );
           },
         ),
       ),

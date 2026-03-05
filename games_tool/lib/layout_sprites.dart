@@ -27,11 +27,12 @@ class LayoutSprites extends StatefulWidget {
 
 class LayoutSpritesState extends State<LayoutSprites> {
   final ScrollController scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
   String? _hoveredGroupId;
+  String _inlineEditUndoGroupKey = '';
+  int _inlineEditUndoSpriteIndex = -1;
 
   Future<void> _autoSaveIfPossible(AppData appData) async {
     if (appData.selectedProject == null) {
@@ -673,24 +674,68 @@ class LayoutSpritesState extends State<LayoutSprites> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _promptAndEditSprite(
-    int index,
-    GlobalKey anchorKey,
-    List<GameAnimation> animations,
-  ) async {
-    final appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) {
-      return;
+  int _inlineSelectedSpriteIndex(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return -1;
     }
-    final sprites = appData.gameData.levels[appData.selectedLevel].sprites;
-    if (index < 0 || index >= sprites.length) {
-      return;
+    final int spriteCount =
+        appData.gameData.levels[appData.selectedLevel].sprites.length;
+    if (spriteCount <= 0) {
+      return -1;
     }
-    final sprite = sprites[index];
-    final String undoGroupKey =
-        'sprite-live-$index-${DateTime.now().microsecondsSinceEpoch}';
+    if (appData.selectedSprite >= 0 && appData.selectedSprite < spriteCount) {
+      return appData.selectedSprite;
+    }
+    final Set<int> selected = appData.selectedSpriteIndices
+        .where((index) => index >= 0 && index < spriteCount)
+        .toSet();
+    if (selected.length != 1) {
+      return -1;
+    }
+    return selected.first;
+  }
 
-    await _promptSpriteData(
+  String _inlineUndoGroupKeyForSprite(int index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty &&
+        _inlineEditUndoSpriteIndex == index) {
+      return _inlineEditUndoGroupKey;
+    }
+    _inlineEditUndoSpriteIndex = index;
+    _inlineEditUndoGroupKey =
+        'sprite-inline-$index-${DateTime.now().microsecondsSinceEpoch}';
+    return _inlineEditUndoGroupKey;
+  }
+
+  Future<void> _applySpriteChange(
+    AppData appData, {
+    required int index,
+    required _SpriteDialogData value,
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel:
+          groupedUndo ? 'sprite-inline-live-edit' : 'sprite-inline-edit',
+      undoGroupKey: groupedUndo ? _inlineUndoGroupKeyForSprite(index) : null,
+      mutate: () {
+        _updateSprite(appData: appData, index: index, data: value);
+      },
+    );
+  }
+
+  Widget buildEditToolbarContent(AppData appData) {
+    if (appData.selectedLevel < 0 ||
+        appData.selectedLevel >= appData.gameData.levels.length) {
+      return const SizedBox.shrink();
+    }
+    final GameLevel level = appData.gameData.levels[appData.selectedLevel];
+    final int index = _inlineSelectedSpriteIndex(appData);
+    if (index < 0 || index >= level.sprites.length) {
+      return const SizedBox.shrink();
+    }
+    final List<GameAnimation> animations = _animations(appData);
+    final GameSprite sprite = level.sprites[index];
+    return _SpriteFormDialog(
       title: 'Edit sprite',
       confirmLabel: 'Save',
       initialData: _dialogDataFromSprite(
@@ -699,22 +744,37 @@ class LayoutSpritesState extends State<LayoutSprites> {
         animations: animations,
       ),
       animations: animations,
-      groupOptions: _spriteGroups(
-        appData.gameData.levels[appData.selectedLevel],
-      ),
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
+      groupOptions: _spriteGroups(level),
+      showGroupSelector: false,
+      groupFieldLabel: 'Sprite Group',
+      resolveMediaByFileName: appData.mediaAssetByFileName,
       liveEdit: true,
+      minWidth: 280,
+      maxWidth: 340,
       onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'sprite-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateSprite(appData: appData, index: index, data: value);
-          },
+        await _applySpriteChange(
+          appData,
+          index: index,
+          value: value,
+          groupedUndo: true,
         );
       },
-      onDelete: () => _confirmAndDeleteSprite(index),
+      onConfirm: (value) {
+        unawaited(
+          _applySpriteChange(
+            appData,
+            index: index,
+            value: value,
+            groupedUndo: false,
+          ),
+        );
+      },
+      onCancel: () {
+        _selectSprite(appData, index, true);
+      },
+      onDelete: () {
+        unawaited(_confirmAndDeleteSprite(index));
+      },
     );
   }
 
@@ -1138,8 +1198,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
                   final bool isSelected =
                       multiSelectedSpriteIndices.contains(spriteIndex) ||
                           spriteIndex == appData.selectedSprite;
-                  final bool isPrimarySelected =
-                      spriteIndex == appData.selectedSprite;
                   final GameSprite sprite = row.item!;
                   final String animationName =
                       appData.animationDisplayNameById(sprite.animationId);
@@ -1211,29 +1269,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
                                       ],
                                     ),
                                   ),
-                                  if (isPrimarySelected && hasAnimations)
-                                    MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: CupertinoButton(
-                                        key: _selectedEditAnchorKey,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                        ),
-                                        minimumSize: const Size(20, 20),
-                                        onPressed: () async {
-                                          await _promptAndEditSprite(
-                                            spriteIndex,
-                                            _selectedEditAnchorKey,
-                                            animations,
-                                          );
-                                        },
-                                        child: Icon(
-                                          CupertinoIcons.ellipsis_circle,
-                                          size: 16,
-                                          color: cdkColors.colorText,
-                                        ),
-                                      ),
-                                    ),
                                   ReorderableDragStartListener(
                                     index: index,
                                     child: Padding(
@@ -1308,6 +1343,8 @@ class _SpriteFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 380,
+    this.maxWidth = 500,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1324,6 +1361,8 @@ class _SpriteFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_SpriteDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_SpriteDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1354,6 +1393,33 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
   late bool _flipX = widget.initialData.flipX;
   late bool _flipY = widget.initialData.flipY;
   EditSession<_SpriteDialogData>? _editSession;
+
+  bool _didInitialDataChange(
+      _SpriteDialogData previous, _SpriteDialogData next) {
+    return previous.name != next.name ||
+        previous.gameplayData != next.gameplayData ||
+        previous.x != next.x ||
+        previous.y != next.y ||
+        previous.depth != next.depth ||
+        previous.animationId != next.animationId ||
+        previous.width != next.width ||
+        previous.height != next.height ||
+        previous.imageFile != next.imageFile ||
+        previous.flipX != next.flipX ||
+        previous.flipY != next.flipY ||
+        previous.groupId != next.groupId;
+  }
+
+  void _setControllerTextIfNeeded(
+      TextEditingController controller, String value) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
 
   int _resolveInitialAnimationIndex() {
     final String currentAnimationId = widget.initialData.animationId;
@@ -1483,6 +1549,59 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
   }
 
   @override
+  void didUpdateWidget(covariant _SpriteFormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final bool initialDataChanged =
+        _didInitialDataChange(oldWidget.initialData, widget.initialData);
+    bool shouldRebuild = false;
+
+    if (initialDataChanged) {
+      _setControllerTextIfNeeded(_nameController, widget.initialData.name);
+      _setControllerTextIfNeeded(
+        _gameplayDataController,
+        widget.initialData.gameplayData,
+      );
+      _setControllerTextIfNeeded(_xController, widget.initialData.x.toString());
+      _setControllerTextIfNeeded(_yController, widget.initialData.y.toString());
+      _setControllerTextIfNeeded(
+        _depthController,
+        widget.initialData.depth.toString(),
+      );
+      if (_flipX != widget.initialData.flipX) {
+        _flipX = widget.initialData.flipX;
+        shouldRebuild = true;
+      }
+      if (_flipY != widget.initialData.flipY) {
+        _flipY = widget.initialData.flipY;
+        shouldRebuild = true;
+      }
+    }
+
+    if (initialDataChanged ||
+        _selectedAnimationIndex >= widget.animations.length) {
+      final int nextAnimationIndex = _resolveInitialAnimationIndex();
+      if (_selectedAnimationIndex != nextAnimationIndex) {
+        _selectedAnimationIndex = nextAnimationIndex;
+        shouldRebuild = true;
+      }
+    }
+
+    if (initialDataChanged ||
+        !widget.groupOptions.any((group) => group.id == _selectedGroupId)) {
+      final String nextGroupId = _resolveInitialGroupId();
+      if (_selectedGroupId != nextGroupId) {
+        _selectedGroupId = nextGroupId;
+        shouldRebuild = true;
+      }
+    }
+
+    if (shouldRebuild && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
     if (_editSession != null) {
       unawaited(_editSession!.flush());
@@ -1528,8 +1647,8 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 380,
-      maxWidth: 500,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1577,7 +1696,12 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                   ),
                 ),
               ),
-              SizedBox(width: spacing.sm),
+            ],
+          ),
+          SizedBox(height: spacing.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Expanded(
                 child: EditorLabeledField(
                   label: 'Depth displacement',
@@ -1592,130 +1716,98 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
                   ),
                 ),
               ),
+              SizedBox(width: spacing.sm),
+              SizedBox(
+                width: 72,
+                child: EditorLabeledField(
+                  label: 'Flip X',
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 39,
+                      height: 24,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _flipX,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _flipX = value;
+                            });
+                            _onInputChanged();
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: spacing.sm),
+              SizedBox(
+                width: 72,
+                child: EditorLabeledField(
+                  label: 'Flip Y',
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: 39,
+                      height: 24,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: CupertinoSwitch(
+                          value: _flipY,
+                          onChanged: (bool value) {
+                            setState(() {
+                              _flipY = value;
+                            });
+                            _onInputChanged();
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: spacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
+          EditorLabeledField(
+            label: 'Animation',
+            child: Row(
+              children: [
+                if (animationOptions.isNotEmpty)
+                  CDKButtonSelect(
+                    selectedIndex: _selectedAnimationIndex,
+                    options: animationOptions,
+                    onSelected: (int index) {
+                      setState(() {
+                        _selectedAnimationIndex = index;
+                      });
+                      _onInputChanged();
+                    },
+                  )
+                else
+                  const Expanded(
                     child: CDKText(
-                      'Animation',
+                      'No animations available',
                       role: CDKTextRole.caption,
-                      color: cdkColors.colorText,
+                      secondary: true,
                     ),
                   ),
-                  SizedBox(width: spacing.md),
-                  SizedBox(
-                    width: 70,
-                    child: CDKText(
-                      'Flip X',
-                      role: CDKTextRole.caption,
-                      color: cdkColors.colorText,
-                    ),
-                  ),
+                if (animation != null) ...[
                   SizedBox(width: spacing.sm),
-                  SizedBox(
-                    width: 70,
+                  Flexible(
                     child: CDKText(
-                      'Flip Y',
+                      'Frame size: ${(media?.tileWidth ?? widget.initialData.width)}×${(media?.tileHeight ?? widget.initialData.height)} px',
                       role: CDKTextRole.caption,
                       color: cdkColors.colorText,
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        if (animationOptions.isNotEmpty)
-                          CDKButtonSelect(
-                            selectedIndex: _selectedAnimationIndex,
-                            options: animationOptions,
-                            onSelected: (int index) {
-                              setState(() {
-                                _selectedAnimationIndex = index;
-                              });
-                              _onInputChanged();
-                            },
-                          )
-                        else
-                          const Expanded(
-                            child: CDKText(
-                              'No animations available',
-                              role: CDKTextRole.caption,
-                              secondary: true,
-                            ),
-                          ),
-                        if (animation != null) ...[
-                          SizedBox(width: spacing.sm),
-                          Flexible(
-                            child: CDKText(
-                              'Frame size: ${(media?.tileWidth ?? widget.initialData.width)}×${(media?.tileHeight ?? widget.initialData.height)} px',
-                              role: CDKTextRole.caption,
-                              color: cdkColors.colorText,
-                              textAlign: TextAlign.right,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: spacing.md),
-                  SizedBox(
-                    width: 70,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox(
-                        width: 39,
-                        height: 24,
-                        child: FittedBox(
-                          fit: BoxFit.fill,
-                          child: CupertinoSwitch(
-                            value: _flipX,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _flipX = value;
-                              });
-                              _onInputChanged();
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: spacing.sm),
-                  SizedBox(
-                    width: 70,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox(
-                        width: 39,
-                        height: 24,
-                        child: FittedBox(
-                          fit: BoxFit.fill,
-                          child: CupertinoSwitch(
-                            value: _flipY,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _flipY = value;
-                              });
-                              _onInputChanged();
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: spacing.md),
           if (widget.showGroupSelector && widget.groupOptions.isNotEmpty)

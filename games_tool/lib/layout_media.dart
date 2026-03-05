@@ -25,7 +25,6 @@ class LayoutMedia extends StatefulWidget {
 
 class _LayoutMediaState extends State<LayoutMedia> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _selectedEditAnchorKey = GlobalKey();
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
@@ -445,28 +444,6 @@ class _LayoutMediaState extends State<LayoutMedia> {
     appData.selectedMedia = appData.gameData.mediaAssets.length - 1;
   }
 
-  void _updateMedia({
-    required AppData appData,
-    required int index,
-    required _MediaDialogData data,
-  }) {
-    final assets = appData.gameData.mediaAssets;
-    if (index < 0 || index >= assets.length) {
-      return;
-    }
-
-    assets[index] = GameMediaAsset(
-      name: data.name,
-      fileName: data.fileName,
-      mediaType: data.mediaType,
-      tileWidth: data.tileWidth,
-      tileHeight: data.tileHeight,
-      selectionColorHex: assets[index].selectionColorHex,
-      groupId: assets[index].groupId,
-    );
-    appData.selectedMedia = index;
-  }
-
   Future<_MediaDialogData?> _promptMediaData({
     required String title,
     required String confirmLabel,
@@ -602,167 +579,6 @@ class _LayoutMediaState extends State<LayoutMedia> {
       mutate: () {
         _addMedia(appData: appData, data: data);
       },
-    );
-  }
-
-  Future<void> _confirmAndDeleteMedia(int index) async {
-    if (!mounted) return;
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    final assets = appData.gameData.mediaAssets;
-    if (index < 0 || index >= assets.length) return;
-    final GameMediaAsset asset = assets[index];
-    final String deletedFileName = asset.fileName;
-    String normalizeMediaKey(String value) {
-      String normalized = value.trim().replaceAll('\\', '/');
-      while (normalized.startsWith('/')) {
-        normalized = normalized.substring(1);
-      }
-      return normalized.toLowerCase();
-    }
-
-    final String deletedMediaKey = normalizeMediaKey(deletedFileName);
-    final String label =
-        asset.name.trim().isNotEmpty ? asset.name : asset.fileName;
-    final Set<String> dependentAnimationIds = <String>{};
-    int dependentAnimationsCount = 0;
-    for (final animation in appData.gameData.animations) {
-      if (normalizeMediaKey(animation.mediaFile) == deletedMediaKey) {
-        dependentAnimationIds.add(animation.id);
-        dependentAnimationsCount += 1;
-      }
-    }
-    int dependentLayersCount = 0;
-    for (final level in appData.gameData.levels) {
-      for (final layer in level.layers) {
-        if (normalizeMediaKey(layer.tilesSheetFile) == deletedMediaKey) {
-          dependentLayersCount += 1;
-        }
-      }
-    }
-    int dependentSpritesCount = 0;
-    for (final level in appData.gameData.levels) {
-      for (final sprite in level.sprites) {
-        if (dependentAnimationIds.contains(sprite.animationId) ||
-            normalizeMediaKey(sprite.imageFile) == deletedMediaKey) {
-          dependentSpritesCount += 1;
-        }
-      }
-    }
-    final bool hasDependentAnimations = dependentAnimationsCount > 0;
-    final bool hasDependentLayers = dependentLayersCount > 0;
-    final bool hasDependentSprites = dependentSpritesCount > 0;
-    final bool hasDependencies =
-        hasDependentAnimations || hasDependentLayers || hasDependentSprites;
-    final List<String> dependentParts = <String>[
-      if (hasDependentAnimations)
-        '$dependentAnimationsCount animation${dependentAnimationsCount == 1 ? '' : 's'}',
-      if (hasDependentLayers)
-        '$dependentLayersCount layer${dependentLayersCount == 1 ? '' : 's'}',
-      if (hasDependentSprites)
-        '$dependentSpritesCount sprite${dependentSpritesCount == 1 ? '' : 's'}',
-    ];
-    final String dependencySummary = dependentParts.join(' and ');
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: hasDependencies ? 'Delete media and dependents' : 'Delete media',
-      message: hasDependencies
-          ? 'Delete "$label"? It is used by $dependencySummary. This will also delete those dependents. This cannot be undone.'
-          : 'Delete "$label"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) return;
-    final bool updated = await appData.runProjectMutation(
-      debugLabel: 'media-delete',
-      mutate: () {
-        assets.removeAt(index);
-        appData.gameData.animations.removeWhere(
-          (animation) =>
-              dependentAnimationIds.contains(animation.id) ||
-              normalizeMediaKey(animation.mediaFile) == deletedMediaKey,
-        );
-        bool removedAnyLayer = false;
-        bool removedAnySprite = false;
-        for (final level in appData.gameData.levels) {
-          final int before = level.layers.length;
-          level.layers.removeWhere(
-            (layer) =>
-                normalizeMediaKey(layer.tilesSheetFile) == deletedMediaKey,
-          );
-          if (before != level.layers.length) {
-            removedAnyLayer = true;
-          }
-          final int spritesBefore = level.sprites.length;
-          level.sprites.removeWhere(
-            (sprite) =>
-                dependentAnimationIds.contains(sprite.animationId) ||
-                normalizeMediaKey(sprite.imageFile) == deletedMediaKey,
-          );
-          if (spritesBefore != level.sprites.length) {
-            removedAnySprite = true;
-          }
-        }
-        if (appData.selectedAnimation >= appData.gameData.animations.length) {
-          appData.selectedAnimation = appData.gameData.animations.isEmpty
-              ? -1
-              : appData.gameData.animations.length - 1;
-        }
-        if (removedAnyLayer) {
-          appData.selectedLayer = -1;
-        }
-        if (removedAnySprite) {
-          appData.selectedSprite = -1;
-        }
-        appData.selectedMedia = -1;
-      },
-    );
-    if (!updated) {
-      return;
-    }
-    await appData.flushPendingAutosave();
-    await appData.deleteProjectMediaFileIfUnreferenced(deletedFileName);
-  }
-
-  Future<void> _promptAndEditMedia(int index, GlobalKey anchorKey) async {
-    final appData = Provider.of<AppData>(context, listen: false);
-    final assets = appData.gameData.mediaAssets;
-    if (index < 0 || index >= assets.length) {
-      return;
-    }
-
-    final asset = assets[index];
-    final String undoGroupKey =
-        'media-live-$index-${DateTime.now().microsecondsSinceEpoch}';
-    await _promptMediaData(
-      title: 'Edit media',
-      confirmLabel: 'Save',
-      initialData: _MediaDialogData(
-        name: asset.name,
-        fileName: asset.fileName,
-        mediaType: asset.mediaType,
-        tileWidth: asset.tileWidth,
-        tileHeight: asset.tileHeight,
-        previewPath: _resolveMediaPreviewPath(appData, asset.fileName),
-        groupId: _effectiveMediaGroupId(appData, asset),
-      ),
-      groupOptions: _mediaGroups(appData),
-      anchorKey: anchorKey,
-      useArrowedPopover: true,
-      liveEdit: true,
-      onLiveChanged: (value) async {
-        await appData.runProjectMutation(
-          debugLabel: 'media-live-edit',
-          undoGroupKey: undoGroupKey,
-          mutate: () {
-            _updateMedia(appData: appData, index: index, data: value);
-          },
-        );
-      },
-      onDelete: () => _confirmAndDeleteMedia(index),
     );
   }
 
@@ -1295,31 +1111,6 @@ class _LayoutMediaState extends State<LayoutMedia> {
                                                   ),
                                                 ),
                                               ),
-                                              MouseRegion(
-                                                cursor:
-                                                    SystemMouseCursors.click,
-                                                child: CupertinoButton(
-                                                  key: _selectedEditAnchorKey,
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 6,
-                                                  ),
-                                                  minimumSize:
-                                                      const Size(20, 20),
-                                                  onPressed: () async {
-                                                    await _promptAndEditMedia(
-                                                      assetIndex,
-                                                      _selectedEditAnchorKey,
-                                                    );
-                                                  },
-                                                  child: Icon(
-                                                    CupertinoIcons
-                                                        .ellipsis_circle,
-                                                    size: 16,
-                                                    color: cdkColors.colorText,
-                                                  ),
-                                                ),
-                                              ),
                                             ],
                                           ),
                                         ReorderableDragStartListener(
@@ -1421,6 +1212,138 @@ class _MediaDialogData {
   final String groupId;
 }
 
+class MediaInlineEditPanel extends StatefulWidget {
+  const MediaInlineEditPanel({
+    super.key,
+    required this.mediaIndex,
+  });
+
+  final int mediaIndex;
+
+  @override
+  State<MediaInlineEditPanel> createState() => _MediaInlineEditPanelState();
+}
+
+class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
+  late final String _undoGroupKey =
+      'media-inline-${DateTime.now().microsecondsSinceEpoch}';
+
+  void _ensureMainGroup(AppData appData) {
+    if (appData.gameData.mediaGroups.isEmpty) {
+      appData.gameData.mediaGroups.add(GameMediaGroup.main());
+      return;
+    }
+    final List<GameMediaGroup> groups = appData.gameData.mediaGroups;
+    final int mainIndex =
+        groups.indexWhere((group) => group.id == GameMediaGroup.mainId);
+    if (mainIndex == -1) {
+      groups.insert(0, GameMediaGroup.main());
+      return;
+    }
+    final GameMediaGroup mainGroup = groups[mainIndex];
+    groups.removeAt(mainIndex);
+    groups.insert(0, mainGroup);
+  }
+
+  List<GameMediaGroup> _mediaGroups(AppData appData) {
+    _ensureMainGroup(appData);
+    return appData.gameData.mediaGroups;
+  }
+
+  String _effectiveMediaGroupId(AppData appData, GameMediaAsset asset) {
+    final Set<String> validGroupIds =
+        _mediaGroups(appData).map((group) => group.id).toSet();
+    final String groupId = asset.groupId.trim();
+    if (groupId.isNotEmpty && validGroupIds.contains(groupId)) {
+      return groupId;
+    }
+    return GameMediaGroup.mainId;
+  }
+
+  String _resolveMediaPreviewPath(AppData appData, String fileName) {
+    if (appData.filePath.isEmpty) {
+      return fileName;
+    }
+    return '${appData.filePath}/${AppData.mediaFolderName}/$fileName';
+  }
+
+  Future<void> _applyMediaChange(
+    AppData appData,
+    _MediaDialogData value, {
+    required bool groupedUndo,
+  }) async {
+    await appData.runProjectMutation(
+      debugLabel: groupedUndo ? 'media-inline-live-edit' : 'media-inline-edit',
+      undoGroupKey: groupedUndo ? _undoGroupKey : null,
+      mutate: () {
+        _ensureMainGroup(appData);
+        final List<GameMediaAsset> assets = appData.gameData.mediaAssets;
+        final int index = widget.mediaIndex;
+        if (index < 0 || index >= assets.length) {
+          return;
+        }
+        final GameMediaAsset current = assets[index];
+        final Set<String> validGroupIds =
+            appData.gameData.mediaGroups.map((group) => group.id).toSet();
+        final String targetGroupId = validGroupIds.contains(value.groupId)
+            ? value.groupId
+            : GameMediaGroup.mainId;
+        assets[index] = GameMediaAsset(
+          name: value.name,
+          fileName: value.fileName,
+          mediaType: value.mediaType,
+          tileWidth: value.tileWidth,
+          tileHeight: value.tileHeight,
+          selectionColorHex: current.selectionColorHex,
+          groupId: targetGroupId,
+        );
+        appData.selectedMedia = index;
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppData appData = Provider.of<AppData>(context);
+    final List<GameMediaAsset> assets = appData.gameData.mediaAssets;
+    final int index = widget.mediaIndex;
+    if (index < 0 || index >= assets.length) {
+      return const SizedBox.shrink();
+    }
+    final GameMediaAsset asset = assets[index];
+    final List<GameMediaGroup> groups = _mediaGroups(appData);
+    return _MediaFormDialog(
+      title: 'Edit media',
+      confirmLabel: 'Save',
+      initialData: _MediaDialogData(
+        name: asset.name,
+        fileName: asset.fileName,
+        mediaType: asset.mediaType,
+        tileWidth: asset.tileWidth,
+        tileHeight: asset.tileHeight,
+        previewPath: _resolveMediaPreviewPath(appData, asset.fileName),
+        groupId: _effectiveMediaGroupId(appData, asset),
+      ),
+      groupOptions: groups,
+      showGroupSelector: true,
+      groupFieldLabel: 'Media Group',
+      liveEdit: true,
+      minWidth: 280,
+      maxWidth: 360,
+      onLiveChanged: (value) async {
+        await _applyMediaChange(appData, value, groupedUndo: true);
+      },
+      onConfirm: (value) {
+        unawaited(_applyMediaChange(appData, value, groupedUndo: false));
+      },
+      onCancel: () {
+        appData.selectedMedia = -1;
+        appData.update();
+      },
+    );
+  }
+}
+
 class _MediaFormDialog extends StatefulWidget {
   const _MediaFormDialog({
     required this.title,
@@ -1432,6 +1355,8 @@ class _MediaFormDialog extends StatefulWidget {
     this.liveEdit = false,
     this.onLiveChanged,
     this.onClose,
+    this.minWidth = 420,
+    this.maxWidth = 540,
     required this.onConfirm,
     required this.onCancel,
     this.onDelete,
@@ -1446,6 +1371,8 @@ class _MediaFormDialog extends StatefulWidget {
   final bool liveEdit;
   final Future<void> Function(_MediaDialogData value)? onLiveChanged;
   final VoidCallback? onClose;
+  final double minWidth;
+  final double maxWidth;
   final ValueChanged<_MediaDialogData> onConfirm;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
@@ -1636,8 +1563,8 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
                 color: CupertinoColors.systemGrey,
               ),
             ),
-      minWidth: 420,
-      maxWidth: 540,
+      minWidth: widget.minWidth,
+      maxWidth: widget.maxWidth,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
