@@ -1259,15 +1259,6 @@ class LayoutZonesState extends State<LayoutZones> {
               ),
               const Spacer(),
               CDKButton(
-                key: _zoneTypesAnchorKey,
-                style: CDKButtonStyle.normal,
-                onPressed: () async {
-                  await _showZoneTypesPopover(appData);
-                },
-                child: const Text('Zone Categories'),
-              ),
-              const SizedBox(width: 8),
-              CDKButton(
                 style: CDKButtonStyle.action,
                 onPressed: zoneTypes.isEmpty
                     ? null
@@ -1289,6 +1280,19 @@ class LayoutZonesState extends State<LayoutZones> {
                 ),
               ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          child: Center(
+            child: CDKButton(
+              key: _zoneTypesAnchorKey,
+              style: CDKButtonStyle.normal,
+              onPressed: () async {
+                await _showZoneTypesPopover(appData);
+              },
+              child: const Text('Edit Categories'),
+            ),
           ),
         ),
         Expanded(
