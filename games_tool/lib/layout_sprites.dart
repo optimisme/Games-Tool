@@ -664,6 +664,64 @@ class LayoutSpritesState extends State<LayoutSprites> {
     await _autoSaveIfPossible(appData);
   }
 
+  Future<bool> confirmAndDeleteSelectedSpriteFromKeyboard(
+    AppData appData,
+  ) async {
+    if (appData.selectedLevel == -1 || !mounted) {
+      return false;
+    }
+    final List<GameSprite> sprites =
+        appData.gameData.levels[appData.selectedLevel].sprites;
+    final int spriteCount = sprites.length;
+    if (spriteCount <= 0) {
+      return false;
+    }
+    final Set<int> selected = appData.selectedSpriteIndices
+        .where((index) => index >= 0 && index < spriteCount)
+        .toSet();
+    if (selected.isEmpty &&
+        appData.selectedSprite >= 0 &&
+        appData.selectedSprite < spriteCount) {
+      selected.add(appData.selectedSprite);
+    }
+    if (selected.isEmpty) {
+      return false;
+    }
+    final bool isSingle = selected.length == 1;
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: isSingle ? 'Delete sprite' : 'Delete sprites',
+      message: isSingle
+          ? 'Delete this sprite? This cannot be undone.'
+          : 'Delete ${selected.length} selected sprites? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    await appData.runProjectMutation(
+      debugLabel: 'sprite-delete-selected',
+      mutate: () {
+        final List<GameSprite> currentSprites =
+            appData.gameData.levels[appData.selectedLevel].sprites;
+        final List<int> indices = selected.toList(growable: false)
+          ..sort((a, b) => b.compareTo(a));
+        for (final index in indices) {
+          if (index >= 0 && index < currentSprites.length) {
+            currentSprites.removeAt(index);
+          }
+        }
+        appData.selectedSprite = -1;
+        appData.selectedSpriteIndices = <int>{};
+      },
+    );
+    await _autoSaveIfPossible(appData);
+    return true;
+  }
+
   int _inlineSelectedSpriteIndex(AppData appData) {
     if (appData.selectedLevel < 0 ||
         appData.selectedLevel >= appData.gameData.levels.length) {
@@ -726,6 +784,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
     final List<GameAnimation> animations = _animations(appData);
     final GameSprite sprite = level.sprites[index];
     return _SpriteFormDialog(
+      key: ValueKey('sprite-inline-editor-$index'),
       title: 'Edit sprite',
       mode: EditorEntityFormMode.edit,
       initialData: _dialogDataFromSprite(
@@ -1195,7 +1254,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
                       'Depth ${sprite.depth} - $animationName';
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
-                    key: ValueKey(sprite),
+                    key: ValueKey('sprite-item-$spriteIndex'),
                     duration: const Duration(milliseconds: 300),
                     reverseDuration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOutCubic,
@@ -1322,6 +1381,7 @@ class _SpriteDialogData {
 
 class _SpriteFormDialog extends StatefulWidget {
   const _SpriteFormDialog({
+    super.key,
     required this.title,
     required this.mode,
     required this.initialData,

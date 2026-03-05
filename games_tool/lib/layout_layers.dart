@@ -653,6 +653,7 @@ class LayoutLayersState extends State<LayoutLayers> {
     final int mapWidth = layer.tileMap.isEmpty ? 0 : layer.tileMap.first.length;
     final int mapHeight = layer.tileMap.length;
     return _LayerFormDialog(
+      key: ValueKey('layer-inline-editor-$index'),
       title: 'Edit layer',
       mode: EditorEntityFormMode.edit,
       initialData: _LayerDialogData(
@@ -1166,7 +1167,7 @@ class LayoutLayersState extends State<LayoutLayers> {
                         final bool hiddenByCollapse = row.hiddenByCollapse;
 
                         return AnimatedSize(
-                          key: ValueKey(layer),
+                          key: ValueKey('layer-item-$layerIndex'),
                           duration: const Duration(milliseconds: 300),
                           reverseDuration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOutCubic,
@@ -1312,6 +1313,7 @@ class _LayerDialogData {
 
 class _LayerFormDialog extends StatefulWidget {
   const _LayerFormDialog({
+    super.key,
     required this.title,
     required this.mode,
     required this.initialData,

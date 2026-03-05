@@ -824,6 +824,63 @@ class LayoutZonesState extends State<LayoutZones> {
     );
   }
 
+  Future<bool> confirmAndDeleteSelectedZoneFromKeyboard(
+    AppData appData,
+  ) async {
+    if (appData.selectedLevel == -1 || !mounted) {
+      return false;
+    }
+    final List<GameZone> zones =
+        appData.gameData.levels[appData.selectedLevel].zones;
+    final int zoneCount = zones.length;
+    if (zoneCount <= 0) {
+      return false;
+    }
+    final Set<int> selected = appData.selectedZoneIndices
+        .where((index) => index >= 0 && index < zoneCount)
+        .toSet();
+    if (selected.isEmpty &&
+        appData.selectedZone >= 0 &&
+        appData.selectedZone < zoneCount) {
+      selected.add(appData.selectedZone);
+    }
+    if (selected.isEmpty) {
+      return false;
+    }
+    final bool isSingle = selected.length == 1;
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: isSingle ? 'Delete zone' : 'Delete zones',
+      message: isSingle
+          ? 'Delete this zone? This cannot be undone.'
+          : 'Delete ${selected.length} selected zones? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    await appData.runProjectMutation(
+      debugLabel: 'zone-delete-selected',
+      mutate: () {
+        final List<GameZone> currentZones =
+            appData.gameData.levels[appData.selectedLevel].zones;
+        final List<int> indices = selected.toList(growable: false)
+          ..sort((a, b) => b.compareTo(a));
+        for (final index in indices) {
+          if (index >= 0 && index < currentZones.length) {
+            currentZones.removeAt(index);
+          }
+        }
+        appData.selectedZone = -1;
+        appData.selectedZoneIndices = <int>{};
+      },
+    );
+    return true;
+  }
+
   int _inlineSelectedZoneIndex(AppData appData) {
     if (appData.selectedLevel < 0 ||
         appData.selectedLevel >= appData.gameData.levels.length) {
@@ -889,6 +946,7 @@ class LayoutZonesState extends State<LayoutZones> {
     final GameZone zone = level.zones[index];
     final bool typeExists = zoneTypes.any((type) => type.name == zone.type);
     return _ZoneFormDialog(
+      key: ValueKey('zone-inline-editor-$index'),
       title: 'Edit zone',
       mode: EditorEntityFormMode.edit,
       initialData: _ZoneDialogData(
@@ -1471,7 +1529,7 @@ class LayoutZonesState extends State<LayoutZones> {
                   final String zoneColorName = _zoneColorName(appData, zone);
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
-                    key: ValueKey(zone),
+                    key: ValueKey('zone-item-$zoneIndex'),
                     duration: const Duration(milliseconds: 300),
                     reverseDuration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOutCubic,
@@ -1636,6 +1694,7 @@ class _ZoneDialogData {
 
 class _ZoneFormDialog extends StatefulWidget {
   const _ZoneFormDialog({
+    super.key,
     required this.title,
     required this.mode,
     required this.initialData,

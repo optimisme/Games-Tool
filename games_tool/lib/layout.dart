@@ -87,6 +87,8 @@ class _LayoutState extends State<Layout> {
       GlobalKey<LayoutPathsState>();
   final GlobalKey<LayoutAnimationRigsState> layoutAnimationRigsKey =
       GlobalKey<LayoutAnimationRigsState>();
+  final GlobalKey _layoutAnimationsKey = GlobalKey();
+  final GlobalKey _layoutMediaKey = GlobalKey();
   final GlobalKey _animationRigFrameStripRowKey = GlobalKey();
 
   // ignore: unused_field
@@ -268,6 +270,74 @@ class _LayoutState extends State<Layout> {
           appData.undo();
         }
         return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    final bool isDeleteKey =
+        event.logicalKey == LogicalKeyboardKey.backspace ||
+            event.logicalKey == LogicalKeyboardKey.delete;
+    if (isDeleteKey && !_isTextInputFocused()) {
+      try {
+        final AppData appData = Provider.of<AppData>(context, listen: false);
+        switch (appData.selectedSection) {
+          case 'layers':
+            unawaited(_confirmAndDeleteSelectedLayers(appData));
+            return true;
+          case 'levels':
+            final LayoutLevelsState? state = layoutLevelsKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(state.confirmAndDeleteSelectedLevelFromKeyboard(appData));
+            return true;
+          case 'zones':
+            final LayoutZonesState? state = layoutZonesKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(state.confirmAndDeleteSelectedZoneFromKeyboard(appData));
+            return true;
+          case 'sprites':
+            final LayoutSpritesState? state = layoutSpritesKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(
+              state.confirmAndDeleteSelectedSpriteFromKeyboard(appData),
+            );
+            return true;
+          case 'paths':
+            final LayoutPathsState? state = layoutPathsKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(state.confirmAndDeleteSelectedPathFromKeyboard(appData));
+            return true;
+          case 'animations':
+            final dynamic state = _layoutAnimationsKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(
+              (state as dynamic)
+                  .confirmAndDeleteSelectedAnimationFromKeyboard(appData),
+            );
+            return true;
+          case 'media':
+            final dynamic state = _layoutMediaKey.currentState;
+            if (state == null) {
+              return false;
+            }
+            unawaited(
+              (state as dynamic).confirmAndDeleteSelectedMediaFromKeyboard(
+                appData,
+              ),
+            );
+            return true;
+          default:
+            return false;
+        }
       } catch (_) {
         return false;
       }
@@ -626,15 +696,6 @@ class _LayoutState extends State<Layout> {
         autofocus: true,
         onKeyEvent: (node, event) {
           _updateSelectionModifierStateFromEvent(event);
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          final AppData appData = Provider.of<AppData>(context, listen: false);
-          final bool isDeleteKey =
-              event.logicalKey == LogicalKeyboardKey.backspace ||
-                  event.logicalKey == LogicalKeyboardKey.delete;
-          if (isDeleteKey && appData.selectedSection == 'layers') {
-            unawaited(_confirmAndDeleteSelectedLayers(appData));
-            return KeyEventResult.handled;
-          }
           return KeyEventResult.ignored;
         },
         child: SafeArea(

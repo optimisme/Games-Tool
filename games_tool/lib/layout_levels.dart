@@ -499,6 +499,29 @@ class LayoutLevelsState extends State<LayoutLevels> {
     await _autoSaveIfPossible(appData);
   }
 
+  Future<bool> confirmAndDeleteSelectedLevelFromKeyboard(
+    AppData appData,
+  ) async {
+    final int index = appData.selectedLevel;
+    if (index < 0 || index >= appData.gameData.levels.length || !mounted) {
+      return false;
+    }
+    final bool? confirmed = await CDKDialogsManager.showConfirm(
+      context: context,
+      title: 'Delete level',
+      message: 'Delete this level? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      showBackgroundShade: true,
+    );
+    if (confirmed != true || !mounted) {
+      return false;
+    }
+    await _deleteLevel(appData, index);
+    return true;
+  }
+
   String _inlineUndoGroupKeyForLevel(int index) {
     if (_inlineEditUndoGroupKey.isNotEmpty &&
         _inlineEditUndoLevelIndex == index) {
@@ -553,6 +576,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
     }
     final GameLevel selected = appData.gameData.levels[index];
     return _LevelFormDialog(
+      key: ValueKey('level-inline-editor-$index'),
       title: "Edit level",
       mode: EditorEntityFormMode.edit,
       initialName: selected.name,
@@ -969,7 +993,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
                           final bool hiddenByCollapse = row.hiddenByCollapse;
 
                           return AnimatedSize(
-                            key: ValueKey(level),
+                            key: ValueKey('level-item-$levelIndex'),
                             duration: const Duration(milliseconds: 300),
                             reverseDuration: const Duration(milliseconds: 300),
                             curve: Curves.easeInOutCubic,
@@ -1055,6 +1079,7 @@ class _LevelDialogData {
 
 class _LevelFormDialog extends StatefulWidget {
   const _LevelFormDialog({
+    super.key,
     required this.title,
     required this.mode,
     required this.initialName,
@@ -1237,6 +1262,28 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     return _validateData(_currentData()) == null;
   }
 
+  bool _didInitialDataChange(_LevelFormDialog oldWidget) {
+    return oldWidget.initialName != widget.initialName ||
+        oldWidget.initialDescription != widget.initialDescription ||
+        oldWidget.initialGameplayData != widget.initialGameplayData ||
+        oldWidget.initialBackgroundColorHex != widget.initialBackgroundColorHex ||
+        oldWidget.initialDepthSensitivity != widget.initialDepthSensitivity ||
+        oldWidget.initialGroupId != widget.initialGroupId;
+  }
+
+  void _setControllerTextIfNeeded(
+    TextEditingController controller,
+    String value,
+  ) {
+    if (controller.text == value) {
+      return;
+    }
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
   void _validate(String value) {
     final String cleaned = value.trim();
     final String? error;
@@ -1309,6 +1356,53 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
           _nameFocusNode.requestFocus();
         }
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _LevelFormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final bool initialDataChanged = _didInitialDataChange(oldWidget);
+    bool shouldRebuild = false;
+    if (initialDataChanged) {
+      _setControllerTextIfNeeded(_nameController, widget.initialName);
+      _setControllerTextIfNeeded(
+        _descriptionController,
+        widget.initialDescription,
+      );
+      _setControllerTextIfNeeded(
+        _gameplayDataController,
+        widget.initialGameplayData,
+      );
+      _setControllerTextIfNeeded(
+        _depthSensitivityController,
+        widget.initialDepthSensitivity.toString(),
+      );
+      final String nextBackgroundHex = _toHexColor(
+        _parseHexColor(
+          widget.initialBackgroundColorHex,
+          _defaultLevelBackgroundColor,
+        ),
+      );
+      if (_backgroundColorHex != nextBackgroundHex) {
+        _backgroundColorHex = nextBackgroundHex;
+        shouldRebuild = true;
+      }
+      _errorText = null;
+    }
+
+    if (initialDataChanged ||
+        !widget.groupOptions.any((group) => group.id == _selectedGroupId)) {
+      final String nextGroupId = _resolveInitialGroupId();
+      if (_selectedGroupId != nextGroupId) {
+        _selectedGroupId = nextGroupId;
+        shouldRebuild = true;
+      }
+    }
+
+    if (shouldRebuild && mounted) {
+      setState(() {});
     }
   }
 
