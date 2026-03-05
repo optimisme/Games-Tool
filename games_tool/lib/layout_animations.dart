@@ -1232,14 +1232,10 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                   final int animationIndex = row.itemIndex!;
                   final bool isSelected =
                       animationIndex == appData.selectedAnimation;
-                  final int usageCount =
-                      _animationUsageCount(appData, animation.id);
                   final String mediaName =
                       appData.mediaDisplayNameByFileName(animation.mediaFile);
                   final String subtitle =
                       '$mediaName | Frames ${animation.startFrame}-${animation.endFrame}';
-                  final String details =
-                      '${animation.fps.toStringAsFixed(1)} fps | ${animation.loop ? 'Loop' : 'No loop'} | $usageCount sprite(s)';
                   final bool hiddenByCollapse = row.hiddenByCollapse;
                   return AnimatedSize(
                     key: ValueKey('${animation.id}-$index'),
@@ -1286,12 +1282,6 @@ class _LayoutAnimationsState extends State<LayoutAnimations> {
                                         const SizedBox(height: 2),
                                         CDKText(
                                           subtitle,
-                                          role: CDKTextRole.body,
-                                          color: cdkColors.colorText,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        CDKText(
-                                          details,
                                           role: CDKTextRole.body,
                                           color: cdkColors.colorText,
                                         ),

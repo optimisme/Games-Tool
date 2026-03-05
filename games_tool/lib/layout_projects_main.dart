@@ -384,23 +384,6 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
     return "Last modified: $date $time";
   }
 
-  String _formatProjectPathForDisplay(String rawPath) {
-    final String normalized = rawPath.trim();
-    const int headLength = 20;
-    const int tailLength = 25;
-    const String separator = ' ... ';
-    final int minLengthForShortening =
-        headLength + tailLength + separator.length;
-
-    if (normalized.length <= minLengthForShortening) {
-      return normalized;
-    }
-
-    final String head = normalized.substring(0, headLength);
-    final String tail = normalized.substring(normalized.length - tailLength);
-    return '$head$separator$tail';
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppData appData = Provider.of<AppData>(context);
@@ -508,24 +491,11 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
                                     ? cdkColors.colorTextSecondary
                                     : cdkColors.colorText,
                               ),
-                              const SizedBox(height: 2),
-                              CDKText(
-                                _formatProjectPathForDisplay(
-                                    project.folderPath),
-                                role: CDKTextRole.caption,
-                                color: cdkColors.colorTextSecondary,
-                                overflow: TextOverflow.ellipsis,
-                              ),
                             ],
                           ),
                         ),
                       ),
-                      if (isSelected) ...[
-                        const CDKText(
-                          "Working project",
-                          role: CDKTextRole.caption,
-                          color: CupertinoColors.systemBlue,
-                        ),
+                      if (isSelected)
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: CupertinoButton(
@@ -544,12 +514,6 @@ class _LayoutProjectsMainState extends State<LayoutProjectsMain> {
                               color: cdkColors.colorText,
                             ),
                           ),
-                        ),
-                      ] else
-                        const CDKText(
-                          "Select",
-                          role: CDKTextRole.caption,
-                          secondary: true,
                         ),
                     ],
                   ),

@@ -737,10 +737,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
       fontSize: (typography.body.fontSize ?? 14) + 2,
       fontWeight: FontWeight.w700,
     );
-    final TextStyle listItemInlineMetaStyle = typography.body.copyWith(
-      fontSize: typography.body.fontSize,
-      fontWeight: FontWeight.w500,
-    );
     final levelRows = _buildLevelRows(appData);
 
     return Column(
@@ -916,9 +912,6 @@ class LayoutLevelsState extends State<LayoutLevels> {
 
                           final int levelIndex = row.itemIndex!;
                           final GameLevel level = row.item!;
-                          final String levelGameplayData = level.gameplayData
-                              .replaceAll(RegExp(r'\s+'), ' ')
-                              .trim();
                           final bool isSelected =
                               (levelIndex == appData.selectedLevel);
                           final bool hiddenByCollapse = row.hiddenByCollapse;
@@ -953,82 +946,45 @@ class LayoutLevelsState extends State<LayoutLevels> {
                                         children: [
                                           const SizedBox(width: 22),
                                           Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                RichText(
-                                                  maxLines: 1,
-                                                  softWrap: false,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  strutStyle:
-                                                      StrutStyle.fromTextStyle(
-                                                    listItemTitleStyle,
-                                                    forceStrutHeight: true,
-                                                  ),
-                                                  text: TextSpan(
-                                                    children: [
-                                                      TextSpan(
-                                                        text: level.name,
-                                                        style:
-                                                            listItemTitleStyle
-                                                                .copyWith(
-                                                          color: cdkColors
-                                                              .colorText,
-                                                        ),
-                                                      ),
-                                                      if (levelGameplayData
-                                                          .isNotEmpty)
-                                                        TextSpan(
-                                                          text:
-                                                              '  Gameplay: $levelGameplayData',
-                                                          style:
-                                                              listItemInlineMetaStyle
-                                                                  .copyWith(
-                                                            color: cdkColors
-                                                                .colorText
-                                                                .withValues(
-                                                              alpha: 0.72,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                CDKText(
-                                                  level.description,
-                                                  role: CDKTextRole.body,
-                                                  color: cdkColors.colorText,
-                                                ),
-                                              ],
+                                            child: CDKText(
+                                              level.name,
+                                              role: CDKTextRole.body,
+                                              style: listItemTitleStyle,
                                             ),
                                           ),
-                                          if (isSelected)
-                                            MouseRegion(
-                                              cursor: SystemMouseCursors.click,
-                                              child: CupertinoButton(
-                                                key: _selectedEditAnchorKey,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                ),
-                                                minimumSize: const Size(20, 20),
-                                                onPressed: () async {
-                                                  await _promptAndEditLevel(
-                                                    levelIndex,
-                                                    _selectedEditAnchorKey,
-                                                  );
-                                                },
-                                                child: Icon(
-                                                  CupertinoIcons
-                                                      .ellipsis_circle,
-                                                  size: 16,
-                                                  color: cdkColors.colorText,
-                                                ),
-                                              ),
-                                            ),
+                                          SizedBox(
+                                            width: 32,
+                                            height: 20,
+                                            child: isSelected
+                                                ? MouseRegion(
+                                                    cursor: SystemMouseCursors
+                                                        .click,
+                                                    child: CupertinoButton(
+                                                      key:
+                                                          _selectedEditAnchorKey,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 6,
+                                                      ),
+                                                      minimumSize:
+                                                          const Size(20, 20),
+                                                      onPressed: () async {
+                                                        await _promptAndEditLevel(
+                                                          levelIndex,
+                                                          _selectedEditAnchorKey,
+                                                        );
+                                                      },
+                                                      child: Icon(
+                                                        CupertinoIcons
+                                                            .ellipsis_circle,
+                                                        size: 16,
+                                                        color:
+                                                            cdkColors.colorText,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : const SizedBox.shrink(),
+                                          ),
                                           ReorderableDragStartListener(
                                             index: index,
                                             child: Padding(

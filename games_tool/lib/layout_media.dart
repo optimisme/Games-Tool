@@ -1196,12 +1196,9 @@ class _LayoutMediaState extends State<LayoutMedia> {
                         final bool isSelected =
                             assetIndex == appData.selectedMedia;
                         final String subtitle = switch (asset.mediaType) {
-                          'tileset' =>
-                            'Tileset (Tile ${asset.tileWidth}x${asset.tileHeight})',
-                          'spritesheet' =>
-                            'Spritesheet (Frame ${asset.tileWidth}x${asset.tileHeight})',
-                          'atlas' =>
-                            'Atlas (Tile/Frame ${asset.tileWidth}x${asset.tileHeight})',
+                          'tileset' => 'Tileset',
+                          'spritesheet' => 'Spritesheet',
+                          'atlas' => 'Atlas',
                           _ => 'Image',
                         };
                         final bool hiddenByCollapse = row.hiddenByCollapse;
@@ -1266,13 +1263,6 @@ class _LayoutMediaState extends State<LayoutMedia> {
                                                 subtitle,
                                                 role: CDKTextRole.body,
                                                 color: cdkColors.colorText,
-                                              ),
-                                              const SizedBox(height: 2),
-                                              CDKText(
-                                                asset.fileName,
-                                                role: CDKTextRole.caption,
-                                                color: cdkColors.colorText,
-                                                secondary: true,
                                               ),
                                             ],
                                           ),
