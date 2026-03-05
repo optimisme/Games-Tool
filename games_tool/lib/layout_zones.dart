@@ -14,6 +14,7 @@ import 'game_zone_type.dart';
 import 'layout_utils.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -805,25 +806,14 @@ class LayoutZonesState extends State<LayoutZones> {
     );
   }
 
-  Future<void> _confirmAndDeleteZone(int index) async {
-    if (!mounted) return;
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (appData.selectedLevel == -1) return;
+  Future<void> _deleteZone(AppData appData, int index) async {
+    if (appData.selectedLevel == -1) {
+      return;
+    }
     final zones = appData.gameData.levels[appData.selectedLevel].zones;
-    if (index < 0 || index >= zones.length) return;
-    final String zoneName = _zoneDisplayName(zones[index], index);
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete zone',
-      message: 'Delete "$zoneName"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) return;
+    if (index < 0 || index >= zones.length) {
+      return;
+    }
     await appData.runProjectMutation(
       debugLabel: 'zone-delete',
       mutate: () {
@@ -940,7 +930,7 @@ class LayoutZonesState extends State<LayoutZones> {
         _selectZone(appData, index, true);
       },
       onDelete: () {
-        unawaited(_confirmAndDeleteZone(index));
+        unawaited(_deleteZone(appData, index));
       },
     );
   }
@@ -1947,15 +1937,10 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete zone',
+              message: 'Delete this zone? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,

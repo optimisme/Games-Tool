@@ -9,6 +9,7 @@ import 'game_list_group.dart';
 import 'game_level.dart';
 import 'widgets/edit_session.dart';
 import 'widgets/editor_form_dialog_scaffold.dart';
+import 'widgets/editor_header_delete_button.dart';
 import 'widgets/editor_labeled_field.dart';
 import 'widgets/grouped_list.dart';
 import 'widgets/section_help_button.dart';
@@ -477,23 +478,10 @@ class LayoutLevelsState extends State<LayoutLevels> {
     await _autoSaveIfPossible(appData);
   }
 
-  Future<void> _confirmAndDeleteLevel(int index) async {
-    if (!mounted) return;
-    final AppData appData = Provider.of<AppData>(context, listen: false);
-    if (index < 0 || index >= appData.gameData.levels.length) return;
-    final String levelName = appData.gameData.levels[index].name;
-
-    final bool? confirmed = await CDKDialogsManager.showConfirm(
-      context: context,
-      title: 'Delete level',
-      message: 'Delete "$levelName"? This cannot be undone.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      showBackgroundShade: true,
-    );
-
-    if (confirmed != true || !mounted) return;
+  Future<void> _deleteLevel(AppData appData, int index) async {
+    if (index < 0 || index >= appData.gameData.levels.length) {
+      return;
+    }
     appData.pushUndo();
     appData.gameData.levels.removeAt(index);
     appData.selectedLevel = -1;
@@ -506,7 +494,8 @@ class LayoutLevelsState extends State<LayoutLevels> {
   }
 
   String _inlineUndoGroupKeyForLevel(int index) {
-    if (_inlineEditUndoGroupKey.isNotEmpty && _inlineEditUndoLevelIndex == index) {
+    if (_inlineEditUndoGroupKey.isNotEmpty &&
+        _inlineEditUndoLevelIndex == index) {
       return _inlineEditUndoGroupKey;
     }
     _inlineEditUndoLevelIndex = index;
@@ -598,7 +587,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
         _selectLevel(appData, index, true);
       },
       onDelete: () {
-        unawaited(_confirmAndDeleteLevel(index));
+        unawaited(_deleteLevel(appData, index));
       },
     );
   }
@@ -1310,11 +1299,13 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
             a.groupId == b.groupId,
       );
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _nameFocusNode.requestFocus();
-      }
-    });
+    if (!widget.liveEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _nameFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
@@ -1348,15 +1339,10 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
       onDelete: widget.onDelete,
       headerTrailing: widget.onDelete == null
           ? null
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(20, 20),
-              onPressed: widget.onDelete,
-              child: const Icon(
-                CupertinoIcons.trash,
-                size: 16,
-                color: CupertinoColors.systemGrey,
-              ),
+          : EditorHeaderDeleteButton(
+              onDelete: widget.onDelete!,
+              title: 'Delete level',
+              message: 'Delete this level? This cannot be undone.',
             ),
       minWidth: widget.minWidth,
       maxWidth: widget.maxWidth,
