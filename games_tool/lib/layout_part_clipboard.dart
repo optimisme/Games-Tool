@@ -68,16 +68,19 @@ extension _LayoutClipboard on _LayoutState {
   void _showClipboardStatusMessage(
     String message, {
     bool isError = true,
+    bool isWarning = false,
   }) {
     _clipboardStatusTimer?.cancel();
     _safeSetState(() {
       _clipboardStatusMessage = message;
-      _clipboardStatusIsError = isError;
+      _clipboardStatusIsWarning = isWarning;
+      _clipboardStatusIsError = isWarning ? false : isError;
     });
     _clipboardStatusTimer = Timer(const Duration(milliseconds: 2400), () {
       _safeSetState(() {
         _clipboardStatusMessage = '';
         _clipboardStatusIsError = false;
+        _clipboardStatusIsWarning = false;
       });
     });
   }
@@ -99,6 +102,7 @@ extension _LayoutClipboard on _LayoutState {
       _clipboardPayload = result.payload;
       _clipboardStatusMessage = '';
       _clipboardStatusIsError = false;
+      _clipboardStatusIsWarning = false;
     });
   }
 
@@ -110,7 +114,11 @@ extension _LayoutClipboard on _LayoutState {
     }
     final _EditorClipboardPayload? payload = _clipboardPayload;
     if (payload == null) {
-      _showClipboardStatusMessage('Clipboard is empty.');
+      _showClipboardStatusMessage(
+        'Clipboard is empty.',
+        isError: false,
+        isWarning: true,
+      );
       return;
     }
     final bool applied = await _pasteClipboardPayload(appData, payload);
@@ -121,6 +129,17 @@ extension _LayoutClipboard on _LayoutState {
     _safeSetState(() {
       _clipboardStatusMessage = '';
       _clipboardStatusIsError = false;
+      _clipboardStatusIsWarning = false;
+    });
+  }
+
+  void _clearClipboardPayload() {
+    _clipboardStatusTimer?.cancel();
+    _safeSetState(() {
+      _clipboardPayload = null;
+      _clipboardStatusMessage = '';
+      _clipboardStatusIsError = false;
+      _clipboardStatusIsWarning = false;
     });
   }
 
@@ -133,26 +152,35 @@ extension _LayoutClipboard on _LayoutState {
 
     final bool hasStatusMessage = _clipboardStatusMessage.trim().isNotEmpty;
     final bool showErrorMessage = hasStatusMessage && _clipboardStatusIsError;
+    final bool showWarningMessage =
+        hasStatusMessage && _clipboardStatusIsWarning;
     final bool isEmptyClipboard =
         !hasStatusMessage && _clipboardPayload == null;
+    final bool canClearClipboard = _clipboardPayload != null;
     final String clipboardSummary = hasStatusMessage
         ? _clipboardStatusMessage
         : _clipboardSummaryText(appData);
     final Color chipColor = showErrorMessage
         ? CupertinoColors.systemRed
-        : (isEmptyClipboard
-            ? (isLightTheme ? CupertinoColors.black : CupertinoColors.white)
-            : cdkColors.colorText);
+        : (showWarningMessage
+            ? CupertinoColors.systemOrange
+            : (isEmptyClipboard
+                ? (isLightTheme ? CupertinoColors.black : CupertinoColors.white)
+                : cdkColors.colorText));
     final Color chipBackground = showErrorMessage
         ? CupertinoColors.systemRed.withValues(alpha: 0.18)
-        : (isLightTheme
-            ? CupertinoColors.systemGrey6
-            : cdkColors.backgroundSecondary1);
+        : (showWarningMessage
+            ? CupertinoColors.systemOrange.withValues(alpha: 0.18)
+            : (isLightTheme
+                ? CupertinoColors.systemGrey6
+                : cdkColors.backgroundSecondary1));
     final Color chipBorder = showErrorMessage
         ? CupertinoColors.systemRed.withValues(alpha: 0.70)
-        : (isLightTheme
-            ? CupertinoColors.systemGrey4.withValues(alpha: 0.75)
-            : cdkColors.colorTextSecondary.withValues(alpha: 0.30));
+        : (showWarningMessage
+            ? CupertinoColors.systemOrange.withValues(alpha: 0.70)
+            : (isLightTheme
+                ? CupertinoColors.systemGrey4.withValues(alpha: 0.75)
+                : cdkColors.colorTextSecondary.withValues(alpha: 0.30)));
     final String pasteTooltip = pasteEligibility.reason == null
         ? 'Paste (${_shortcutLabel("V")})'
         : 'Paste unavailable: ${pasteEligibility.reason}';
@@ -173,7 +201,7 @@ extension _LayoutClipboard on _LayoutState {
             child: Row(
               children: [
                 Icon(
-                  showErrorMessage
+                  showErrorMessage || showWarningMessage
                       ? CupertinoIcons.exclamationmark_triangle
                       : CupertinoIcons.doc_text,
                   size: 12,
@@ -189,6 +217,23 @@ extension _LayoutClipboard on _LayoutState {
                     color: chipColor,
                   ),
                 ),
+                if (canClearClipboard) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: 'Clear clipboard',
+                    waitDuration: const Duration(milliseconds: 220),
+                    child: CupertinoButton(
+                      minimumSize: Size.zero,
+                      padding: EdgeInsets.zero,
+                      onPressed: _clearClipboardPayload,
+                      child: Icon(
+                        CupertinoIcons.xmark_circle_fill,
+                        size: 12,
+                        color: chipColor.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

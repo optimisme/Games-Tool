@@ -155,6 +155,7 @@ class _LayoutState extends State<Layout> {
   _EditorClipboardPayload? _clipboardPayload;
   String _clipboardStatusMessage = '';
   bool _clipboardStatusIsError = false;
+  bool _clipboardStatusIsWarning = false;
   Timer? _clipboardStatusTimer;
   final FocusNode _focusNode = FocusNode();
   _LayersCanvasTool _layersCanvasTool = _LayersCanvasTool.hand;
