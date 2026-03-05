@@ -1232,6 +1232,104 @@ class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
   late final String _undoGroupKey =
       'media-inline-${DateTime.now().microsecondsSinceEpoch}';
 
+  _MediaDeleteUsage _deleteUsageForFileName(
+    AppData appData,
+    String fileName, {
+    required int excludingMediaIndex,
+  }) {
+    int mediaAssets = 0;
+    int animations = 0;
+    int layers = 0;
+    int sprites = 0;
+
+    for (int i = 0; i < appData.gameData.mediaAssets.length; i++) {
+      if (i == excludingMediaIndex) {
+        continue;
+      }
+      if (appData.gameData.mediaAssets[i].fileName == fileName) {
+        mediaAssets += 1;
+      }
+    }
+    for (final animation in appData.gameData.animations) {
+      if (animation.mediaFile == fileName) {
+        animations += 1;
+      }
+    }
+    for (final level in appData.gameData.levels) {
+      for (final layer in level.layers) {
+        if (layer.tilesSheetFile == fileName) {
+          layers += 1;
+        }
+      }
+      for (final sprite in level.sprites) {
+        if (sprite.imageFile == fileName) {
+          sprites += 1;
+        }
+      }
+    }
+
+    return _MediaDeleteUsage(
+      mediaAssets: mediaAssets,
+      animations: animations,
+      layers: layers,
+      sprites: sprites,
+    );
+  }
+
+  Future<void> _deleteMedia(AppData appData, int index) async {
+    final List<GameMediaAsset> assets = appData.gameData.mediaAssets;
+    if (index < 0 || index >= assets.length) {
+      return;
+    }
+    final String fileName = assets[index].fileName;
+    final _MediaDeleteUsage usage = _deleteUsageForFileName(
+      appData,
+      fileName,
+      excludingMediaIndex: index,
+    );
+
+    if (usage.total > 0 && mounted) {
+      final List<String> references = <String>[];
+      if (usage.mediaAssets > 0) {
+        references.add('${usage.mediaAssets} other media item(s)');
+      }
+      if (usage.animations > 0) {
+        references.add('${usage.animations} animation(s)');
+      }
+      if (usage.layers > 0) {
+        references.add('${usage.layers} layer(s)');
+      }
+      if (usage.sprites > 0) {
+        references.add('${usage.sprites} sprite(s)');
+      }
+      final bool? confirmed = await CDKDialogsManager.showConfirm(
+        context: context,
+        title: 'Delete media',
+        message:
+            'This file is still used by ${references.join(', ')}. Delete this media entry anyway? The file will only be removed from disk when no references remain.',
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        isDestructive: true,
+        showBackgroundShade: true,
+      );
+      if (confirmed != true || !mounted) {
+        return;
+      }
+    }
+
+    await appData.runProjectMutation(
+      debugLabel: 'media-delete',
+      mutate: () {
+        if (index < 0 || index >= appData.gameData.mediaAssets.length) {
+          return;
+        }
+        appData.gameData.mediaAssets.removeAt(index);
+        appData.selectedMedia = -1;
+      },
+    );
+    await appData.deleteProjectMediaFileIfUnreferenced(fileName);
+  }
+
   void _ensureMainGroup(AppData appData) {
     if (appData.gameData.mediaGroups.isEmpty) {
       appData.gameData.mediaGroups.add(GameMediaGroup.main());
@@ -1343,8 +1441,27 @@ class _MediaInlineEditPanelState extends State<MediaInlineEditPanel> {
         appData.selectedMedia = -1;
         appData.update();
       },
+      onDelete: () {
+        unawaited(_deleteMedia(appData, index));
+      },
     );
   }
+}
+
+class _MediaDeleteUsage {
+  const _MediaDeleteUsage({
+    required this.mediaAssets,
+    required this.animations,
+    required this.layers,
+    required this.sprites,
+  });
+
+  final int mediaAssets;
+  final int animations;
+  final int layers;
+  final int sprites;
+
+  int get total => mediaAssets + animations + layers + sprites;
 }
 
 class _MediaFormDialog extends StatefulWidget {

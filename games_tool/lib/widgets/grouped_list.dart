@@ -693,7 +693,7 @@ class _GroupedListEditGroupPopoverState
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
     final cdkColors = CDKThemeNotifier.colorTokensOf(context);
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 360, maxWidth: 440),
+      constraints: const BoxConstraints(minWidth: 180, maxWidth: 220),
       child: Padding(
         padding: EdgeInsets.all(spacing.md),
         child: Column(
@@ -734,7 +734,8 @@ class _GroupedListEditGroupPopoverState
                     ),
             ),
             SizedBox(height: spacing.sm),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 CDKButton(
                   style: CDKButtonStyle.normal,
@@ -742,19 +743,27 @@ class _GroupedListEditGroupPopoverState
                   onPressed: _delete,
                   child: const Text('Delete group'),
                 ),
-                const Spacer(),
-                CDKButton(
-                  style: CDKButtonStyle.normal,
-                  enabled: !_busy,
-                  onPressed: widget.onCancel,
-                  child: const Text('Cancel'),
-                ),
-                SizedBox(width: spacing.sm),
-                CDKButton(
-                  style: CDKButtonStyle.action,
-                  enabled: _canSave,
-                  onPressed: _rename,
-                  child: const Text('Save'),
+                SizedBox(height: spacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CDKButton(
+                        style: CDKButtonStyle.normal,
+                        enabled: !_busy,
+                        onPressed: widget.onCancel,
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    SizedBox(width: spacing.sm),
+                    Expanded(
+                      child: CDKButton(
+                        style: CDKButtonStyle.action,
+                        enabled: _canSave,
+                        onPressed: _rename,
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
