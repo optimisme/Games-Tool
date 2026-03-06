@@ -1771,412 +1771,408 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
               title: 'Delete path',
               message: 'Delete this path? This cannot be undone.',
             ),
-      body: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxBodyHeight),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              EditorLabeledField(
-                label: 'Name',
-                child: CDKFieldText(
-                  placeholder: 'Path name',
-                  controller: _nameController,
-                  onChanged: (_) {
-                    setState(() {});
-                    _onInputChanged();
-                  },
-                ),
+      body: (() {
+        final Widget formBody = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            EditorLabeledField(
+              label: 'Name',
+              child: CDKFieldText(
+                placeholder: 'Path name',
+                controller: _nameController,
+                onChanged: (_) {
+                  setState(() {});
+                  _onInputChanged();
+                },
               ),
-              SizedBox(height: spacing.sm),
-              EditorLabeledField(
-                label: 'Color',
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: CDKButton(
-                    key: _colorAnchorKey,
-                    style: CDKButtonStyle.normal,
-                    onPressed: _showColorPickerPopover,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: LayoutUtils.getColorFromName(_selectedColor),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(CupertinoIcons.chevron_down, size: 10),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: spacing.md),
-              const CDKText('Linked objects', role: CDKTextRole.caption),
-              SizedBox(height: spacing.xs),
-              if (_draftBindings.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  color: cdkColors.backgroundSecondary0,
-                  child: CDKText(
-                    'No linked objects yet.',
-                    role: CDKTextRole.caption,
-                    color: cdkColors.colorText.withValues(alpha: 0.62),
-                  ),
-                )
-              else ...<Widget>[
-                SizedBox(height: spacing.xs),
-                ...List<Widget>.generate(_draftBindings.length, (int index) {
-                  final _PathBindingDraft draft = _draftBindings[index];
-                  final List<_PathTargetOption> targetOptions =
-                      _targetOptionsForType(draft.targetType);
-                  final int selectedTargetOptionIndex =
-                      targetOptions.indexWhere(
-                          (option) => option.index == draft.targetIndex);
-                  final int safeTargetOptionIndex =
-                      selectedTargetOptionIndex < 0
-                          ? 0
-                          : selectedTargetOptionIndex;
-                  final int selectedTypeIndex = GamePathBinding
-                      .supportedTargetTypes
-                      .indexOf(draft.targetType);
-                  final int safeTypeIndex =
-                      selectedTypeIndex < 0 ? 0 : selectedTypeIndex;
-                  final int selectedBehaviorIndex = GamePathBinding
-                      .supportedBehaviors
-                      .indexOf(draft.behavior);
-                  final int safeBehaviorIndex = selectedBehaviorIndex < 0
-                      ? 0
-                      : selectedBehaviorIndex.clamp(
-                          0, GamePathBinding.supportedBehaviors.length - 1);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: cdkColors.backgroundSecondary1,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: linkedObjectBorderColor,
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: IntrinsicWidth(
-                                  child: CDKButtonSelect(
-                                    selectedIndex: safeTypeIndex,
-                                    options: GamePathBinding
-                                        .supportedTargetTypes
-                                        .map(_targetTypeLabel)
-                                        .toList(growable: false),
-                                    onSelected: (int typeIndex) {
-                                      _updateLinkedObject(
-                                        index,
-                                        targetType: GamePathBinding
-                                            .supportedTargetTypes[typeIndex],
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(18, 18),
-                              onPressed: () => _removeLinkedObject(index),
-                              child: Icon(
-                                CupertinoIcons.minus_circle,
-                                size: 15,
-                                color: cdkColors.colorText,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: spacing.sm),
-                        const CDKText('Object', role: CDKTextRole.caption),
-                        SizedBox(height: spacing.xs),
-                        if (targetOptions.isEmpty)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            color: cdkColors.backgroundSecondary1,
-                            child: CDKText(
-                              'No ${_targetTypeLabel(draft.targetType).toLowerCase()}s',
-                              role: CDKTextRole.caption,
-                              color:
-                                  cdkColors.colorText.withValues(alpha: 0.62),
-                            ),
-                          )
-                        else
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: IntrinsicWidth(
-                              child: CDKButtonSelect(
-                                selectedIndex: safeTargetOptionIndex,
-                                options: targetOptions
-                                    .map(
-                                      (option) => _ellipsizeObjectLabel(
-                                        option.label,
-                                        maxChars: objectLabelMaxChars,
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                onSelected: (int optionIndex) {
-                                  _updateLinkedObject(
-                                    index,
-                                    targetIndex:
-                                        targetOptions[optionIndex].index,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        SizedBox(height: spacing.sm),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CDKText('Behavior',
-                                      role: CDKTextRole.caption),
-                                  SizedBox(height: spacing.xs),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: IntrinsicWidth(
-                                      child: CDKButtonSelect(
-                                        selectedIndex: safeBehaviorIndex,
-                                        options: GamePathBinding
-                                            .supportedBehaviors
-                                            .map(_behaviorLabel)
-                                            .toList(growable: false),
-                                        onSelected: (int behaviorIndex) {
-                                          _updateLinkedObject(
-                                            index,
-                                            behavior: GamePathBinding
-                                                    .supportedBehaviors[
-                                                behaviorIndex],
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: spacing.md),
-                            SizedBox(
-                              width: 92,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CDKText('Duration',
-                                      role: CDKTextRole.caption),
-                                  SizedBox(height: spacing.xs),
-                                  CDKFieldText(
-                                    placeholder: 'ms',
-                                    keyboardType: TextInputType.number,
-                                    controller:
-                                        _bindingDurationControllers[index],
-                                    onChanged: (String value) =>
-                                        _onLinkedObjectDurationChanged(
-                                            index, value),
-                                    onSubmitted: (_) =>
-                                        _onLinkedObjectDurationSubmitted(index),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: spacing.sm),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CDKText(
-                                    'Enabled',
-                                    role: CDKTextRole.caption,
-                                  ),
-                                  SizedBox(height: spacing.xs),
-                                  SizedBox(
-                                    width: 42,
-                                    height: 24,
-                                    child: FittedBox(
-                                      fit: BoxFit.fill,
-                                      child: CupertinoSwitch(
-                                        value: draft.enabled,
-                                        onChanged: (bool value) {
-                                          _updateLinkedObject(
-                                            index,
-                                            enabled: value,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: spacing.md),
-                            SizedBox(
-                              width: 92,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const CDKText(
-                                    'Relative',
-                                    role: CDKTextRole.caption,
-                                  ),
-                                  SizedBox(height: spacing.xs),
-                                  SizedBox(
-                                    width: 42,
-                                    height: 24,
-                                    child: FittedBox(
-                                      fit: BoxFit.fill,
-                                      child: CupertinoSwitch(
-                                        value: draft.relativeToInitialPosition,
-                                        onChanged: (bool value) {
-                                          _updateLinkedObject(
-                                            index,
-                                            relativeToInitialPosition: value,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-              SizedBox(height: spacing.xs),
-              Center(
+            ),
+            SizedBox(height: spacing.sm),
+            EditorLabeledField(
+              label: 'Color',
+              child: Align(
+                alignment: Alignment.centerLeft,
                 child: CDKButton(
-                  style: CDKButtonStyle.action,
-                  onPressed: _addLinkedObject,
-                  child: const Text('Link Object'),
+                  key: _colorAnchorKey,
+                  style: CDKButtonStyle.normal,
+                  onPressed: _showColorPickerPopover,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: LayoutUtils.getColorFromName(_selectedColor),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(CupertinoIcons.chevron_down, size: 10),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: spacing.md),
-              const CDKText('Points list', role: CDKTextRole.caption),
+            ),
+            SizedBox(height: spacing.md),
+            const CDKText('Linked objects', role: CDKTextRole.caption),
+            SizedBox(height: spacing.xs),
+            if (_draftBindings.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                color: cdkColors.backgroundSecondary0,
+                child: CDKText(
+                  'No linked objects yet.',
+                  role: CDKTextRole.caption,
+                  color: cdkColors.colorText.withValues(alpha: 0.62),
+                ),
+              )
+            else ...<Widget>[
               SizedBox(height: spacing.xs),
-              ...List<Widget>.generate(_draftPoints.length, (int index) {
-                final _PathPointDraft draft = _draftPoints[index];
-                final bool canRemove =
-                    index > 0 && index < _draftPoints.length - 1;
+              ...List<Widget>.generate(_draftBindings.length, (int index) {
+                final _PathBindingDraft draft = _draftBindings[index];
+                final List<_PathTargetOption> targetOptions =
+                    _targetOptionsForType(draft.targetType);
+                final int selectedTargetOptionIndex = targetOptions
+                    .indexWhere((option) => option.index == draft.targetIndex);
+                final int safeTargetOptionIndex = selectedTargetOptionIndex < 0
+                    ? 0
+                    : selectedTargetOptionIndex;
+                final int selectedTypeIndex = GamePathBinding
+                    .supportedTargetTypes
+                    .indexOf(draft.targetType);
+                final int safeTypeIndex =
+                    selectedTypeIndex < 0 ? 0 : selectedTypeIndex;
+                final int selectedBehaviorIndex =
+                    GamePathBinding.supportedBehaviors.indexOf(draft.behavior);
+                final int safeBehaviorIndex = selectedBehaviorIndex < 0
+                    ? 0
+                    : selectedBehaviorIndex.clamp(
+                        0, GamePathBinding.supportedBehaviors.length - 1);
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  color: cdkColors.backgroundSecondary0,
-                  child: Row(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: cdkColors.backgroundSecondary1,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: linkedObjectBorderColor,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: CDKFieldText(
-                          placeholder: 'X',
-                          keyboardType: TextInputType.number,
-                          controller: draft.xController,
-                          onChanged: (_) => _onInputChanged(),
-                        ),
-                      ),
-                      SizedBox(width: spacing.xs),
-                      Expanded(
-                        child: CDKFieldText(
-                          placeholder: 'Y',
-                          keyboardType: TextInputType.number,
-                          controller: draft.yController,
-                          onChanged: (_) => _onInputChanged(),
-                        ),
-                      ),
-                      SizedBox(width: spacing.xs),
-                      SizedBox(
-                        width: 24,
-                        child: canRemove
-                            ? CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(20, 20),
-                                onPressed: () => _removePoint(index),
-                                child: Icon(
-                                  CupertinoIcons.minus_circle,
-                                  size: 16,
-                                  color: cdkColors.colorText,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: IntrinsicWidth(
+                                child: CDKButtonSelect(
+                                  selectedIndex: safeTypeIndex,
+                                  options: GamePathBinding.supportedTargetTypes
+                                      .map(_targetTypeLabel)
+                                      .toList(growable: false),
+                                  onSelected: (int typeIndex) {
+                                    _updateLinkedObject(
+                                      index,
+                                      targetType: GamePathBinding
+                                          .supportedTargetTypes[typeIndex],
+                                    );
+                                  },
                                 ),
-                              )
-                            : const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: spacing.sm),
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(18, 18),
+                            onPressed: () => _removeLinkedObject(index),
+                            child: Icon(
+                              CupertinoIcons.minus_circle,
+                              size: 15,
+                              color: cdkColors.colorText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: spacing.sm),
+                      const CDKText('Object', role: CDKTextRole.caption),
+                      SizedBox(height: spacing.xs),
+                      if (targetOptions.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          color: cdkColors.backgroundSecondary1,
+                          child: CDKText(
+                            'No ${_targetTypeLabel(draft.targetType).toLowerCase()}s',
+                            role: CDKTextRole.caption,
+                            color: cdkColors.colorText.withValues(alpha: 0.62),
+                          ),
+                        )
+                      else
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IntrinsicWidth(
+                            child: CDKButtonSelect(
+                              selectedIndex: safeTargetOptionIndex,
+                              options: targetOptions
+                                  .map(
+                                    (option) => _ellipsizeObjectLabel(
+                                      option.label,
+                                      maxChars: objectLabelMaxChars,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onSelected: (int optionIndex) {
+                                _updateLinkedObject(
+                                  index,
+                                  targetIndex: targetOptions[optionIndex].index,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: spacing.sm),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CDKText('Behavior',
+                                    role: CDKTextRole.caption),
+                                SizedBox(height: spacing.xs),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: IntrinsicWidth(
+                                    child: CDKButtonSelect(
+                                      selectedIndex: safeBehaviorIndex,
+                                      options: GamePathBinding
+                                          .supportedBehaviors
+                                          .map(_behaviorLabel)
+                                          .toList(growable: false),
+                                      onSelected: (int behaviorIndex) {
+                                        _updateLinkedObject(
+                                          index,
+                                          behavior: GamePathBinding
+                                                  .supportedBehaviors[
+                                              behaviorIndex],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: spacing.md),
+                          SizedBox(
+                            width: 92,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CDKText('Duration',
+                                    role: CDKTextRole.caption),
+                                SizedBox(height: spacing.xs),
+                                CDKFieldText(
+                                  placeholder: 'ms',
+                                  keyboardType: TextInputType.number,
+                                  controller:
+                                      _bindingDurationControllers[index],
+                                  onChanged: (String value) =>
+                                      _onLinkedObjectDurationChanged(
+                                          index, value),
+                                  onSubmitted: (_) =>
+                                      _onLinkedObjectDurationSubmitted(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: spacing.sm),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CDKText(
+                                  'Enabled',
+                                  role: CDKTextRole.caption,
+                                ),
+                                SizedBox(height: spacing.xs),
+                                SizedBox(
+                                  width: 42,
+                                  height: 24,
+                                  child: FittedBox(
+                                    fit: BoxFit.fill,
+                                    child: CupertinoSwitch(
+                                      value: draft.enabled,
+                                      onChanged: (bool value) {
+                                        _updateLinkedObject(
+                                          index,
+                                          enabled: value,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: spacing.md),
+                          SizedBox(
+                            width: 92,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CDKText(
+                                  'Relative',
+                                  role: CDKTextRole.caption,
+                                ),
+                                SizedBox(height: spacing.xs),
+                                SizedBox(
+                                  width: 42,
+                                  height: 24,
+                                  child: FittedBox(
+                                    fit: BoxFit.fill,
+                                    child: CupertinoSwitch(
+                                      value: draft.relativeToInitialPosition,
+                                      onChanged: (bool value) {
+                                        _updateLinkedObject(
+                                          index,
+                                          relativeToInitialPosition: value,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 );
               }),
-              SizedBox(height: spacing.xs),
-              Center(
-                child: CDKButton(
-                  onPressed: _addPointBeforeEnd,
-                  child: const Text('Add Point'),
-                ),
+            ],
+            SizedBox(height: spacing.xs),
+            Center(
+              child: CDKButton(
+                style: CDKButtonStyle.action,
+                onPressed: _addLinkedObject,
+                child: const Text('Link Object'),
               ),
-              SizedBox(height: spacing.sm),
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            SizedBox(height: spacing.md),
+            const CDKText('Points list', role: CDKTextRole.caption),
+            SizedBox(height: spacing.xs),
+            ...List<Widget>.generate(_draftPoints.length, (int index) {
+              final _PathPointDraft draft = _draftPoints[index];
+              final bool canRemove =
+                  index > 0 && index < _draftPoints.length - 1;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                color: cdkColors.backgroundSecondary0,
+                child: Row(
                   children: [
-                    SizedBox(
-                      width: 220,
-                      child: EditorLabeledField(
-                        label: 'Path Group',
-                        child: CDKButtonSelect(
-                          selectedIndex: widget.groupOptions
-                              .indexWhere(
-                                  (group) => group.id == _selectedGroupId)
-                              .clamp(0, widget.groupOptions.length - 1),
-                          options: widget.groupOptions
-                              .map((group) => group.name.trim().isEmpty
-                                  ? GameListGroup.defaultMainName
-                                  : group.name)
-                              .toList(growable: false),
-                          onSelected: (int index) {
-                            setState(() {
-                              _selectedGroupId = widget.groupOptions[index].id;
-                            });
-                            _onInputChanged();
-                          },
-                        ),
+                    Expanded(
+                      child: CDKFieldText(
+                        placeholder: 'X',
+                        keyboardType: TextInputType.number,
+                        controller: draft.xController,
+                        onChanged: (_) => _onInputChanged(),
                       ),
+                    ),
+                    SizedBox(width: spacing.xs),
+                    Expanded(
+                      child: CDKFieldText(
+                        placeholder: 'Y',
+                        keyboardType: TextInputType.number,
+                        controller: draft.yController,
+                        onChanged: (_) => _onInputChanged(),
+                      ),
+                    ),
+                    SizedBox(width: spacing.xs),
+                    SizedBox(
+                      width: 24,
+                      child: canRemove
+                          ? CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(20, 20),
+                              onPressed: () => _removePoint(index),
+                              child: Icon(
+                                CupertinoIcons.minus_circle,
+                                size: 16,
+                                color: cdkColors.colorText,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),
+              );
+            }),
+            SizedBox(height: spacing.xs),
+            Center(
+              child: CDKButton(
+                onPressed: _addPointBeforeEnd,
+                child: const Text('Add Point'),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+            SizedBox(height: spacing.sm),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    child: EditorLabeledField(
+                      label: 'Path Group',
+                      child: CDKButtonSelect(
+                        selectedIndex: widget.groupOptions
+                            .indexWhere((group) => group.id == _selectedGroupId)
+                            .clamp(0, widget.groupOptions.length - 1),
+                        options: widget.groupOptions
+                            .map((group) => group.name.trim().isEmpty
+                                ? GameListGroup.defaultMainName
+                                : group.name)
+                            .toList(growable: false),
+                        onSelected: (int index) {
+                          setState(() {
+                            _selectedGroupId = widget.groupOptions[index].id;
+                          });
+                          _onInputChanged();
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+        if (widget.mode.isLiveEdit) {
+          return formBody;
+        }
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxBodyHeight),
+          child: SingleChildScrollView(child: formBody),
+        );
+      })(),
       minWidth: 260,
       maxWidth: 340,
     );

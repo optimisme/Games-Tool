@@ -495,7 +495,8 @@ class LayoutAnimationRigsState extends State<LayoutAnimationRigs> {
       animation,
       writeBack: true,
     );
-    final String selectedFramesLabel = _selectedFramesValueLabel(selectedFrames);
+    final String selectedFramesLabel =
+        _selectedFramesValueLabel(selectedFrames);
     return _AnimationRigEditorPopover(
       key: ValueKey(
         'animation-rig-inline-${animation.id}-${appData.selectedAnimation}',
@@ -1825,7 +1826,9 @@ class _AnimationRigEditorPopoverState
             Padding(
               padding: EdgeInsets.only(
                 left: colorButtonSlotWidth + spacing.xs,
-                right: deleteButtonSlotWidth + dragHandleSlotWidth + spacing.xs * 2,
+                right: deleteButtonSlotWidth +
+                    dragHandleSlotWidth +
+                    spacing.xs * 2,
               ),
               child: Row(
                 children: [
@@ -1872,7 +1875,9 @@ class _AnimationRigEditorPopoverState
                       onChanged: (value) {
                         if (_isApplyingControllers) return;
                         final double? parsed = _parseUnit(value);
-                        if (parsed != null) _updateHitBox(index, height: parsed);
+                        if (parsed != null) {
+                          _updateHitBox(index, height: parsed);
+                        }
                       },
                     ),
                   ),
@@ -1932,98 +1937,106 @@ class _AnimationRigEditorPopoverState
   @override
   Widget build(BuildContext context) {
     final spacing = CDKThemeNotifier.spacingTokensOf(context);
-    const double autoButtonSlotWidth = 72;
+    const double rowHorizontalInset = 6;
+    const double anchorColorSlotWidth = 44;
+    const double autoButtonSlotWidth = 56;
     final BoxConstraints panelConstraints = BoxConstraints(
       minWidth: widget.panelWidth,
       maxWidth: widget.panelWidth,
     );
 
-    final Widget anchorPanel = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: const CDKText('X', role: CDKTextRole.caption),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: const CDKText('Y', role: CDKTextRole.caption),
-            ),
-            SizedBox(width: spacing.sm),
-            const SizedBox(width: autoButtonSlotWidth),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: CDKFieldText(
-                controller: _anchorXController,
-                placeholder: '0.00',
-                onChanged: _updateAnchorX,
-                onSubmitted: (_) => _refreshAnchorControllers(),
+    final Widget anchorPanel = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: rowHorizontalInset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: anchorColorSlotWidth,
+                child: const CDKText('Color', role: CDKTextRole.caption),
               ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: CDKFieldText(
-                controller: _anchorYController,
-                placeholder: '0.00',
-                onChanged: _updateAnchorY,
-                onSubmitted: (_) => _refreshAnchorControllers(),
+              SizedBox(width: spacing.xs),
+              Expanded(
+                child: const CDKText('X', role: CDKTextRole.caption),
               ),
-            ),
-            SizedBox(width: spacing.sm),
-            SizedBox(
-              width: autoButtonSlotWidth,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: CDKButton(
-                  style: CDKButtonStyle.action,
-                  onPressed: _isAutoDetecting ? null : _autoAnchorFromBounds,
-                  child: _isAutoDetecting
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CupertinoActivityIndicator(radius: 6),
-                        )
-                      : const Text('Auto'),
-                ),
+              SizedBox(width: spacing.xs),
+              Expanded(
+                child: const CDKText('Y', role: CDKTextRole.caption),
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: spacing.md),
-        const CDKText('Anchor Color', role: CDKTextRole.caption),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 6),
-            child: CDKButton(
-              key: _anchorColorAnchorKey,
-              style: CDKButtonStyle.normal,
-              onPressed: _showAnchorColorPicker,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: LayoutUtils.getColorFromName(_anchorColor),
-                      borderRadius: BorderRadius.circular(2),
+              SizedBox(width: spacing.xs),
+              const SizedBox(width: autoButtonSlotWidth),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              SizedBox(
+                width: anchorColorSlotWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: CDKButton(
+                    key: _anchorColorAnchorKey,
+                    style: CDKButtonStyle.normal,
+                    onPressed: _showAnchorColorPicker,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: LayoutUtils.getColorFromName(_anchorColor),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(CupertinoIcons.chevron_down, size: 10),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  const Icon(CupertinoIcons.chevron_down, size: 10),
-                ],
+                ),
               ),
-            ),
+              SizedBox(width: spacing.xs),
+              Expanded(
+                child: CDKFieldText(
+                  controller: _anchorXController,
+                  placeholder: '0.00',
+                  onChanged: _updateAnchorX,
+                  onSubmitted: (_) => _refreshAnchorControllers(),
+                ),
+              ),
+              SizedBox(width: spacing.xs),
+              Expanded(
+                child: CDKFieldText(
+                  controller: _anchorYController,
+                  placeholder: '0.00',
+                  onChanged: _updateAnchorY,
+                  onSubmitted: (_) => _refreshAnchorControllers(),
+                ),
+              ),
+              SizedBox(width: spacing.xs),
+              SizedBox(
+                width: autoButtonSlotWidth,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: CDKButton(
+                    style: CDKButtonStyle.action,
+                    onPressed: _isAutoDetecting ? null : _autoAnchorFromBounds,
+                    child: _isAutoDetecting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CupertinoActivityIndicator(radius: 6),
+                          )
+                        : const Text('Auto'),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
 
     final Widget header = Column(
@@ -2065,7 +2078,7 @@ class _AnimationRigEditorPopoverState
     final Widget footer = Padding(
       padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.md),
       child: Align(
-        alignment: Alignment.centerLeft,
+        alignment: Alignment.center,
         child: CDKButton(
           style: CDKButtonStyle.action,
           onPressed: _isAutoDetecting ? null : _addHitBox,
