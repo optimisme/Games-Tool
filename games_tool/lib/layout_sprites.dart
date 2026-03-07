@@ -1658,7 +1658,7 @@ class _SpriteFormDialogState extends State<_SpriteFormDialog> {
 
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Configure sprite details.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,

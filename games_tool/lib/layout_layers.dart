@@ -1652,7 +1652,7 @@ class _LayerFormDialogState extends State<_LayerFormDialog> {
 
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Configure layer details.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,

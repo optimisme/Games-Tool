@@ -1971,7 +1971,7 @@ class _ZoneFormDialogState extends State<_ZoneFormDialog> {
     final GameZoneType? selectedType = _selectedZoneType();
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Configure zone details.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,

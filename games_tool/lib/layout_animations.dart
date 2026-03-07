@@ -1702,7 +1702,7 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
 
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Configure animation details.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
@@ -1763,16 +1763,19 @@ class _AnimationFormDialogState extends State<_AnimationFormDialog> {
                           _onInputChanged();
                         },
                       ),
-                if (asset != null) ...[
-                  const Spacer(),
-                  CDKText(
-                    'Frame size: ${asset.tileWidth}×${asset.tileHeight} px',
-                    role: CDKTextRole.caption,
-                    color: cdkColors.colorText,
-                    secondary: true,
-                  ),
-                ],
               ],
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          EditorLabeledField(
+            label: 'Frame size',
+            child: CDKText(
+              asset != null
+                  ? '${asset.tileWidth}×${asset.tileHeight} px'
+                  : 'No media selected',
+              role: CDKTextRole.caption,
+              color: cdkColors.colorText,
+              secondary: true,
             ),
           ),
           SizedBox(height: spacing.sm),
