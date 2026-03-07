@@ -63,23 +63,26 @@ class GroupedListAlgorithms {
   }) {
     final List<GroupedListRow<G, I>> rows = <GroupedListRow<G, I>>[];
     final Set<String> validGroupIds = groups.map(groupIdOf).toSet();
+    final Map<String, List<int>> itemIndicesByGroupId = <String, List<int>>{};
+
+    for (int i = 0; i < items.length; i++) {
+      final I item = items[i];
+      final String rawGroupId = itemGroupIdOf(item).trim();
+      final String effectiveGroupId =
+          validGroupIds.contains(rawGroupId) ? rawGroupId : mainGroupId;
+      itemIndicesByGroupId.putIfAbsent(effectiveGroupId, () => <int>[]).add(i);
+    }
 
     for (final G group in groups) {
       final String groupId = groupIdOf(group);
       rows.add(GroupedListRow<G, I>.group(groupId: groupId, group: group));
-      for (int i = 0; i < items.length; i++) {
-        final I item = items[i];
-        final String rawGroupId = itemGroupIdOf(item).trim();
-        final String effectiveGroupId =
-            validGroupIds.contains(rawGroupId) ? rawGroupId : mainGroupId;
-        if (effectiveGroupId != groupId) {
-          continue;
-        }
+      final List<int> indices = itemIndicesByGroupId[groupId] ?? const <int>[];
+      for (final int itemIndex in indices) {
         rows.add(
           GroupedListRow<G, I>.item(
-            groupId: effectiveGroupId,
-            item: item,
-            itemIndex: i,
+            groupId: groupId,
+            item: items[itemIndex],
+            itemIndex: itemIndex,
             hiddenByCollapse: groupCollapsedOf(group),
           ),
         );
@@ -464,7 +467,8 @@ class GroupedListAddGroupPopover extends StatefulWidget {
       _GroupedListAddGroupPopoverState();
 }
 
-class _GroupedListAddGroupPopoverState extends State<GroupedListAddGroupPopover> {
+class _GroupedListAddGroupPopoverState
+    extends State<GroupedListAddGroupPopover> {
   final TextEditingController _nameController = TextEditingController();
   String? _error;
   bool _busy = false;
