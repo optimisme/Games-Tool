@@ -46,6 +46,7 @@ class Game {
 
 class SpriteBatch {
   bool _inBatch = false;
+  ui.Color _color = const ui.Color(0xFFFFFFFF);
 
   void begin() {
     _inBatch = true;
@@ -59,6 +60,27 @@ class SpriteBatch {
     if (matrix == null) {
       return;
     }
+  }
+
+  ui.Color getColor() => _color;
+
+  void setColor(dynamic colorOrR, [double? g, double? b, double? a]) {
+    if (colorOrR is ui.Color && g == null && b == null && a == null) {
+      _color = colorOrR;
+      return;
+    }
+    if (colorOrR is num && g != null && b != null && a != null) {
+      _color = ui.Color.fromARGB(
+        _toColorChannel(a),
+        _toColorChannel(colorOrR.toDouble()),
+        _toColorChannel(g),
+        _toColorChannel(b),
+      );
+      return;
+    }
+    throw ArgumentError(
+      'setColor expects a ui.Color or r, g, b, a components.',
+    );
   }
 
   void drawRegion(
@@ -75,6 +97,9 @@ class SpriteBatch {
     }
     final ui.Canvas canvas = Gdx.graphics.getCanvas();
     final ui.Paint paint = ui.Paint()
+      ..colorFilter = _color == const ui.Color(0xFFFFFFFF)
+          ? null
+          : ui.ColorFilter.mode(_color, ui.BlendMode.modulate)
       ..isAntiAlias = false
       ..filterQuality = ui.FilterQuality.none;
     if (!flipX && !flipY) {
@@ -90,6 +115,10 @@ class SpriteBatch {
     canvas.translate(-cx, -cy);
     canvas.drawImageRect(texture.image, src, dst, paint);
     canvas.restore();
+  }
+
+  int _toColorChannel(double value) {
+    return (clampDouble(value, 0, 1) * 255).round();
   }
 }
 
