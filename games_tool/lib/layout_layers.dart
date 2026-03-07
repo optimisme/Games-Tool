@@ -53,6 +53,12 @@ class LayoutLayersState extends State<LayoutLayers> {
     appData.queueAutosave();
   }
 
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   bool _isMultiSelectModifierPressed() {
     final HardwareKeyboard keyboard = HardwareKeyboard.instance;
     final Set<LogicalKeyboardKey> pressed = keyboard.logicalKeysPressed;
