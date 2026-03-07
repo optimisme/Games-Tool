@@ -1565,31 +1565,63 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     _updateLinkedObject(index, durationMs: sanitized);
   }
 
-  void _addPointBeforeEnd() {
-    final int insertIndex = _draftPoints.length >= 2
-        ? _draftPoints.length - 1
-        : _draftPoints.length;
+  void _insertPointAt(int insertIndex) {
+    int clampedIndex = insertIndex;
+    if (clampedIndex < 0) {
+      clampedIndex = 0;
+    }
+    if (clampedIndex > _draftPoints.length) {
+      clampedIndex = _draftPoints.length;
+    }
+
     int nextX = 64;
     int nextY = 0;
-    if (_draftPoints.length >= 2) {
-      final _PathPointDraft previous = _draftPoints[insertIndex - 1];
-      final _PathPointDraft end = _draftPoints[insertIndex];
+    if (_draftPoints.length >= 2 &&
+        clampedIndex > 0 &&
+        clampedIndex < _draftPoints.length) {
+      final _PathPointDraft previous = _draftPoints[clampedIndex - 1];
+      final _PathPointDraft next = _draftPoints[clampedIndex];
       final int previousX = int.tryParse(previous.xController.text.trim()) ?? 0;
       final int previousY = int.tryParse(previous.yController.text.trim()) ?? 0;
-      final int endX = int.tryParse(end.xController.text.trim()) ?? previousX;
-      final int endY = int.tryParse(end.yController.text.trim()) ?? previousY;
-      nextX = ((previousX + endX) / 2).round();
-      nextY = ((previousY + endY) / 2).round();
+      final int nextPointX = int.tryParse(next.xController.text.trim()) ?? 0;
+      final int nextPointY = int.tryParse(next.yController.text.trim()) ?? 0;
+      nextX = ((previousX + nextPointX) / 2).round();
+      nextY = ((previousY + nextPointY) / 2).round();
+    } else if (_draftPoints.isNotEmpty && clampedIndex == 0) {
+      final _PathPointDraft first = _draftPoints.first;
+      final int firstX = int.tryParse(first.xController.text.trim()) ?? 0;
+      final int firstY = int.tryParse(first.yController.text.trim()) ?? 0;
+      if (_draftPoints.length >= 2) {
+        final _PathPointDraft second = _draftPoints[1];
+        final int secondX = int.tryParse(second.xController.text.trim()) ?? 0;
+        final int secondY = int.tryParse(second.yController.text.trim()) ?? 0;
+        nextX = firstX - (secondX - firstX);
+        nextY = firstY - (secondY - firstY);
+      } else {
+        nextX = firstX - 64;
+        nextY = firstY;
+      }
     } else if (_draftPoints.isNotEmpty) {
       final _PathPointDraft last = _draftPoints.last;
       final int lastX = int.tryParse(last.xController.text.trim()) ?? 0;
       final int lastY = int.tryParse(last.yController.text.trim()) ?? 0;
-      nextX = lastX + 64;
-      nextY = lastY;
+      if (_draftPoints.length >= 2) {
+        final _PathPointDraft previous = _draftPoints[_draftPoints.length - 2];
+        final int previousX =
+            int.tryParse(previous.xController.text.trim()) ?? 0;
+        final int previousY =
+            int.tryParse(previous.yController.text.trim()) ?? 0;
+        nextX = lastX + (lastX - previousX);
+        nextY = lastY + (lastY - previousY);
+      } else {
+        nextX = lastX + 64;
+        nextY = lastY;
+      }
     }
+
     setState(() {
       _draftPoints.insert(
-        insertIndex,
+        clampedIndex,
         _PathPointDraft(
           xController: TextEditingController(text: nextX.toString()),
           yController: TextEditingController(text: nextY.toString()),
@@ -2084,13 +2116,10 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
             SizedBox(height: spacing.md),
             const CDKText('Points list', role: CDKTextRole.caption),
             SizedBox(height: spacing.xs),
-            ...List<Widget>.generate(_draftPoints.length, (int index) {
-              final _PathPointDraft draft = _draftPoints[index];
-              final bool canRemove =
-                  index > 0 && index < _draftPoints.length - 1;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            for (int index = 0; index < _draftPoints.length; index++) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 color: cdkColors.backgroundSecondary0,
                 child: Row(
                   children: [
@@ -2098,7 +2127,7 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                       child: CDKFieldText(
                         placeholder: 'X',
                         keyboardType: TextInputType.number,
-                        controller: draft.xController,
+                        controller: _draftPoints[index].xController,
                         onChanged: (_) => _onInputChanged(),
                       ),
                     ),
@@ -2107,14 +2136,14 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                       child: CDKFieldText(
                         placeholder: 'Y',
                         keyboardType: TextInputType.number,
-                        controller: draft.yController,
+                        controller: _draftPoints[index].yController,
                         onChanged: (_) => _onInputChanged(),
                       ),
                     ),
                     SizedBox(width: spacing.xs),
                     SizedBox(
                       width: 24,
-                      child: canRemove
+                      child: index > 0 && index < _draftPoints.length - 1
                           ? CupertinoButton(
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(20, 20),
@@ -2129,15 +2158,25 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                     ),
                   ],
                 ),
-              );
-            }),
-            SizedBox(height: spacing.xs),
-            Center(
-              child: CDKButton(
-                onPressed: _addPointBeforeEnd,
-                child: const Text('Add Point'),
               ),
-            ),
+              if (index < _draftPoints.length - 1)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6, bottom: 2),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(18, 18),
+                      onPressed: () => _insertPointAt(index + 1),
+                      child: Icon(
+                        CupertinoIcons.add_circled,
+                        size: 14,
+                        color: cdkColors.colorText,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
             SizedBox(height: spacing.sm),
             Align(
               alignment: Alignment.bottomLeft,
