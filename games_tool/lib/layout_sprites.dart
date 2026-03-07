@@ -1148,7 +1148,7 @@ class LayoutSpritesState extends State<LayoutSprites> {
                         vertical: 6,
                         horizontal: 8,
                       ),
-                      color: CupertinoColors.systemBlue.withValues(alpha: 0.2),
+                      color: cdkColors.backgroundSecondary1,
                       child: Row(
                         children: [
                           CupertinoButton(
