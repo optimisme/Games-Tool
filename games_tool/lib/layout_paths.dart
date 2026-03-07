@@ -1907,20 +1907,18 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                           Expanded(
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: IntrinsicWidth(
-                                child: CDKButtonSelect(
-                                  selectedIndex: safeTypeIndex,
-                                  options: GamePathBinding.supportedTargetTypes
-                                      .map(_targetTypeLabel)
-                                      .toList(growable: false),
-                                  onSelected: (int typeIndex) {
-                                    _updateLinkedObject(
-                                      index,
-                                      targetType: GamePathBinding
-                                          .supportedTargetTypes[typeIndex],
-                                    );
-                                  },
-                                ),
+                              child: CDKButtonSelect(
+                                selectedIndex: safeTypeIndex,
+                                options: GamePathBinding.supportedTargetTypes
+                                    .map(_targetTypeLabel)
+                                    .toList(growable: false),
+                                onSelected: (int typeIndex) {
+                                  _updateLinkedObject(
+                                    index,
+                                    targetType: GamePathBinding
+                                        .supportedTargetTypes[typeIndex],
+                                  );
+                                },
                               ),
                             ),
                           ),
@@ -1957,24 +1955,22 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                       else
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: IntrinsicWidth(
-                            child: CDKButtonSelect(
-                              selectedIndex: safeTargetOptionIndex,
-                              options: targetOptions
-                                  .map(
-                                    (option) => _ellipsizeObjectLabel(
-                                      option.label,
-                                      maxChars: objectLabelMaxChars,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onSelected: (int optionIndex) {
-                                _updateLinkedObject(
-                                  index,
-                                  targetIndex: targetOptions[optionIndex].index,
-                                );
-                              },
-                            ),
+                          child: CDKButtonSelect(
+                            selectedIndex: safeTargetOptionIndex,
+                            options: targetOptions
+                                .map(
+                                  (option) => _ellipsizeObjectLabel(
+                                    option.label,
+                                    maxChars: objectLabelMaxChars,
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onSelected: (int optionIndex) {
+                              _updateLinkedObject(
+                                index,
+                                targetIndex: targetOptions[optionIndex].index,
+                              );
+                            },
                           ),
                         ),
                       SizedBox(height: spacing.sm),
@@ -1990,22 +1986,18 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
                                 SizedBox(height: spacing.xs),
                                 Align(
                                   alignment: Alignment.centerLeft,
-                                  child: IntrinsicWidth(
-                                    child: CDKButtonSelect(
-                                      selectedIndex: safeBehaviorIndex,
-                                      options: GamePathBinding
-                                          .supportedBehaviors
-                                          .map(_behaviorLabel)
-                                          .toList(growable: false),
-                                      onSelected: (int behaviorIndex) {
-                                        _updateLinkedObject(
-                                          index,
-                                          behavior: GamePathBinding
-                                                  .supportedBehaviors[
-                                              behaviorIndex],
-                                        );
-                                      },
-                                    ),
+                                  child: CDKButtonSelect(
+                                    selectedIndex: safeBehaviorIndex,
+                                    options: GamePathBinding.supportedBehaviors
+                                        .map(_behaviorLabel)
+                                        .toList(growable: false),
+                                    onSelected: (int behaviorIndex) {
+                                      _updateLinkedObject(
+                                        index,
+                                        behavior: GamePathBinding
+                                            .supportedBehaviors[behaviorIndex],
+                                      );
+                                    },
                                   ),
                                 ),
                               ],
