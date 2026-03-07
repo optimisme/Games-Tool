@@ -186,6 +186,75 @@ class AppData extends ChangeNotifier {
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
 
+  List<ui.Image> _uniqueImages(Iterable<ui.Image> images) {
+    final List<ui.Image> unique = <ui.Image>[];
+    for (final ui.Image image in images) {
+      bool seen = false;
+      for (final ui.Image candidate in unique) {
+        if (identical(candidate, image)) {
+          seen = true;
+          break;
+        }
+      }
+      if (!seen) {
+        unique.add(image);
+      }
+    }
+    return unique;
+  }
+
+  void _safeDisposeImage(ui.Image image) {
+    try {
+      image.dispose();
+    } catch (_) {
+      // Ignore disposal failures from already-disposed platform image handles.
+    }
+  }
+
+  void _disposeAndClearImageCache() {
+    final List<ui.Image> images = _uniqueImages(imagesCache.values);
+    for (final ui.Image image in images) {
+      _safeDisposeImage(image);
+    }
+    imagesCache.clear();
+  }
+
+  void _removeImagesFromCache(Iterable<String> keys) {
+    final List<ui.Image> removedImages = <ui.Image>[];
+    for (final String key in keys) {
+      if (key.isEmpty) {
+        continue;
+      }
+      final ui.Image? removed = imagesCache.remove(key);
+      if (removed == null) {
+        continue;
+      }
+      bool tracked = false;
+      for (final ui.Image candidate in removedImages) {
+        if (identical(candidate, removed)) {
+          tracked = true;
+          break;
+        }
+      }
+      if (!tracked) {
+        removedImages.add(removed);
+      }
+    }
+
+    for (final ui.Image removed in removedImages) {
+      bool stillReferenced = false;
+      for (final ui.Image candidate in imagesCache.values) {
+        if (identical(candidate, removed)) {
+          stillReferenced = true;
+          break;
+        }
+      }
+      if (!stillReferenced) {
+        _safeDisposeImage(removed);
+      }
+    }
+  }
+
   Map<String, dynamic> _captureSelectionSnapshot() {
     return <String, dynamic>{
       'selectedSection': selectedSection,
@@ -308,7 +377,8 @@ class AppData extends ChangeNotifier {
       return;
     }
     final Map<dynamic, dynamic> selection = snapshot;
-    selectedSection = _snapshotString(selection['selectedSection'], selectedSection);
+    selectedSection =
+        _snapshotString(selection['selectedSection'], selectedSection);
     selectedLevel = _snapshotInt(selection['selectedLevel'], selectedLevel);
     selectedLayer = _snapshotInt(selection['selectedLayer'], selectedLayer);
     selectedLayerIndices = _snapshotIntSet(selection['selectedLayerIndices']);
@@ -317,9 +387,10 @@ class AppData extends ChangeNotifier {
     selectedSprite = _snapshotInt(selection['selectedSprite'], selectedSprite);
     selectedSpriteIndices = _snapshotIntSet(selection['selectedSpriteIndices']);
     selectedPath = _snapshotInt(selection['selectedPath'], selectedPath);
-    selectedAnimation = _snapshotInt(selection['selectedAnimation'], selectedAnimation);
-    selectedAnimationHitBox =
-        _snapshotInt(selection['selectedAnimationHitBox'], selectedAnimationHitBox);
+    selectedAnimation =
+        _snapshotInt(selection['selectedAnimation'], selectedAnimation);
+    selectedAnimationHitBox = _snapshotInt(
+        selection['selectedAnimationHitBox'], selectedAnimationHitBox);
     animationRigSelectionAnimationId = _snapshotString(
       selection['animationRigSelectionAnimationId'],
       animationRigSelectionAnimationId,
@@ -347,7 +418,8 @@ class AppData extends ChangeNotifier {
       selection['animationSelectionEndFrame'],
       animationSelectionEndFrame,
     );
-    selectedTileIndex = _snapshotInt(selection['selectedTileIndex'], selectedTileIndex);
+    selectedTileIndex =
+        _snapshotInt(selection['selectedTileIndex'], selectedTileIndex);
     selectedTilePattern = _snapshotIntMatrix(selection['selectedTilePattern']);
     tilemapEraserEnabled =
         _snapshotBool(selection['tilemapEraserEnabled'], tilemapEraserEnabled);
@@ -1623,7 +1695,7 @@ class AppData extends ChangeNotifier {
     }
 
     if (changed) {
-      imagesCache.clear();
+      _disposeAndClearImageCache();
     }
     return changed;
   }
@@ -2285,8 +2357,10 @@ class AppData extends ChangeNotifier {
 
     try {
       await mediaFile.delete();
-      imagesCache.remove(fileName);
-      imagesCache.remove(normalized);
+      _removeImagesFromCache(<String>[
+        fileName,
+        normalized,
+      ]);
     } catch (e) {
       if (kDebugMode) {
         print("Error deleting orphan media file \"$normalized\": $e");
@@ -2340,7 +2414,7 @@ class AppData extends ChangeNotifier {
     _undoStack.clear();
     _redoStack.clear();
     _clearUndoGroupingState();
-    imagesCache.clear();
+    _disposeAndClearImageCache();
   }
 
   Future<String> _formatMapAsGameJson(Map<String, dynamic> data) async {
@@ -2453,7 +2527,7 @@ class AppData extends ChangeNotifier {
     _redoStack.clear();
     _clearUndoGroupingState();
     _clearAutosaveState();
-    imagesCache.clear();
+    _disposeAndClearImageCache();
     viewportDragOffset = Offset.zero;
     viewportResizeOffset = Offset.zero;
     viewportIsDragging = false;
@@ -2914,7 +2988,7 @@ class AppData extends ChangeNotifier {
       _redoStack.clear();
       _clearUndoGroupingState();
       _clearAutosaveState();
-      imagesCache.clear();
+      _disposeAndClearImageCache();
       viewportDragOffset = Offset.zero;
       viewportResizeOffset = Offset.zero;
       viewportIsDragging = false;
@@ -3039,9 +3113,7 @@ class AppData extends ChangeNotifier {
       normalized,
       cacheKey,
     }..removeWhere((value) => value.isEmpty);
-    for (final key in cacheKeysToClear) {
-      imagesCache.remove(key);
-    }
+    _removeImagesFromCache(cacheKeysToClear);
 
     try {
       final String absolutePath = isAbsolutePath
@@ -3096,6 +3168,13 @@ class AppData extends ChangeNotifier {
         await entity.copy(targetPath);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _clearAutosaveState();
+    _disposeAndClearImageCache();
+    super.dispose();
   }
 
   Future<void> _saveGameInternal({

@@ -77,6 +77,12 @@ class LayoutPathsState extends State<LayoutPaths> {
     appData.queueAutosave();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   List<GameListGroup> _pathGroups(GameLevel level) {
     if (level.pathGroups.isEmpty) {
       return <GameListGroup>[GameListGroup.main()];

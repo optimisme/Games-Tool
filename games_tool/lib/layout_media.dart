@@ -76,6 +76,12 @@ class _LayoutMediaState extends State<LayoutMedia> {
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   List<GameMediaGroup> _mediaGroups(AppData appData) {
     if (appData.gameData.mediaGroups.isEmpty) {
       return <GameMediaGroup>[GameMediaGroup.main()];

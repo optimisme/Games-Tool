@@ -41,6 +41,7 @@ class LayoutLevelsState extends State<LayoutLevels> {
 
   @override
   void dispose() {
+    scrollController.dispose();
     super.dispose();
   }
 
