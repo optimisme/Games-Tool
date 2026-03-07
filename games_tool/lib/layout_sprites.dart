@@ -33,7 +33,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
-  String? _hoveredGroupId;
   String _inlineEditUndoGroupKey = '';
   int _inlineEditUndoSpriteIndex = -1;
 
@@ -139,15 +138,6 @@ class LayoutSpritesState extends State<LayoutSprites> {
 
   GlobalKey _groupActionsAnchorKey(String groupId) {
     return _groupActionsAnchorKeys.putIfAbsent(groupId, GlobalKey.new);
-  }
-
-  void _setHoveredGroupId(String? groupId) {
-    if (_hoveredGroupId == groupId || !mounted) {
-      return;
-    }
-    setState(() {
-      _hoveredGroupId = groupId;
-    });
   }
 
   Set<String> _spriteGroupNames(
@@ -1144,101 +1134,88 @@ class LayoutSpritesState extends State<LayoutSprites> {
                       spriteRows[index];
                   if (row.isGroup) {
                     final GameListGroup group = row.group!;
-                    final bool showGroupActions = _hoveredGroupId == group.id;
                     final GlobalKey groupActionsAnchorKey =
                         _groupActionsAnchorKey(group.id);
-                    return MouseRegion(
-                      key: ValueKey('sprite-group-hover-${group.id}'),
-                      onEnter: (_) => _setHoveredGroupId(group.id),
-                      onExit: (_) {
-                        if (_hoveredGroupId == group.id) {
-                          _setHoveredGroupId(null);
-                        }
-                      },
-                      child: Container(
-                        key: ValueKey('sprite-group-${group.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 8,
-                        ),
-                        color:
-                            CupertinoColors.systemBlue.withValues(alpha: 0.2),
-                        child: Row(
-                          children: [
-                            CupertinoButton(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              minimumSize: const Size(20, 20),
-                              onPressed: () async {
-                                await _toggleGroupCollapsed(appData, group.id);
-                              },
-                              child: AnimatedRotation(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeInOutCubic,
-                                turns: group.collapsed ? 0.0 : 0.25,
-                                child: Icon(
-                                  CupertinoIcons.chevron_right,
-                                  size: 14,
-                                  color: cdkColors.colorText,
-                                ),
+                    return Container(
+                      key: ValueKey('sprite-group-${group.id}'),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 8,
+                      ),
+                      color: CupertinoColors.systemBlue.withValues(alpha: 0.2),
+                      child: Row(
+                        children: [
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            minimumSize: const Size(20, 20),
+                            onPressed: () async {
+                              await _toggleGroupCollapsed(appData, group.id);
+                            },
+                            child: AnimatedRotation(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeInOutCubic,
+                              turns: group.collapsed ? 0.0 : 0.25,
+                              child: Icon(
+                                CupertinoIcons.chevron_right,
+                                size: 14,
+                                color: cdkColors.colorText,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  CDKText(
-                                    group.name,
-                                    role: CDKTextRole.body,
-                                    style: listItemTitleStyle,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                CDKText(
+                                  group.name,
+                                  role: CDKTextRole.body,
+                                  style: listItemTitleStyle,
+                                ),
+                                if (group.id == GameListGroup.mainId) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    CupertinoIcons.lock_fill,
+                                    size: 12,
+                                    color: cdkColors.colorText
+                                        .withValues(alpha: 0.7),
                                   ),
-                                  if (group.id == GameListGroup.mainId) ...[
-                                    const SizedBox(width: 6),
-                                    Icon(
-                                      CupertinoIcons.lock_fill,
-                                      size: 12,
-                                      color: cdkColors.colorText
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                  ],
                                 ],
+                              ],
+                            ),
+                          ),
+                          CupertinoButton(
+                            key: groupActionsAnchorKey,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                            ),
+                            minimumSize: const Size(20, 20),
+                            onPressed: () async {
+                              await _showGroupActionsPopover(
+                                appData,
+                                level,
+                                group,
+                                groupActionsAnchorKey,
+                              );
+                            },
+                            child: Icon(
+                              CupertinoIcons.ellipsis_circle,
+                              size: 15,
+                              color: cdkColors.colorText,
+                            ),
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                CupertinoIcons.bars,
+                                size: 16,
+                                color: cdkColors.colorText,
                               ),
                             ),
-                            if (showGroupActions)
-                              CupertinoButton(
-                                key: groupActionsAnchorKey,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                                minimumSize: const Size(20, 20),
-                                onPressed: () async {
-                                  await _showGroupActionsPopover(
-                                    appData,
-                                    level,
-                                    group,
-                                    groupActionsAnchorKey,
-                                  );
-                                },
-                                child: Icon(
-                                  CupertinoIcons.ellipsis_circle,
-                                  size: 15,
-                                  color: cdkColors.colorText,
-                                ),
-                              ),
-                            ReorderableDragStartListener(
-                              index: index,
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(
-                                  CupertinoIcons.bars,
-                                  size: 16,
-                                  color: cdkColors.colorText,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   }

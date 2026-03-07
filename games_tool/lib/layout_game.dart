@@ -14,16 +14,19 @@ class LayoutGame extends StatefulWidget {
 
 class LayoutGameState extends State<LayoutGame> {
   late TextEditingController nameController;
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
     final appData = Provider.of<AppData>(context, listen: false);
     nameController = TextEditingController(text: appData.gameData.name);
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     nameController.dispose();
     super.dispose();
   }
@@ -39,7 +42,6 @@ class LayoutGameState extends State<LayoutGame> {
   @override
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
-    final ScrollController scrollController = ScrollController();
 
     if (nameController.text != appData.gameData.name) {
       nameController.text = appData.gameData.name;
@@ -60,9 +62,9 @@ class LayoutGameState extends State<LayoutGame> {
           ),
           Expanded(
             child: CupertinoScrollbar(
-              controller: scrollController,
+              controller: _scrollController,
               child: SingleChildScrollView(
-                controller: scrollController,
+                controller: _scrollController,
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

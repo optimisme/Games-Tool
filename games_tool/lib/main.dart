@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'app_data.dart';
 import 'app.dart';
+import 'perf_probe.dart';
 
 const _windowTitle = 'Games Tool';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PerfProbe.startIfEnabled();
   runApp(const _BootstrapApp());
 }
 

@@ -58,7 +58,6 @@ class LayoutZonesState extends State<LayoutZones> {
   final GlobalKey _addGroupAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _groupActionsAnchorKeys = <String, GlobalKey>{};
   int _newGroupCounter = 0;
-  String? _hoveredGroupId;
   String _inlineEditUndoGroupKey = '';
   int _inlineEditUndoZoneIndex = -1;
 
@@ -151,23 +150,28 @@ class LayoutZonesState extends State<LayoutZones> {
     final List<_ZoneListRow> rows = [];
     final List<GameZoneGroup> groups = _zoneGroups(level);
     final Set<String> validGroupIds = groups.map((group) => group.id).toSet();
+    final Map<String, List<int>> zoneIndicesByGroupId = <String, List<int>>{};
+
+    for (int i = 0; i < level.zones.length; i++) {
+      final GameZone zone = level.zones[i];
+      final String zoneGroupId = zone.groupId.trim();
+      final String effectiveGroupId = validGroupIds.contains(zoneGroupId)
+          ? zoneGroupId
+          : GameZoneGroup.mainId;
+      zoneIndicesByGroupId.putIfAbsent(effectiveGroupId, () => <int>[]).add(i);
+    }
 
     for (final group in groups) {
       rows.add(_ZoneListRow.group(group: group));
-      for (int i = 0; i < level.zones.length; i++) {
-        final GameZone zone = level.zones[i];
-        final String zoneGroupId = zone.groupId.trim();
-        final String effectiveGroupId = validGroupIds.contains(zoneGroupId)
-            ? zoneGroupId
-            : GameZoneGroup.mainId;
-        if (effectiveGroupId != group.id) {
-          continue;
-        }
+      final List<int> zoneIndices =
+          zoneIndicesByGroupId[group.id] ?? const <int>[];
+      for (final int zoneIndex in zoneIndices) {
+        final GameZone zone = level.zones[zoneIndex];
         rows.add(
           _ZoneListRow.zone(
-            groupId: effectiveGroupId,
+            groupId: group.id,
             zone: zone,
-            zoneIndex: i,
+            zoneIndex: zoneIndex,
             hiddenByCollapse: group.collapsed,
           ),
         );
@@ -178,15 +182,6 @@ class LayoutZonesState extends State<LayoutZones> {
 
   GlobalKey _groupActionsAnchorKey(String groupId) {
     return _groupActionsAnchorKeys.putIfAbsent(groupId, GlobalKey.new);
-  }
-
-  void _setHoveredGroupId(String? groupId) {
-    if (_hoveredGroupId == groupId || !mounted) {
-      return;
-    }
-    setState(() {
-      _hoveredGroupId = groupId;
-    });
   }
 
   Set<String> _zoneGroupNames(
@@ -1418,105 +1413,91 @@ class LayoutZonesState extends State<LayoutZones> {
                   final _ZoneListRow row = zoneRows[index];
                   if (row.isGroup) {
                     final GameZoneGroup group = row.group!;
-                    final bool showGroupActions = _hoveredGroupId == group.id;
                     final GlobalKey groupActionsAnchorKey =
                         _groupActionsAnchorKey(group.id);
-                    return MouseRegion(
-                      key: ValueKey('zone-group-hover-${group.id}'),
-                      onEnter: (_) => _setHoveredGroupId(group.id),
-                      onExit: (_) {
-                        if (_hoveredGroupId == group.id) {
-                          _setHoveredGroupId(null);
-                        }
-                      },
-                      child: Container(
-                        key: ValueKey('zone-group-${group.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 8,
-                        ),
-                        color:
-                            CupertinoColors.systemBlue.withValues(alpha: 0.2),
-                        child: Row(
-                          children: [
-                            CupertinoButton(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              minimumSize: const Size(20, 20),
-                              onPressed: () async {
-                                await _toggleGroupCollapsed(appData, group.id);
-                              },
-                              child: AnimatedRotation(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeInOutCubic,
-                                turns: group.collapsed ? 0.0 : 0.25,
-                                child: Icon(
-                                  CupertinoIcons.chevron_right,
-                                  size: 14,
-                                  color: cdkColors.colorText,
-                                ),
+                    return Container(
+                      key: ValueKey('zone-group-${group.id}'),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 8,
+                      ),
+                      color: CupertinoColors.systemBlue.withValues(alpha: 0.2),
+                      child: Row(
+                        children: [
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            minimumSize: const Size(20, 20),
+                            onPressed: () async {
+                              await _toggleGroupCollapsed(appData, group.id);
+                            },
+                            child: AnimatedRotation(
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeInOutCubic,
+                              turns: group.collapsed ? 0.0 : 0.25,
+                              child: Icon(
+                                CupertinoIcons.chevron_right,
+                                size: 14,
+                                color: cdkColors.colorText,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      CDKText(
-                                        group.name,
-                                        role: CDKTextRole.body,
-                                        style: listItemTitleStyle,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CDKText(
+                                      group.name,
+                                      role: CDKTextRole.body,
+                                      style: listItemTitleStyle,
+                                    ),
+                                    if (group.id == GameZoneGroup.mainId) ...[
+                                      const SizedBox(width: 6),
+                                      Icon(
+                                        CupertinoIcons.lock_fill,
+                                        size: 12,
+                                        color: cdkColors.colorText
+                                            .withValues(alpha: 0.7),
                                       ),
-                                      if (group.id == GameZoneGroup.mainId) ...[
-                                        const SizedBox(width: 6),
-                                        Icon(
-                                          CupertinoIcons.lock_fill,
-                                          size: 12,
-                                          color: cdkColors.colorText
-                                              .withValues(alpha: 0.7),
-                                        ),
-                                      ],
                                     ],
-                                  ),
-                                ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          CupertinoButton(
+                            key: groupActionsAnchorKey,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            minimumSize: const Size(20, 20),
+                            onPressed: () async {
+                              await _showGroupActionsPopover(
+                                appData,
+                                level,
+                                group,
+                                groupActionsAnchorKey,
+                              );
+                            },
+                            child: Icon(
+                              CupertinoIcons.ellipsis_circle,
+                              size: 15,
+                              color: cdkColors.colorText,
+                            ),
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                CupertinoIcons.bars,
+                                size: 16,
+                                color: cdkColors.colorText,
                               ),
                             ),
-                            if (showGroupActions)
-                              CupertinoButton(
-                                key: groupActionsAnchorKey,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 6),
-                                minimumSize: const Size(20, 20),
-                                onPressed: () async {
-                                  await _showGroupActionsPopover(
-                                    appData,
-                                    level,
-                                    group,
-                                    groupActionsAnchorKey,
-                                  );
-                                },
-                                child: Icon(
-                                  CupertinoIcons.ellipsis_circle,
-                                  size: 15,
-                                  color: cdkColors.colorText,
-                                ),
-                              ),
-                            ReorderableDragStartListener(
-                              index: index,
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(
-                                  CupertinoIcons.bars,
-                                  size: 16,
-                                  color: cdkColors.colorText,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     );
                   }
