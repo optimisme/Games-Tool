@@ -20,9 +20,9 @@ Instead of starting from engine code, you design the game world visually and exp
 
 This gives you a clean data-driven workflow: author once, run in multiple runtimes.
 
-## Levels Section (Example)
+## Paths Section (Example)
 
-![Levels section](games_tool_tutorial/assets/section_paths.png)
+![Paths section](games_tool_tutorial/assets/section_paths.png)
 
 ## Repository Structure
 
