@@ -22,7 +22,7 @@ This gives you a clean data-driven workflow: author once, run in multiple runtim
 
 ## Levels Section (Example)
 
-![Levels section](games_tool_tutorial/assets/section_levels.png)
+![Levels section](games_tool_tutorial/assets/section_paths.png)
 
 ## Repository Structure
 
