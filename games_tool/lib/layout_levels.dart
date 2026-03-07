@@ -1010,8 +1010,11 @@ class LayoutLevelsState extends State<LayoutLevels> {
                                           appData, levelIndex, isSelected);
                                     },
                                     child: Container(
+                                      constraints: const BoxConstraints(
+                                        minHeight: 36,
+                                      ),
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 4,
+                                        vertical: 6,
                                         horizontal: 8,
                                       ),
                                       color: isSelected
@@ -1266,7 +1269,8 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     return oldWidget.initialName != widget.initialName ||
         oldWidget.initialDescription != widget.initialDescription ||
         oldWidget.initialGameplayData != widget.initialGameplayData ||
-        oldWidget.initialBackgroundColorHex != widget.initialBackgroundColorHex ||
+        oldWidget.initialBackgroundColorHex !=
+            widget.initialBackgroundColorHex ||
         oldWidget.initialDepthSensitivity != widget.initialDepthSensitivity ||
         oldWidget.initialGroupId != widget.initialGroupId;
   }
