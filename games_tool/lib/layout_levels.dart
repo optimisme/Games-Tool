@@ -1432,7 +1432,7 @@ class _LevelFormDialogState extends State<_LevelFormDialog> {
     final typography = CDKThemeNotifier.typographyTokensOf(context);
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Enter level details.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,

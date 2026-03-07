@@ -1753,7 +1753,7 @@ class _MediaFormDialogState extends State<_MediaFormDialog> {
 
     return EditorFormDialogScaffold(
       title: widget.title,
-      description: 'Configure media metadata.',
+      description: '',
       confirmLabel: widget.mode.confirmLabel,
       confirmEnabled: _isValid,
       onConfirm: _confirm,
