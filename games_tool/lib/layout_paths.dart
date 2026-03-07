@@ -1301,7 +1301,6 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
       .map((binding) =>
           TextEditingController(text: binding.durationMs.toString()))
       .toList(growable: true);
-  final ScrollController _pointsListScrollController = ScrollController();
   EditSession<_PathDialogData>? _editSession;
 
   String _resolveInitialColor() {
@@ -1729,7 +1728,6 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     for (final draft in _draftPoints) {
       draft.dispose();
     }
-    _pointsListScrollController.dispose();
     super.dispose();
   }
 
@@ -1744,8 +1742,6 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
     const int objectLabelMaxChars = 22;
     final double maxBodyHeight =
         (MediaQuery.sizeOf(context).height - 280).clamp(260, 620).toDouble();
-    final double pointsListHeight =
-        (_draftPoints.length * 44.0).clamp(92.0, 240.0).toDouble();
     final _PathDialogData currentData = _buildData();
     final bool canConfirm = _validateData(currentData) == null;
     return EditorFormDialogScaffold(
@@ -2082,67 +2078,53 @@ class _PathEditPopoverState extends State<_PathEditPopover> {
             SizedBox(height: spacing.md),
             const CDKText('Points list', role: CDKTextRole.caption),
             SizedBox(height: spacing.xs),
-            SizedBox(
-              height: pointsListHeight,
-              child: CupertinoScrollbar(
-                controller: _pointsListScrollController,
-                child: ListView.builder(
-                  controller: _pointsListScrollController,
-                  primary: false,
-                  itemCount: _draftPoints.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final _PathPointDraft draft = _draftPoints[index];
-                    final bool canRemove =
-                        index > 0 && index < _draftPoints.length - 1;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 4,
+            ...List<Widget>.generate(_draftPoints.length, (int index) {
+              final _PathPointDraft draft = _draftPoints[index];
+              final bool canRemove =
+                  index > 0 && index < _draftPoints.length - 1;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                color: cdkColors.backgroundSecondary0,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CDKFieldText(
+                        placeholder: 'X',
+                        keyboardType: TextInputType.number,
+                        controller: draft.xController,
+                        onChanged: (_) => _onInputChanged(),
                       ),
-                      color: cdkColors.backgroundSecondary0,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: CDKFieldText(
-                              placeholder: 'X',
-                              keyboardType: TextInputType.number,
-                              controller: draft.xController,
-                              onChanged: (_) => _onInputChanged(),
-                            ),
-                          ),
-                          SizedBox(width: spacing.xs),
-                          Expanded(
-                            child: CDKFieldText(
-                              placeholder: 'Y',
-                              keyboardType: TextInputType.number,
-                              controller: draft.yController,
-                              onChanged: (_) => _onInputChanged(),
-                            ),
-                          ),
-                          SizedBox(width: spacing.xs),
-                          SizedBox(
-                            width: 24,
-                            child: canRemove
-                                ? CupertinoButton(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: const Size(20, 20),
-                                    onPressed: () => _removePoint(index),
-                                    child: Icon(
-                                      CupertinoIcons.minus_circle,
-                                      size: 16,
-                                      color: cdkColors.colorText,
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ],
+                    ),
+                    SizedBox(width: spacing.xs),
+                    Expanded(
+                      child: CDKFieldText(
+                        placeholder: 'Y',
+                        keyboardType: TextInputType.number,
+                        controller: draft.yController,
+                        onChanged: (_) => _onInputChanged(),
                       ),
-                    );
-                  },
+                    ),
+                    SizedBox(width: spacing.xs),
+                    SizedBox(
+                      width: 24,
+                      child: canRemove
+                          ? CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(20, 20),
+                              onPressed: () => _removePoint(index),
+                              child: Icon(
+                                CupertinoIcons.minus_circle,
+                                size: 16,
+                                color: cdkColors.colorText,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
-              ),
-            ),
+              );
+            }),
             SizedBox(height: spacing.xs),
             Center(
               child: CDKButton(
