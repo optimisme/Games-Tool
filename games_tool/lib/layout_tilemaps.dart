@@ -6,11 +6,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart'
     show
         GestureBinding,
+        PointerCancelEvent,
+        PointerDownEvent,
+        PointerMoveEvent,
         PointerPanZoomEndEvent,
         PointerPanZoomStartEvent,
         PointerPanZoomUpdateEvent,
         PointerScrollEvent,
-        PointerSignalEvent;
+        PointerSignalEvent,
+        PointerUpEvent,
+        kSecondaryMouseButton;
 import 'package:flutter_cupertino_desktop_kit/flutter_cupertino_desktop_kit.dart';
 import 'package:provider/provider.dart';
 import 'app_data.dart';
@@ -39,8 +44,6 @@ const List<_AccentColorOption> _tilesetAccentOptions = [
   _AccentColorOption(label: 'Yellow', color: Color(0xFFFFCC00)),
 ];
 
-enum _TilesetCanvasTool { pointer, hand }
-
 class LayoutTilemaps extends StatefulWidget {
   const LayoutTilemaps({super.key});
 
@@ -60,7 +63,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
   String _tilesetImagePath = '';
   double _tilesetZoom = 1.0;
   Offset _tilesetPanOffset = Offset.zero;
-  _TilesetCanvasTool _tilesetCanvasTool = _TilesetCanvasTool.hand;
+  int? _secondaryMousePanPointer;
   bool _isTrackpadPanZoomActive = false;
   double _lastTrackpadScale = 1.0;
 
@@ -208,7 +211,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     final double dx = scrollEvent.scrollDelta.dx;
     final double dy = scrollEvent.scrollDelta.dy;
 
-    if (_tilesetHandToolActive && dx != 0) {
+    if (dx != 0) {
       _panTilesetByDelta(
         delta: Offset(dx, 0),
         viewportSize: viewportSize,
@@ -235,9 +238,9 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     _lastTrackpadScale = event.scale;
     final bool hasPinchScale = (scaleDelta - 1.0).abs() >= 0.0001;
 
-    if (_tilesetHandToolActive && event.panDelta.dx != 0) {
+    if (event.panDelta != Offset.zero) {
       _panTilesetByDelta(
-        delta: Offset(event.panDelta.dx, 0),
+        delta: event.panDelta,
         viewportSize: viewportSize,
         image: image,
       );
@@ -387,11 +390,6 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     });
   }
 
-  bool get _tilesetPointerToolActive =>
-      _tilesetCanvasTool == _TilesetCanvasTool.pointer;
-  bool get _tilesetHandToolActive =>
-      _tilesetCanvasTool == _TilesetCanvasTool.hand;
-
   void _panTilesetByDelta({
     required Offset delta,
     required Size viewportSize,
@@ -407,12 +405,42 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     });
   }
 
+  void _handleSecondaryMousePanStart(PointerDownEvent event) {
+    if (event.kind != ui.PointerDeviceKind.mouse ||
+        (event.buttons & kSecondaryMouseButton) == 0) {
+      return;
+    }
+    _secondaryMousePanPointer = event.pointer;
+    _dragSelectionStartTile = null;
+    _isDraggingSelection = false;
+  }
+
+  void _handleSecondaryMousePanUpdate({
+    required PointerMoveEvent event,
+    required Size viewportSize,
+    required ui.Image image,
+  }) {
+    if (_secondaryMousePanPointer != event.pointer ||
+        event.kind != ui.PointerDeviceKind.mouse ||
+        (event.buttons & kSecondaryMouseButton) == 0) {
+      return;
+    }
+    _panTilesetByDelta(
+      delta: event.delta,
+      viewportSize: viewportSize,
+      image: image,
+    );
+  }
+
+  void _clearSecondaryMousePan(int pointer) {
+    if (_secondaryMousePanPointer == pointer) {
+      _secondaryMousePanPointer = null;
+    }
+  }
+
   Widget _buildZoomAndToolRow(AppData appData) {
-    final bool pointerSelected =
-        _tilesetPointerToolActive && !appData.tilemapEraserEnabled;
-    final bool trashSelected =
-        _tilesetPointerToolActive && appData.tilemapEraserEnabled;
-    final bool handSelected = _tilesetHandToolActive;
+    final bool pointerSelected = !appData.tilemapEraserEnabled;
+    final bool trashSelected = appData.tilemapEraserEnabled;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -429,29 +457,19 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
           ),
           const Spacer(),
           SizedBox(
-            width: 116,
+            width: 80,
             child: CDKPickerButtonsBar(
               selectedStates: <bool>[
                 pointerSelected,
                 trashSelected,
-                handSelected,
               ],
               options: const [
                 Icon(CupertinoIcons.cursor_rays),
                 Icon(CupertinoIcons.trash),
-                Icon(CupertinoIcons.hand_raised),
               ],
               onChanged: (states) {
-                final bool nextHand = states.length > 2 && states[2] == true;
                 final bool nextTrash = states.length > 1 && states[1] == true;
-
-                setState(() {
-                  _tilesetCanvasTool = nextHand
-                      ? _TilesetCanvasTool.hand
-                      : _TilesetCanvasTool.pointer;
-                });
-
-                final bool enableEraser = !nextHand && nextTrash;
+                final bool enableEraser = nextTrash;
                 if (appData.tilemapEraserEnabled != enableEraser) {
                   appData.tilemapEraserEnabled = enableEraser;
                   appData.update();
@@ -699,7 +717,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 8.0),
           child: CDKText(
-            'Pointer: click/drag tiles. Trash: erase on map. Hand: drag to pan. Scroll to zoom.',
+            'Pointer: click/drag tiles. Trash: erase on map. Right-drag or trackpad pan to move. Scroll/pinch to zoom.',
             role: CDKTextRole.caption,
             secondary: true,
           ),
@@ -752,6 +770,20 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
 
                   return ClipRect(
                     child: Listener(
+                      onPointerDown: _handleSecondaryMousePanStart,
+                      onPointerMove: (PointerMoveEvent event) {
+                        _handleSecondaryMousePanUpdate(
+                          event: event,
+                          viewportSize: viewportSize,
+                          image: image,
+                        );
+                      },
+                      onPointerUp: (PointerUpEvent event) {
+                        _clearSecondaryMousePan(event.pointer);
+                      },
+                      onPointerCancel: (PointerCancelEvent event) {
+                        _clearSecondaryMousePan(event.pointer);
+                      },
                       onPointerPanZoomStart: (PointerPanZoomStartEvent _) {
                         _isTrackpadPanZoomActive = true;
                         _lastTrackpadScale = 1.0;
@@ -793,11 +825,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTapUp: (details) {
-                          if (!_tilesetPointerToolActive) {
-                            return;
-                          }
-                          if (_isTrackpadPanZoomActive ||
-                              details.kind != ui.PointerDeviceKind.mouse) {
+                          if (_isTrackpadPanZoomActive) {
                             return;
                           }
                           if (appData.tilemapEraserEnabled) {
@@ -813,11 +841,6 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
                           );
                         },
                         onPanStart: (details) {
-                          if (_tilesetHandToolActive) {
-                            _dragSelectionStartTile = null;
-                            _isDraggingSelection = false;
-                            return;
-                          }
                           if (_isTrackpadPanZoomActive ||
                               details.kind != ui.PointerDeviceKind.mouse) {
                             _dragSelectionStartTile = null;
@@ -852,14 +875,6 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
                           );
                         },
                         onPanUpdate: (details) {
-                          if (_tilesetHandToolActive) {
-                            _panTilesetByDelta(
-                              delta: details.delta,
-                              viewportSize: viewportSize,
-                              image: image,
-                            );
-                            return;
-                          }
                           if (!_isDraggingSelection ||
                               _dragSelectionStartTile == null) {
                             return;
