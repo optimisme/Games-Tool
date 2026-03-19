@@ -12,10 +12,12 @@ import 'package:flutter/gestures.dart'
         PointerPanZoomEndEvent,
         PointerPanZoomStartEvent,
         PointerPanZoomUpdateEvent,
+        PointerScaleEvent,
         PointerScrollEvent,
         PointerSignalEvent,
         PointerUpEvent,
         kSecondaryMouseButton;
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_cupertino_desktop_kit/flutter_cupertino_desktop_kit.dart';
 import 'package:provider/provider.dart';
 import 'app_data.dart';
@@ -55,6 +57,9 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
   static const double _minTilesetZoom = 0.5;
   static const double _maxTilesetZoom = 8.0;
   static const double _tilesetZoomStep = 0.25;
+  static const double _trackpadInertiaDecayPerSecond = 7.5;
+  static const double _trackpadInertiaMinStartSpeed = 600.0;
+  static const double _trackpadInertiaStopSpeed = 30.0;
 
   final GlobalKey _selectionColorAnchorKey = GlobalKey();
   Offset? _dragSelectionStartTile;
@@ -66,6 +71,10 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
   int? _secondaryMousePanPointer;
   bool _isTrackpadPanZoomActive = false;
   double _lastTrackpadScale = 1.0;
+  Duration? _lastTrackpadPanTimeStamp;
+  Offset _trackpadPanVelocity = Offset.zero;
+  Ticker? _trackpadInertiaTicker;
+  Duration? _trackpadInertiaLastElapsed;
 
   void _ensureTilesetImageFuture(AppData appData, String tilesheetPath) {
     if (_tilesetImageFuture != null && _tilesetImagePath == tilesheetPath) {
@@ -200,6 +209,12 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     });
   }
 
+  @override
+  void dispose() {
+    _trackpadInertiaTicker?.dispose();
+    super.dispose();
+  }
+
   void _handleTilesetPointerScroll({
     required PointerScrollEvent scrollEvent,
     required Size viewportSize,
@@ -239,6 +254,7 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     final bool hasPinchScale = (scaleDelta - 1.0).abs() >= 0.0001;
 
     if (event.panDelta != Offset.zero) {
+      _recordTrackpadPanVelocitySample(event);
       _panTilesetByDelta(
         delta: event.panDelta,
         viewportSize: viewportSize,
@@ -251,6 +267,22 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     }
     final double zoomDelta =
         (math.log(scaleDelta) / math.ln2) * (_tilesetZoomStep * 2);
+    _zoomTilesetAtLocalPosition(
+      localPosition: event.localPosition,
+      zoomDelta: zoomDelta,
+      viewportSize: viewportSize,
+      image: image,
+    );
+  }
+
+  void _handleTilesetScaleSignal({
+    required PointerScaleEvent event,
+    required Size viewportSize,
+    required ui.Image image,
+  }) {
+    _stopTrackpadInertia();
+    final double zoomDelta =
+        (math.log(event.scale) / math.ln2) * (_tilesetZoomStep * 2);
     _zoomTilesetAtLocalPosition(
       localPosition: event.localPosition,
       zoomDelta: zoomDelta,
@@ -405,7 +437,89 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     });
   }
 
+  Offset _scaleOffset(Offset offset, double factor) {
+    return Offset(offset.dx * factor, offset.dy * factor);
+  }
+
+  void _stopTrackpadInertia({bool resetVelocity = true}) {
+    _trackpadInertiaTicker?.stop();
+    _trackpadInertiaLastElapsed = null;
+    if (resetVelocity) {
+      _trackpadPanVelocity = Offset.zero;
+      _lastTrackpadPanTimeStamp = null;
+    }
+  }
+
+  void _recordTrackpadPanVelocitySample(PointerPanZoomUpdateEvent event) {
+    if (event.panDelta == Offset.zero) {
+      return;
+    }
+    final Duration? previousTimeStamp = _lastTrackpadPanTimeStamp;
+    _lastTrackpadPanTimeStamp = event.timeStamp;
+    if (previousTimeStamp == null) {
+      return;
+    }
+    final int deltaMicros =
+        event.timeStamp.inMicroseconds - previousTimeStamp.inMicroseconds;
+    if (deltaMicros <= 0) {
+      return;
+    }
+    final double dtSeconds = deltaMicros / Duration.microsecondsPerSecond;
+    final Offset sampleVelocity = Offset(
+      event.panDelta.dx / dtSeconds,
+      event.panDelta.dy / dtSeconds,
+    );
+    final bool hadVelocity = _trackpadPanVelocity != Offset.zero;
+    _trackpadPanVelocity = Offset.lerp(
+          _trackpadPanVelocity,
+          sampleVelocity,
+          hadVelocity ? 0.35 : 1.0,
+        ) ??
+        sampleVelocity;
+  }
+
+  void _startTrackpadInertia({
+    required Size viewportSize,
+    required ui.Image image,
+  }) {
+    if (_trackpadPanVelocity.distance < _trackpadInertiaMinStartSpeed) {
+      _stopTrackpadInertia();
+      return;
+    }
+    _trackpadInertiaTicker ??= Ticker((Duration elapsed) {
+      if (!mounted) {
+        _stopTrackpadInertia();
+        return;
+      }
+      if (_trackpadInertiaLastElapsed == null) {
+        _trackpadInertiaLastElapsed = elapsed;
+        return;
+      }
+      final int elapsedMicros =
+          elapsed.inMicroseconds - _trackpadInertiaLastElapsed!.inMicroseconds;
+      _trackpadInertiaLastElapsed = elapsed;
+      if (elapsedMicros <= 0) {
+        return;
+      }
+      final double dtSeconds = elapsedMicros / Duration.microsecondsPerSecond;
+      _panTilesetByDelta(
+        delta: _scaleOffset(_trackpadPanVelocity, dtSeconds),
+        viewportSize: viewportSize,
+        image: image,
+      );
+      final double decay =
+          math.exp(-_trackpadInertiaDecayPerSecond * dtSeconds);
+      _trackpadPanVelocity = _scaleOffset(_trackpadPanVelocity, decay);
+      if (_trackpadPanVelocity.distance < _trackpadInertiaStopSpeed) {
+        _stopTrackpadInertia();
+      }
+    });
+    _trackpadInertiaLastElapsed = null;
+    _trackpadInertiaTicker!.start();
+  }
+
   void _handleSecondaryMousePanStart(PointerDownEvent event) {
+    _stopTrackpadInertia();
     if (event.kind != ui.PointerDeviceKind.mouse ||
         (event.buttons & kSecondaryMouseButton) == 0) {
       return;
@@ -785,8 +899,11 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
                         _clearSecondaryMousePan(event.pointer);
                       },
                       onPointerPanZoomStart: (PointerPanZoomStartEvent _) {
+                        _stopTrackpadInertia();
                         _isTrackpadPanZoomActive = true;
                         _lastTrackpadScale = 1.0;
+                        _lastTrackpadPanTimeStamp = null;
+                        _trackpadPanVelocity = Offset.zero;
                         _isDraggingSelection = false;
                         _dragSelectionStartTile = null;
                       },
@@ -804,8 +921,21 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
                       onPointerPanZoomEnd: (PointerPanZoomEndEvent _) {
                         _isTrackpadPanZoomActive = false;
                         _lastTrackpadScale = 1.0;
+                        _startTrackpadInertia(
+                          viewportSize: viewportSize,
+                          image: image,
+                        );
+                        _lastTrackpadPanTimeStamp = null;
                       },
                       onPointerSignal: (event) {
+                        if (event is PointerScaleEvent) {
+                          _handleTilesetScaleSignal(
+                            event: event,
+                            viewportSize: viewportSize,
+                            image: image,
+                          );
+                          return;
+                        }
                         if (event is! PointerScrollEvent) {
                           return;
                         }
