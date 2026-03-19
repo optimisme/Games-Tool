@@ -6,10 +6,15 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart'
     show
+        PointerCancelEvent,
+        PointerDownEvent,
+        PointerMoveEvent,
         PointerPanZoomEndEvent,
         PointerPanZoomStartEvent,
         PointerPanZoomUpdateEvent,
-        PointerScrollEvent;
+        PointerScrollEvent,
+        PointerUpEvent,
+        kSecondaryMouseButton;
 import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter/services.dart'
     show
@@ -69,8 +74,6 @@ class Layout extends StatefulWidget {
   State<Layout> createState() => _LayoutState();
 }
 
-enum _LayersCanvasTool { arrow, hand }
-
 class _LayoutState extends State<Layout> {
   static const double _animationRigFrameStripReservedHeight = 74.0;
   static const double _editToolbarExpandedWidth = 275.0;
@@ -129,13 +132,12 @@ class _LayoutState extends State<Layout> {
   int _drawCanvasRequestId = 0;
   bool _isPointerDown = false;
   double _lastTrackpadScale = 1.0;
+  int? _secondaryMousePanPointer;
   bool _isHoveringSelectedTilemapLayer = false;
   bool _isDragGestureActive = false;
   bool _pendingLayersViewportCenter = false;
   int? _pendingLevelsViewportFitLevelIndex;
   int? _lastAutoFramedLevelIndex;
-  bool _selectionModifierShiftPressed = false;
-  bool _selectionModifierAltPressed = false;
   bool _selectionModifierControlPressed = false;
   bool _selectionModifierMetaPressed = false;
   final Set<int> _selectedLayerIndices = <int>{};
@@ -168,7 +170,6 @@ class _LayoutState extends State<Layout> {
   bool _clipboardStatusIsWarning = false;
   Timer? _clipboardStatusTimer;
   final FocusNode _focusNode = FocusNode();
-  _LayersCanvasTool _layersCanvasTool = _LayersCanvasTool.hand;
   List<String> sections = [
     'projects',
     'media',
@@ -361,30 +362,12 @@ class _LayoutState extends State<Layout> {
       return;
     }
     final LogicalKeyboardKey key = event.logicalKey;
-    if (_isShiftModifierKey(key)) {
-      _selectionModifierShiftPressed = pressed;
-    }
-    if (_isAltModifierKey(key)) {
-      _selectionModifierAltPressed = pressed;
-    }
     if (_isControlModifierKey(key)) {
       _selectionModifierControlPressed = pressed;
     }
     if (_isMetaModifierKey(key)) {
       _selectionModifierMetaPressed = pressed;
     }
-  }
-
-  bool _isShiftModifierKey(LogicalKeyboardKey key) {
-    return key == LogicalKeyboardKey.shift ||
-        key == LogicalKeyboardKey.shiftLeft ||
-        key == LogicalKeyboardKey.shiftRight;
-  }
-
-  bool _isAltModifierKey(LogicalKeyboardKey key) {
-    return key == LogicalKeyboardKey.alt ||
-        key == LogicalKeyboardKey.altLeft ||
-        key == LogicalKeyboardKey.altRight;
   }
 
   bool _isControlModifierKey(LogicalKeyboardKey key) {
@@ -400,17 +383,17 @@ class _LayoutState extends State<Layout> {
         key == LogicalKeyboardKey.superKey;
   }
 
+  bool _isPlatformShortcutModifierPressed() {
+    final HardwareKeyboard keyboard = HardwareKeyboard.instance;
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      return _selectionModifierMetaPressed || keyboard.isMetaPressed;
+    }
+    return _selectionModifierControlPressed || keyboard.isControlPressed;
+  }
+
   void _refreshSelectionModifierState() {
     final HardwareKeyboard keyboard = HardwareKeyboard.instance;
     final Set<LogicalKeyboardKey> pressed = keyboard.logicalKeysPressed;
-    _selectionModifierShiftPressed = keyboard.isShiftPressed ||
-        pressed.contains(LogicalKeyboardKey.shift) ||
-        pressed.contains(LogicalKeyboardKey.shiftLeft) ||
-        pressed.contains(LogicalKeyboardKey.shiftRight);
-    _selectionModifierAltPressed = keyboard.isAltPressed ||
-        pressed.contains(LogicalKeyboardKey.alt) ||
-        pressed.contains(LogicalKeyboardKey.altLeft) ||
-        pressed.contains(LogicalKeyboardKey.altRight);
     _selectionModifierControlPressed = keyboard.isControlPressed ||
         pressed.contains(LogicalKeyboardKey.control) ||
         pressed.contains(LogicalKeyboardKey.controlLeft) ||
@@ -506,6 +489,71 @@ class _LayoutState extends State<Layout> {
         cursor + (appData.layersViewOffset - cursor) * (newScale / oldScale);
     appData.layersViewScale = newScale;
     appData.update();
+  }
+
+  void _panWorldViewport(AppData appData, Offset delta) {
+    if (delta == Offset.zero ||
+        !_usesWorldViewportSection(appData.selectedSection)) {
+      return;
+    }
+    appData.layersViewOffset += delta;
+    appData.update();
+  }
+
+  void _handlePointerDownForViewportPan(
+    AppData appData,
+    PointerDownEvent event,
+  ) {
+    if (event.kind != ui.PointerDeviceKind.mouse ||
+        !_usesWorldViewportSection(appData.selectedSection) ||
+        (event.buttons & kSecondaryMouseButton) == 0) {
+      return;
+    }
+    _secondaryMousePanPointer = event.pointer;
+  }
+
+  void _handlePointerMoveForViewportPan(
+    AppData appData,
+    PointerMoveEvent event,
+  ) {
+    if (_secondaryMousePanPointer != event.pointer ||
+        event.kind != ui.PointerDeviceKind.mouse ||
+        (event.buttons & kSecondaryMouseButton) == 0) {
+      return;
+    }
+    _panWorldViewport(appData, event.delta);
+  }
+
+  void _handlePointerUpForViewportPan(PointerUpEvent event) {
+    if (_secondaryMousePanPointer == event.pointer) {
+      _secondaryMousePanPointer = null;
+    }
+  }
+
+  void _handlePointerCancelForViewportPan(PointerCancelEvent event) {
+    if (_secondaryMousePanPointer == event.pointer) {
+      _secondaryMousePanPointer = null;
+    }
+  }
+
+  void _handleTrackpadPanZoomUpdate(
+    AppData appData,
+    PointerPanZoomUpdateEvent event,
+  ) {
+    if (!_usesWorldViewportSection(appData.selectedSection)) {
+      return;
+    }
+    final double scaleDelta = event.scale / _lastTrackpadScale;
+    _lastTrackpadScale = event.scale;
+    final bool hasPinchScale = (scaleDelta - 1.0).abs() >= 0.0001;
+
+    if (event.panDelta != Offset.zero) {
+      _panWorldViewport(appData, event.panDelta);
+    }
+    if (!hasPinchScale) {
+      return;
+    }
+    _applyLayersPinchZoom(appData, event.localPosition, scaleDelta);
   }
 
   Future<void> _autoSaveIfPossible(AppData appData) async {
@@ -755,15 +803,36 @@ class _LayoutState extends State<Layout> {
                                             ? _animationRigFrameStripReservedHeight
                                             : 0,
                                         child: Listener(
-                                          onPointerDown: (_) => {
-                                            _isPointerDown = true,
-                                            _focusNode.requestFocus(),
-                                            _refreshSelectionModifierState(),
+                                          onPointerDown:
+                                              (PointerDownEvent event) {
+                                            _isPointerDown = true;
+                                            _focusNode.requestFocus();
+                                            _refreshSelectionModifierState();
+                                            _handlePointerDownForViewportPan(
+                                              appData,
+                                              event,
+                                            );
                                           },
-                                          onPointerUp: (_) =>
-                                              _isPointerDown = false,
-                                          onPointerCancel: (_) =>
-                                              _isPointerDown = false,
+                                          onPointerMove:
+                                              (PointerMoveEvent event) {
+                                            _handlePointerMoveForViewportPan(
+                                              appData,
+                                              event,
+                                            );
+                                          },
+                                          onPointerUp: (PointerUpEvent event) {
+                                            _isPointerDown = false;
+                                            _handlePointerUpForViewportPan(
+                                              event,
+                                            );
+                                          },
+                                          onPointerCancel:
+                                              (PointerCancelEvent event) {
+                                            _isPointerDown = false;
+                                            _handlePointerCancelForViewportPan(
+                                              event,
+                                            );
+                                          },
                                           onPointerPanZoomStart:
                                               (PointerPanZoomStartEvent _) {
                                             _lastTrackpadScale = 1.0;
@@ -803,29 +872,9 @@ class _LayoutState extends State<Layout> {
                                           onPointerPanZoomUpdate:
                                               (PointerPanZoomUpdateEvent
                                                   event) {
-                                            if (appData.selectedSection != "levels" &&
-                                                appData.selectedSection !=
-                                                    "layers" &&
-                                                appData.selectedSection !=
-                                                    "tilemap" &&
-                                                appData.selectedSection !=
-                                                    "zones" &&
-                                                appData.selectedSection !=
-                                                    "sprites" &&
-                                                appData.selectedSection !=
-                                                    "paths" &&
-                                                appData.selectedSection !=
-                                                    "viewport") {
-                                              return;
-                                            }
-                                            final double scaleDelta =
-                                                event.scale /
-                                                    _lastTrackpadScale;
-                                            _lastTrackpadScale = event.scale;
-                                            _applyLayersPinchZoom(
+                                            _handleTrackpadPanZoomUpdate(
                                               appData,
-                                              event.localPosition,
-                                              scaleDelta,
+                                              event,
                                             );
                                           },
                                           child: MouseRegion(
