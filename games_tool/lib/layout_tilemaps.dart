@@ -202,6 +202,9 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     required Size viewportSize,
     required ui.Image image,
   }) {
+    if (scrollEvent.kind != ui.PointerDeviceKind.mouse) {
+      return;
+    }
     final double dx = scrollEvent.scrollDelta.dx;
     final double dy = scrollEvent.scrollDelta.dy;
 
@@ -235,16 +238,6 @@ class LayoutTilemapsState extends State<LayoutTilemaps> {
     if (_tilesetHandToolActive && event.panDelta.dx != 0) {
       _panTilesetByDelta(
         delta: Offset(event.panDelta.dx, 0),
-        viewportSize: viewportSize,
-        image: image,
-      );
-    }
-
-    if (!hasPinchScale && event.panDelta.dy != 0) {
-      final double zoomDelta = (-event.panDelta.dy / 80.0) * _tilesetZoomStep;
-      _zoomTilesetAtLocalPosition(
-        localPosition: event.localPosition,
-        zoomDelta: zoomDelta,
         viewportSize: viewportSize,
         image: image,
       );

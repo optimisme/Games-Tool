@@ -4,7 +4,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/gestures.dart' show PointerScrollEvent;
+import 'package:flutter/gestures.dart'
+    show
+        PointerPanZoomEndEvent,
+        PointerPanZoomStartEvent,
+        PointerPanZoomUpdateEvent,
+        PointerScrollEvent;
 import 'package:flutter/material.dart' show Tooltip;
 import 'package:flutter/services.dart'
     show
@@ -123,6 +128,7 @@ class _LayoutState extends State<Layout> {
   Offset _animationRigHitBoxDragOffset = Offset.zero;
   int _drawCanvasRequestId = 0;
   bool _isPointerDown = false;
+  double _lastTrackpadScale = 1.0;
   bool _isHoveringSelectedTilemapLayer = false;
   bool _isDragGestureActive = false;
   bool _pendingLayersViewportCenter = false;
@@ -274,9 +280,8 @@ class _LayoutState extends State<Layout> {
         return false;
       }
     }
-    final bool isDeleteKey =
-        event.logicalKey == LogicalKeyboardKey.backspace ||
-            event.logicalKey == LogicalKeyboardKey.delete;
+    final bool isDeleteKey = event.logicalKey == LogicalKeyboardKey.backspace ||
+        event.logicalKey == LogicalKeyboardKey.delete;
     if (isDeleteKey && !_isTextInputFocused()) {
       try {
         final AppData appData = Provider.of<AppData>(context, listen: false);
@@ -482,6 +487,21 @@ class _LayoutState extends State<Layout> {
     final double oldScale = appData.layersViewScale;
     final double newScale = (oldScale * (1.0 - scrollDy * zoomSensitivity))
         .clamp(minScale, maxScale);
+    appData.layersViewOffset =
+        cursor + (appData.layersViewOffset - cursor) * (newScale / oldScale);
+    appData.layersViewScale = newScale;
+    appData.update();
+  }
+
+  void _applyLayersPinchZoom(
+      AppData appData, Offset cursor, double scaleDelta) {
+    if (scaleDelta <= 0 || (scaleDelta - 1.0).abs() < 0.0001) {
+      return;
+    }
+    const double minScale = 0.05;
+    const double maxScale = 20.0;
+    final double oldScale = appData.layersViewScale;
+    final double newScale = (oldScale * scaleDelta).clamp(minScale, maxScale);
     appData.layersViewOffset =
         cursor + (appData.layersViewOffset - cursor) * (newScale / oldScale);
     appData.layersViewScale = newScale;
@@ -744,9 +764,20 @@ class _LayoutState extends State<Layout> {
                                               _isPointerDown = false,
                                           onPointerCancel: (_) =>
                                               _isPointerDown = false,
-                                          // macOS trackpad: two-finger scroll → PointerScrollEvent
+                                          onPointerPanZoomStart:
+                                              (PointerPanZoomStartEvent _) {
+                                            _lastTrackpadScale = 1.0;
+                                          },
+                                          onPointerPanZoomEnd:
+                                              (PointerPanZoomEndEvent _) {
+                                            _lastTrackpadScale = 1.0;
+                                          },
                                           onPointerSignal: (event) {
                                             if (event is! PointerScrollEvent) {
+                                              return;
+                                            }
+                                            if (event.kind !=
+                                                ui.PointerDeviceKind.mouse) {
                                               return;
                                             }
                                             if (appData.selectedSection != "levels" &&
@@ -769,8 +800,9 @@ class _LayoutState extends State<Layout> {
                                                 event.localPosition,
                                                 event.scrollDelta.dy);
                                           },
-                                          // macOS trackpad: two-finger pan-zoom → PointerPanZoomUpdateEvent
-                                          onPointerPanZoomUpdate: (event) {
+                                          onPointerPanZoomUpdate:
+                                              (PointerPanZoomUpdateEvent
+                                                  event) {
                                             if (appData.selectedSection != "levels" &&
                                                 appData.selectedSection !=
                                                     "layers" &&
@@ -786,12 +818,15 @@ class _LayoutState extends State<Layout> {
                                                     "viewport") {
                                               return;
                                             }
-                                            // pan delta from trackpad scroll
-                                            final double dy =
-                                                -event.panDelta.dy;
-                                            if (dy == 0) return;
-                                            _applyLayersZoom(appData,
-                                                event.localPosition, dy);
+                                            final double scaleDelta =
+                                                event.scale /
+                                                    _lastTrackpadScale;
+                                            _lastTrackpadScale = event.scale;
+                                            _applyLayersPinchZoom(
+                                              appData,
+                                              event.localPosition,
+                                              scaleDelta,
+                                            );
                                           },
                                           child: MouseRegion(
                                             cursor: _tilemapCursor(appData),
