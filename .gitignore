@@ -110,3 +110,6 @@ __pycache__
 !**/games_tool/macos/Runner/MainFlutterWindow.swift
 !**/games_tool/macos/Runner/DebugProfile.entitlements
 !**/games_tool/macos/Runner/Release.entitlements
+
+# Local binary accidentally added once; keep it out of the repo.
+gdx-liftoff-1.14.0.8-mac.jar
