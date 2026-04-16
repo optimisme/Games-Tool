@@ -31,7 +31,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class PlayScreen extends ScreenAdapter {
 
     private static final float DEFAULT_ANIMATION_FPS = 8f;
-    private static final float FIXED_STEP_SECONDS = 1f / 120f;
+    private static final float FIXED_STEP_SECONDS = 1f / 60f;
     private static final float MAX_FRAME_SECONDS = 0.25f;
     private static final float HUD_MARGIN = 14f;
     private static final float HUD_BUTTON_HEIGHT = 48f;

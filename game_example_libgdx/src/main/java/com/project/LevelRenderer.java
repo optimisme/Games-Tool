@@ -15,6 +15,7 @@ public final class LevelRenderer {
     private static final float MIN_DEPTH_PROJECTION_FACTOR = 0.25f;
     private static final float MAX_DEPTH_PROJECTION_FACTOR = 4.0f;
     private static final float TILE_OVERDRAW = 0.02f;
+    private static final int TILE_CULL_PADDING = 1;
     private final ObjectMap<String, TextureRegion[][]> splitCache = new ObjectMap<>();
     private final ObjectSet<Texture> configuredTextures = new ObjectSet<>();
 
@@ -38,6 +39,12 @@ public final class LevelRenderer {
             camera.zoom = baseZoom / projectionFactor;
             camera.update();
             batch.setProjectionMatrix(camera.combined);
+            float halfViewWidth = camera.viewportWidth * camera.zoom * 0.5f;
+            float halfViewHeight = camera.viewportHeight * camera.zoom * 0.5f;
+            float visibleLeft = camera.position.x - halfViewWidth;
+            float visibleRight = camera.position.x + halfViewWidth;
+            float visibleBottom = camera.position.y - halfViewHeight;
+            float visibleTop = camera.position.y + halfViewHeight;
 
             renderLayersAtDepth(
                 level.layers,
@@ -46,7 +53,11 @@ public final class LevelRenderer {
                 batch,
                 level.worldHeight,
                 layerVisibilityStates,
-                layerRuntimeStates
+                layerRuntimeStates,
+                visibleLeft,
+                visibleRight,
+                visibleBottom,
+                visibleTop
             );
             renderSpritesAtDepth(level.sprites, spriteRuntimeStates, depth, assets, batch, level.worldHeight);
         }
@@ -80,7 +91,11 @@ public final class LevelRenderer {
         SpriteBatch batch,
         float worldHeight,
         boolean[] layerVisibilityStates,
-        Array<RuntimeTransform> layerRuntimeStates
+        Array<RuntimeTransform> layerRuntimeStates,
+        float visibleLeft,
+        float visibleRight,
+        float visibleBottom,
+        float visibleTop
     ) {
         // Keep the same painter order as games_tool: reversed layer list per depth.
         for (int i = layers.size - 1; i >= 0; i--) {
@@ -95,7 +110,7 @@ public final class LevelRenderer {
             RuntimeTransform runtime = layerRuntimeStates != null && i >= 0 && i < layerRuntimeStates.size
                 ? layerRuntimeStates.get(i)
                 : null;
-            drawLayer(layer, runtime, assets, batch, worldHeight);
+            drawLayer(layer, runtime, assets, batch, worldHeight, visibleLeft, visibleRight, visibleBottom, visibleTop);
         }
     }
 
@@ -104,9 +119,17 @@ public final class LevelRenderer {
         RuntimeTransform runtime,
         AssetManager assets,
         SpriteBatch batch,
-        float worldHeight
+        float worldHeight,
+        float visibleLeft,
+        float visibleRight,
+        float visibleBottom,
+        float visibleTop
     ) {
-        if (!assets.isLoaded(layer.tilesTexturePath, Texture.class)) {
+        if (!assets.isLoaded(layer.tilesTexturePath, Texture.class)
+            || layer.tileMap == null
+            || layer.tileMap.length == 0
+            || layer.tileWidth <= 0
+            || layer.tileHeight <= 0) {
             return;
         }
 
@@ -120,9 +143,32 @@ public final class LevelRenderer {
         int cols = regions[0].length;
         float layerX = runtime == null ? layer.x : runtime.x;
         float layerY = runtime == null ? layer.y : runtime.y;
-        for (int row = 0; row < layer.tileMap.length; row++) {
+        int firstCol = Math.max(0, (int)Math.floor((visibleLeft - layerX) / layer.tileWidth) - TILE_CULL_PADDING);
+        int lastCol = (int)Math.ceil((visibleRight - layerX) / layer.tileWidth) - 1 + TILE_CULL_PADDING;
+        float visibleTopDown = worldHeight - visibleTop;
+        float visibleBottomDown = worldHeight - visibleBottom;
+        int firstRow = Math.max(0, (int)Math.floor((visibleTopDown - layerY) / layer.tileHeight) - TILE_CULL_PADDING);
+        int lastRow = Math.min(
+            layer.tileMap.length - 1,
+            (int)Math.ceil((visibleBottomDown - layerY) / layer.tileHeight) - 1 + TILE_CULL_PADDING
+        );
+        if (lastCol < 0 || lastRow < firstRow) {
+            return;
+        }
+
+        for (int row = firstRow; row <= lastRow; row++) {
             int[] rowData = layer.tileMap[row];
-            for (int col = 0; col < rowData.length; col++) {
+            if (rowData == null || rowData.length == 0) {
+                continue;
+            }
+
+            int rowFirstCol = Math.max(0, firstCol);
+            int rowLastCol = Math.min(rowData.length - 1, lastCol);
+            if (rowFirstCol > rowLastCol) {
+                continue;
+            }
+
+            for (int col = rowFirstCol; col <= rowLastCol; col++) {
                 int tileIndex = rowData[col];
                 if (tileIndex < 0) {
                     continue;
