@@ -1,5 +1,6 @@
 package com.project;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
@@ -15,6 +16,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.IntArray;
@@ -50,11 +52,21 @@ public class PlayScreen extends ScreenAdapter {
     private static final float CAMERA_DEAD_ZONE_FRACTION_X = 0.22f;
     private static final float CAMERA_DEAD_ZONE_FRACTION_Y = 0.18f;
     private static final float CAMERA_FOLLOW_SMOOTHNESS_PER_SECOND = 10f;
+    private static final float TOUCH_CONTROL_MARGIN = 30f;
+    private static final float JOYSTICK_BASE_RADIUS = 78f;
+    private static final float JOYSTICK_KNOB_RADIUS = 30f;
+    private static final float JOYSTICK_CAPTURE_RADIUS = 126f;
+    private static final float ACTION_BUTTON_RADIUS = 58f;
+    private static final float TOUCH_AXIS_DEAD_ZONE = 0.18f;
+    private static final int MAX_TOUCH_POINTS = 20;
     private static final Color HUD_TEXT_COLOR = Color.valueOf("FFFFFF");
     private static final Color HUD_LIFE_BAR_BG = Color.valueOf("5B0D0D");
     private static final Color HUD_LIFE_BAR_FILL = Color.valueOf("3DE67D");
     private static final Color HUD_LIFE_BAR_BORDER = Color.valueOf("E8FFE8");
     private static final Color END_OVERLAY_DIM = Color.valueOf("000000A8");
+    private static final Color TOUCH_CONTROL_FILL = Color.valueOf("07140ACC");
+    private static final Color TOUCH_CONTROL_STROKE = Color.valueOf("7EE5A4CC");
+    private static final Color TOUCH_CONTROL_ACCENT = Color.valueOf("35FF74DD");
 
     private final GameApp game;
     private final int levelIndex;
@@ -77,10 +89,15 @@ public class PlayScreen extends ScreenAdapter {
     private final LevelData levelData;
     private final boolean[] layerVisibilityStates;
     private final GameplayController gameplayController;
-    private final GameInputState inputState = new GameInputState();
     private final Vector2 samplePointCache = new Vector2();
     private final Rectangle backButtonBounds = new Rectangle();
     private final GlyphLayout hudLayout = new GlyphLayout();
+    private final GameInputState inputState = new GameInputState();
+    private final Vector2 hudTouchPoint = new Vector2();
+    private final Vector3 hudTouchPoint3 = new Vector3();
+    private final Vector2 joystickCenter = new Vector2();
+    private final Vector2 joystickKnobOffset = new Vector2();
+    private final Vector2 actionButtonCenter = new Vector2();
     private Texture backIconTexture;
 
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
@@ -88,6 +105,8 @@ public class PlayScreen extends ScreenAdapter {
     private float endOverlayElapsedSeconds = 0f;
     private float fixedStepAccumulator = 0f;
     private float pathMotionTimeSeconds = 0f;
+    private int joystickPointer = -1;
+    private int actionPointer = -1;
 
     public PlayScreen(GameApp game, int levelIndex) {
         this.game = game;
@@ -108,9 +127,19 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void show() {
-        // Play screen uses polling (isKeyPressed/isKeyJustPressed), so no InputProcessor is needed.
-        // Clear MenuScreen processor so keys like SPACE are not handled by menu actions.
         Gdx.input.setInputProcessor(null);
+        Gdx.input.setOnscreenKeyboardVisible(false);
+        AndroidHardwareInputBridge.setCaptureEnabled(isAndroidRuntime());
+        releaseTouchControls();
+        resetKeyboardInput();
+        updateTouchControlLayout();
+    }
+
+    @Override
+    public void hide() {
+        AndroidHardwareInputBridge.setCaptureEnabled(false);
+        Gdx.input.setInputProcessor(null);
+        resetKeyboardInput();
     }
 
     @Override
@@ -173,12 +202,15 @@ public class PlayScreen extends ScreenAdapter {
         viewport.update(width, height, false);
         hudViewport.update(width, height, true);
         updateBackButtonBounds();
+        updateTouchControlLayout();
         updateCameraForGameplay();
     }
 
     @Override
     public void dispose() {
         debugOverlayRenderer.dispose();
+        AndroidHardwareInputBridge.setCaptureEnabled(false);
+        Gdx.input.setInputProcessor(null);
         if (backIconTexture != null) {
             backIconTexture.dispose();
             backIconTexture = null;
@@ -563,9 +595,8 @@ public class PlayScreen extends ScreenAdapter {
         if (!Gdx.input.justTouched()) {
             return false;
         }
-        float x = Gdx.input.getX();
-        float y = hudViewport.getScreenHeight() - Gdx.input.getY();
-        if (!backButtonBounds.contains(x, y)) {
+        pointerToHudWorld(0, hudTouchPoint);
+        if (!backButtonBounds.contains(hudTouchPoint.x, hudTouchPoint.y)) {
             return false;
         }
         returnToMenu();
@@ -583,6 +614,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void renderHud() {
         hudViewport.apply();
+        updateTouchControlLayout();
 
         float hudWidth = hudViewport.getWorldWidth();
         float hudHeight = hudViewport.getWorldHeight();
@@ -655,6 +687,8 @@ public class PlayScreen extends ScreenAdapter {
             shapeRenderer.end();
         }
 
+        renderTouchControls();
+
         SpriteBatch batch = game.getBatch();
         batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
@@ -681,6 +715,8 @@ public class PlayScreen extends ScreenAdapter {
             hudLayout.setText(font, lifeText);
             font.draw(batch, lifeText, lifeTextX, lifeTextY);
         }
+
+        renderTouchControlLabels(batch, font);
 
         batch.end();
 
@@ -913,10 +949,32 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updateInputState() {
         inputState.reset();
+        Gdx.input.setOnscreenKeyboardVisible(false);
         applyKeyboardInput();
+        applyTouchInput();
     }
 
     private void applyKeyboardInput() {
+        if (isAndroidRuntime()) {
+            if (AndroidHardwareInputBridge.isLeftPressed()) {
+                inputState.moveX -= 1f;
+            }
+            if (AndroidHardwareInputBridge.isRightPressed()) {
+                inputState.moveX += 1f;
+            }
+            if (AndroidHardwareInputBridge.isUpPressed()) {
+                inputState.moveY -= 1f;
+            }
+            if (AndroidHardwareInputBridge.isDownPressed()) {
+                inputState.moveY += 1f;
+            }
+
+            inputState.jumpHeld = AndroidHardwareInputBridge.isJumpHeld();
+            inputState.jumpPressed = AndroidHardwareInputBridge.consumeJumpQueued();
+            inputState.resetPressed = AndroidHardwareInputBridge.consumeResetQueued();
+            return;
+        }
+
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
             inputState.moveX -= 1f;
         }
@@ -937,6 +995,171 @@ public class PlayScreen extends ScreenAdapter {
             || Gdx.input.isKeyJustPressed(Input.Keys.W)
             || Gdx.input.isKeyJustPressed(Input.Keys.UP);
         inputState.resetPressed = Gdx.input.isKeyJustPressed(Input.Keys.R);
+    }
+
+    private void applyTouchInput() {
+        if (!shouldShowTouchControls()) {
+            releaseTouchControls();
+            return;
+        }
+
+        updateTouchControlLayout();
+
+        boolean actionWasActive = actionPointer >= 0;
+        if (!isPointerStillActive(joystickPointer)) {
+            joystickPointer = -1;
+            joystickKnobOffset.setZero();
+        }
+        if (!isPointerStillActive(actionPointer)) {
+            actionPointer = -1;
+        }
+        if (!isActionButtonVisible()) {
+            actionPointer = -1;
+        }
+
+        for (int pointer = 0; pointer < MAX_TOUCH_POINTS; pointer++) {
+            if (!Gdx.input.isTouched(pointer) || pointer == joystickPointer || pointer == actionPointer) {
+                continue;
+            }
+
+            pointerToHudWorld(pointer, hudTouchPoint);
+            if (joystickPointer < 0
+                && hudTouchPoint.dst2(joystickCenter) <= JOYSTICK_CAPTURE_RADIUS * JOYSTICK_CAPTURE_RADIUS) {
+                joystickPointer = pointer;
+                continue;
+            }
+            if (isActionButtonVisible()
+                && actionPointer < 0
+                && hudTouchPoint.dst2(actionButtonCenter) <= ACTION_BUTTON_RADIUS * ACTION_BUTTON_RADIUS) {
+                actionPointer = pointer;
+            }
+        }
+
+        if (joystickPointer >= 0) {
+            pointerToHudWorld(joystickPointer, hudTouchPoint);
+            joystickKnobOffset.set(hudTouchPoint).sub(joystickCenter);
+            float distance = joystickKnobOffset.len();
+            if (distance > JOYSTICK_BASE_RADIUS && distance > 0f) {
+                joystickKnobOffset.scl(JOYSTICK_BASE_RADIUS / distance);
+                distance = JOYSTICK_BASE_RADIUS;
+            }
+
+            float distanceRatio = distance / JOYSTICK_BASE_RADIUS;
+            float normalizedRatio = Math.max(0f, distanceRatio - TOUCH_AXIS_DEAD_ZONE) / (1f - TOUCH_AXIS_DEAD_ZONE);
+            if (normalizedRatio > 0f && distance > 0f) {
+                float axisX = joystickKnobOffset.x / distance * normalizedRatio;
+                float axisY = joystickKnobOffset.y / distance * normalizedRatio;
+                inputState.moveX = MathUtils.clamp(inputState.moveX + axisX, -1f, 1f);
+                inputState.moveY = MathUtils.clamp(inputState.moveY - axisY, -1f, 1f);
+            }
+        } else {
+            joystickKnobOffset.setZero();
+        }
+
+        if (actionPointer >= 0) {
+            inputState.jumpHeld = true;
+            if (!actionWasActive) {
+                inputState.jumpPressed = true;
+            }
+        }
+    }
+
+    private void updateTouchControlLayout() {
+        float hudWidth = hudViewport.getWorldWidth();
+        joystickCenter.set(
+            TOUCH_CONTROL_MARGIN + JOYSTICK_BASE_RADIUS,
+            TOUCH_CONTROL_MARGIN + JOYSTICK_BASE_RADIUS
+        );
+        actionButtonCenter.set(
+            hudWidth - TOUCH_CONTROL_MARGIN - ACTION_BUTTON_RADIUS,
+            TOUCH_CONTROL_MARGIN + ACTION_BUTTON_RADIUS
+        );
+    }
+
+    private void renderTouchControls() {
+        if (!shouldShowTouchControls()) {
+            return;
+        }
+
+        ShapeRenderer shapeRenderer = game.getShapeRenderer();
+        shapeRenderer.setProjectionMatrix(hudCamera.combined);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(TOUCH_CONTROL_FILL);
+        shapeRenderer.circle(joystickCenter.x, joystickCenter.y, JOYSTICK_BASE_RADIUS, 40);
+        shapeRenderer.setColor(TOUCH_CONTROL_ACCENT);
+        shapeRenderer.circle(
+            joystickCenter.x + joystickKnobOffset.x,
+            joystickCenter.y + joystickKnobOffset.y,
+            JOYSTICK_KNOB_RADIUS,
+            28
+        );
+        if (isActionButtonVisible()) {
+            shapeRenderer.setColor(actionPointer >= 0 ? TOUCH_CONTROL_ACCENT : TOUCH_CONTROL_FILL);
+            shapeRenderer.circle(actionButtonCenter.x, actionButtonCenter.y, ACTION_BUTTON_RADIUS, 36);
+        }
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(TOUCH_CONTROL_STROKE);
+        shapeRenderer.circle(joystickCenter.x, joystickCenter.y, JOYSTICK_BASE_RADIUS, 40);
+        shapeRenderer.circle(joystickCenter.x, joystickCenter.y, JOYSTICK_BASE_RADIUS * 0.45f, 28);
+        if (isActionButtonVisible()) {
+            shapeRenderer.circle(actionButtonCenter.x, actionButtonCenter.y, ACTION_BUTTON_RADIUS, 36);
+        }
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
+    private void renderTouchControlLabels(SpriteBatch batch, BitmapFont font) {
+        if (!isActionButtonVisible()) {
+            return;
+        }
+
+        font.getData().setScale(1.3f);
+        font.setColor(HUD_TEXT_COLOR);
+        hudLayout.setText(font, "JUMP");
+        float textX = actionButtonCenter.x - hudLayout.width * 0.5f;
+        float textY = actionButtonCenter.y + hudLayout.height * 0.5f;
+        font.draw(batch, "JUMP", textX, textY);
+        font.getData().setScale(1f);
+    }
+
+    private boolean shouldShowTouchControls() {
+        return isAndroidRuntime();
+    }
+
+    private boolean isActionButtonVisible() {
+        return shouldShowTouchControls()
+            && levelIndex == 1
+            && gameplayController instanceof GameplayControllerPlatformer;
+    }
+
+    private boolean isPointerStillActive(int pointer) {
+        return pointer >= 0 && pointer < MAX_TOUCH_POINTS && Gdx.input.isTouched(pointer);
+    }
+
+    private void releaseTouchControls() {
+        joystickPointer = -1;
+        actionPointer = -1;
+        joystickKnobOffset.setZero();
+    }
+
+    private void resetKeyboardInput() {
+        AndroidHardwareInputBridge.resetState();
+    }
+
+    private boolean isAndroidRuntime() {
+        return Gdx.app.getType() == Application.ApplicationType.Android;
+    }
+
+    private void pointerToHudWorld(int pointer, Vector2 out) {
+        hudTouchPoint3.set(Gdx.input.getX(pointer), Gdx.input.getY(pointer), 0f);
+        hudViewport.unproject(hudTouchPoint3);
+        out.set(hudTouchPoint3.x, hudTouchPoint3.y);
     }
 
     private static boolean isPlatformerLevel(LevelData levelData) {

@@ -137,6 +137,7 @@ public final class LevelRenderer {
                 float x = layerX + col * layer.tileWidth;
                 float yDown = layerY + row * layer.tileHeight;
                 float y = worldHeight - yDown - layer.tileHeight;
+                // Expand tile quads slightly to hide sampling seams on mobile GPUs.
                 batch.draw(
                     regions[srcRow][srcCol],
                     x - TILE_OVERDRAW,
