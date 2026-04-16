@@ -20,7 +20,7 @@ import 'libgdx_compat/viewport.dart';
 
 class PlayScreen extends ScreenAdapter {
   static const double defaultAnimationFps = 8;
-  static const double fixedStepSeconds = 1 / 120;
+  static const double fixedStepSeconds = 1 / 60;
   static const double maxFrameSeconds = 0.25;
   static const double hudMargin = 14;
   static const String hudBackLabel = 'Tornar';
@@ -103,6 +103,7 @@ class PlayScreen extends ScreenAdapter {
       true,
     );
     _loadHudAssets();
+    _updateBackButtonBounds();
   }
 
   @override
@@ -117,7 +118,6 @@ class PlayScreen extends ScreenAdapter {
       return;
     }
 
-    _updateBackButtonBounds();
     if (!_isEndOverlayActive() && _handleHudBackInput()) {
       return;
     }

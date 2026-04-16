@@ -11,6 +11,7 @@ import 'libgdx_compat/viewport.dart';
 class LevelRenderer {
   static const double minDepthProjectionFactor = 0.25;
   static const double maxDepthProjectionFactor = 4.0;
+  static const int tileCullPadding = 1;
 
   final ObjectMap<String, List<List<TextureRegion>>> splitCache =
       ObjectMap<String, List<List<TextureRegion>>>();
@@ -113,7 +114,10 @@ class LevelRenderer {
     OrthographicCamera camera,
     Viewport viewport,
   ) {
-    if (!assets.isLoaded(layer.tilesTexturePath, Texture)) {
+    if (!assets.isLoaded(layer.tilesTexturePath, Texture) ||
+        layer.tileMap.isEmpty ||
+        layer.tileWidth <= 0 ||
+        layer.tileHeight <= 0) {
       return;
     }
 
@@ -131,10 +135,44 @@ class LevelRenderer {
     final int cols = regions.first.length;
     final double layerX = runtime?.x ?? layer.x;
     final double layerY = runtime?.y ?? layer.y;
+    final _WorldBounds visibleBounds = _visibleWorldBounds(camera, viewport);
+    final int firstCol = math.max(
+      0,
+      ((visibleBounds.left - layerX) / layer.tileWidth).floor() -
+          tileCullPadding,
+    );
+    final int lastCol =
+        ((visibleBounds.right - layerX) / layer.tileWidth).ceil() -
+            1 +
+            tileCullPadding;
+    final int firstRow = math.max(
+      0,
+      ((visibleBounds.top - layerY) / layer.tileHeight).floor() -
+          tileCullPadding,
+    );
+    final int lastRow = math.min(
+      layer.tileMap.length - 1,
+      ((visibleBounds.bottom - layerY) / layer.tileHeight).ceil() -
+          1 +
+          tileCullPadding,
+    );
+    if (lastCol < 0 || lastRow < firstRow) {
+      return;
+    }
 
-    for (int row = 0; row < layer.tileMap.length; row++) {
+    for (int row = firstRow; row <= lastRow; row++) {
       final List<int> rowData = layer.tileMap[row];
-      for (int col = 0; col < rowData.length; col++) {
+      if (rowData.isEmpty) {
+        continue;
+      }
+
+      final int rowFirstCol = math.max(0, firstCol);
+      final int rowLastCol = math.min(rowData.length - 1, lastCol);
+      if (rowFirstCol > rowLastCol) {
+        continue;
+      }
+
+      for (int col = rowFirstCol; col <= rowLastCol; col++) {
         final int tileIndex = rowData[col];
         if (tileIndex < 0) {
           continue;
@@ -315,6 +353,20 @@ class LevelRenderer {
     return ui.Rect.fromLTRB(left, top, right, bottom);
   }
 
+  _WorldBounds _visibleWorldBounds(
+    OrthographicCamera camera,
+    Viewport viewport,
+  ) {
+    final double viewW = viewport.worldWidth * camera.zoom;
+    final double viewH = viewport.worldHeight * camera.zoom;
+    return _WorldBounds(
+      left: camera.x - viewW * 0.5,
+      top: camera.y - viewH * 0.5,
+      right: camera.x + viewW * 0.5,
+      bottom: camera.y + viewH * 0.5,
+    );
+  }
+
   ui.Rect? _worldRectToScreen(
     OrthographicCamera camera,
     Viewport viewport,
@@ -344,6 +396,20 @@ class LevelRenderer {
     }
     return ui.Rect.fromLTWH(dstX, dstY, dstW, dstH);
   }
+}
+
+class _WorldBounds {
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  const _WorldBounds({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
 }
 
 class SpriteRuntimeState {

@@ -7,6 +7,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -82,6 +83,7 @@ public class PlayScreen extends ScreenAdapter {
     private final Rectangle backButtonBounds = new Rectangle();
     private final GlyphLayout hudLayout = new GlyphLayout();
     private Texture backIconTexture;
+    private Texture hudSolidTexture;
 
     private DebugOverlayMode debugOverlayMode = DebugOverlayMode.NONE;
     private EndOverlayState endOverlayState = EndOverlayState.NONE;
@@ -104,6 +106,7 @@ public class PlayScreen extends ScreenAdapter {
         this.gameplayController = createGameplayController();
         hudViewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
         loadHudAssets();
+        updateBackButtonBounds();
     }
 
     @Override
@@ -122,7 +125,6 @@ public class PlayScreen extends ScreenAdapter {
             return;
         }
 
-        updateBackButtonBounds();
         if (!isEndOverlayActive() && handleHudBackInput()) {
             return;
         }
@@ -182,6 +184,10 @@ public class PlayScreen extends ScreenAdapter {
         if (backIconTexture != null) {
             backIconTexture.dispose();
             backIconTexture = null;
+        }
+        if (hudSolidTexture != null) {
+            hudSolidTexture.dispose();
+            hudSolidTexture = null;
         }
     }
 
@@ -530,6 +536,14 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void loadHudAssets() {
+        if (hudSolidTexture == null) {
+            Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.WHITE);
+            pixmap.fill();
+            hudSolidTexture = new Texture(pixmap);
+            pixmap.dispose();
+        }
+
         FileHandle backIconHandle = Gdx.files.internal("other/enrrere.png");
         if (!backIconHandle.exists()) {
             backIconTexture = null;
@@ -639,25 +653,22 @@ public class PlayScreen extends ScreenAdapter {
             font.getData().setScale(1f);
         }
 
-        if (showLifeBar) {
-            ShapeRenderer shapeRenderer = game.getShapeRenderer();
-            shapeRenderer.setProjectionMatrix(hudCamera.combined);
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(HUD_LIFE_BAR_BG);
-            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
-            shapeRenderer.setColor(HUD_LIFE_BAR_FILL);
-            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH * (lifePercent / 100f), HUD_LIFE_BAR_HEIGHT);
-            shapeRenderer.end();
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(HUD_LIFE_BAR_BORDER);
-            shapeRenderer.rect(lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT);
-            shapeRenderer.end();
-        }
-
         SpriteBatch batch = game.getBatch();
         batch.setProjectionMatrix(hudCamera.combined);
         batch.begin();
+
+        if (showLifeBar && hudSolidTexture != null) {
+            drawHudRect(batch, lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT, HUD_LIFE_BAR_BG);
+            drawHudRect(
+                batch,
+                lifeBarX,
+                lifeBarY,
+                HUD_LIFE_BAR_WIDTH * (lifePercent / 100f),
+                HUD_LIFE_BAR_HEIGHT,
+                HUD_LIFE_BAR_FILL
+            );
+            drawHudRectOutline(batch, lifeBarX, lifeBarY, HUD_LIFE_BAR_WIDTH, HUD_LIFE_BAR_HEIGHT, 1f, HUD_LIFE_BAR_BORDER);
+        }
 
         font.getData().setScale(HUD_BACK_LABEL_SCALE);
         hudLayout.setText(font, backLabel);
@@ -686,6 +697,41 @@ public class PlayScreen extends ScreenAdapter {
 
         font.getData().setScale(1f);
         font.setColor(Color.WHITE);
+        batch.setColor(Color.WHITE);
+    }
+
+    private void drawHudRect(SpriteBatch batch, float x, float y, float width, float height, Color color) {
+        if (hudSolidTexture == null || width <= 0f || height <= 0f) {
+            return;
+        }
+        batch.setColor(color);
+        batch.draw(hudSolidTexture, x, y, width, height);
+    }
+
+    private void drawHudRectOutline(
+        SpriteBatch batch,
+        float x,
+        float y,
+        float width,
+        float height,
+        float thickness,
+        Color color
+    ) {
+        if (hudSolidTexture == null || width <= 0f || height <= 0f || thickness <= 0f) {
+            return;
+        }
+        float safeThickness = Math.min(thickness, Math.min(width, height));
+        drawHudRect(batch, x, y, width, safeThickness, color);
+        drawHudRect(batch, x, y + height - safeThickness, width, safeThickness, color);
+        drawHudRect(batch, x, y + safeThickness, safeThickness, Math.max(0f, height - safeThickness * 2f), color);
+        drawHudRect(
+            batch,
+            x + width - safeThickness,
+            y + safeThickness,
+            safeThickness,
+            Math.max(0f, height - safeThickness * 2f),
+            color
+        );
     }
 
     private boolean isEndOverlayActive() {
